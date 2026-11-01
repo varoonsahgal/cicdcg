@@ -125,7 +125,7 @@ function alerts(html) {
 function reveals(html) {
   return html.replace(/<details>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/g, (m, sum, body) => {
     const t = sum.replace(/<[^>]+>/g, '');
-    const cls = /hint/i.test(t) ? 'hint' : /solution|answer key|facilitator/i.test(t) ? 'solution' : /^\s*\d+\./.test(t) ? 'quiz' : 'plain';
+    const cls = /hint/i.test(t) ? 'hint' : /solution|answer key|facilitator|^\s*✅/i.test(t) ? 'solution' : /^\s*\d+\./.test(t) ? 'quiz' : 'plain';
     return `<details class="reveal ${cls}"><summary>${sum}</summary><div class="body">${body}</div></details>`;
   });
 }

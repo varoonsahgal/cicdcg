@@ -85,16 +85,16 @@
 <tr>
 <td>Day 2</td>
 <td><strong>Lab 4 · ECS/ECR</strong></td>
-<td>65 min</td>
-<td>100 min</td>
-<td>Circuit-breaker exercise has a 10-minute wait; see §7</td>
+<td>90 min (Parts 1–9)</td>
+<td>135 min with exercises A–E · +60–90 min for challenges F–K</td>
+<td>Part 9 (task role) is the new core piece; the circuit-breaker exercise has a 10-minute wait; see §7</td>
 </tr>
 <tr>
 <td>Day 2</td>
 <td><strong>Lab 5 · EKS</strong></td>
-<td>55 min</td>
-<td>90 min</td>
-<td>Cluster must be applied ~20 min before; see §8</td>
+<td>80 min (Parts 1–7)</td>
+<td>125 min with challenges A–D · ~175 min with all ten</td>
+<td>Cluster must be applied ~20 min before; the shared fallback image must be rebuilt from the new <code>app.zip</code>; see §8</td>
 </tr>
 </tbody></table>
 <p>Measured machine time per pipeline round in Lab 3: <strong>~2 minutes</strong> (poll ≤ 60 s, build ≈ 30 s, deploy ≈ 35 s). Six rounds ≈ 12 minutes of waiting; the rest is reading.</p>
@@ -410,7 +410,7 @@ terraform output -raw handout_table            # paste into chat: pipeline link,
 <hr>
 <h2 id="7-lab-4-ecr-codebuild-ecs-fargate-facilitator-notes">7 · Lab 4 · ECR + CodeBuild + ECS Fargate — facilitator notes</h2>
 <p><strong>Permissions:</strong> verified with the IAM policy simulator that <code>participant-NN</code> users already have everything Lab 4 and Lab 5 need (<code>ecr:*</code>, <code>ecs:*</code>, <code>elasticloadbalancing:*</code>, <code>eks:*</code> reads + <code>eks:AccessKubernetesApi</code>, <code>cloudshell:*</code>, <code>logs:*</code>) through the group&#39;s <code>dc-capital-training</code> and <code>AWSCloudShellFullAccess</code> policies. The optional Terraform in <code>shared/terraform/student-access/</code> creates an equivalent customer-managed policy for accounts where that is not the case (<code>terraform apply -var attach_to_users=true</code> attaches it per user).</p>
-<p><strong>Student creates:</strong> ECR repo <code>participant-NN-mission-control</code> · bucket <code>cicd-lab4-participant-NN</code> · CodeBuild <code>participant-NN-image-build</code> (+ role) · ECS cluster <code>participant-NN-cluster</code>, task definition family <code>participant-NN-mission-control</code>, service <code>participant-NN-svc</code>, security group <code>participant-NN-mission-sg</code> · log groups <code>/aws/codebuild/…</code> and <code>/ecs/…</code> · optionally ALB <code>participant-NN-mission-alb</code>, target group, SG.</p>
+<p><strong>Student creates:</strong> ECR repo <code>participant-NN-mission-control</code> · bucket <code>cicd-lab4-participant-NN</code> · CodeBuild <code>participant-NN-image-build</code> (+ role) · ECS cluster <code>participant-NN-cluster</code>, task definition family <code>participant-NN-mission-control</code>, service <code>participant-NN-svc</code>, security group <code>participant-NN-mission-sg</code> · log groups <code>/aws/codebuild/…</code> and <code>/ecs/…</code> · Parameter Store <code>/participant-NN/mission-control/motd</code> (Part 9) and <code>…/launch-code</code> (Challenge J) · IAM roles <code>participant-NN-task-role</code> (Part 9) and <code>participant-NN-task-execution-role</code> (Challenge J) · optionally ALB <code>participant-NN-mission-alb</code>, target group, SG.</p>
 <p><strong>Task execution role:</strong> <code>ecsTaskExecutionRole</code> already exists in the account (console default). Students can pass it (<code>iam:PassRole</code> on <code>role/*</code>).</p>
 <p><strong>Planted failures and measured behaviour (participant-01 run, 2026-10-31):</strong></p>
 <table>
@@ -457,6 +457,66 @@ terraform output -raw handout_table            # paste into chat: pipeline link,
 <td>~3 min</td>
 </tr>
 </tbody></table>
+<p><strong>New in the 2026-11-01 revision (verified locally, not yet run in the account; do a dry run before class):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What should happen</th>
+<th>How it was verified</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Part 7b · CLI from CloudShell</td>
+<td><code>describe-services</code> / <code>describe-tasks</code> / <code>describe-images</code> queries print tables</td>
+<td>JMESPath checked; read-only calls students are allowed</td>
+</tr>
+<tr>
+<td>Part 8b · dial at min 50 / max 100</td>
+<td>one old task stops before the first new one starts; running count dips to 1 twice</td>
+<td>documented ECS behaviour; watch the Tasks tab during the dry run</td>
+</tr>
+<tr>
+<td>Part 9 · task role</td>
+<td>revision with <code>MOTD_PARAMETER</code> and no role → page shows <code>NoCredentialsError</code>; role without policy → <code>AccessDeniedException … ssm:GetParameter</code>; inline policy → green panel on refresh with no redeploy; parameter edit shows on refresh</td>
+<td>the app&#39;s SSM path was run in Docker with no credentials (0.3 s failure) and with real IAM credentials against a throwaway parameter; the three error/success states are exactly what boto3 returns. <code>AWS_EC2_METADATA_DISABLED=true</code> in the image keeps the no-role case fast and deterministic</td>
+</tr>
+<tr>
+<td>Exercise D · <code>/hog</code></td>
+<td>stopped reason <code>OutOfMemoryError: Container killed due to memory usage</code>, exit code 137, replacement task</td>
+<td>Docker <code>-m 256m</code>: OOMKilled=true, ExitCode=137</td>
+</tr>
+<tr>
+<td>Exercise E · immutable tags</td>
+<td><code>docker push …:latest</code> fails with <code>tag invalid: The image tag &#39;latest&#39; already exists … cannot be overwritten because the repository is immutable</code>; deleting the two <code>latest</code> lines fixes it; task definition accepts <code>repo@sha256:…</code></td>
+<td>documented ECR behaviour (every build has a different digest because <code>APP_VERSION</code> is baked in)</td>
+</tr>
+<tr>
+<td>Challenge G · Logs Insights</td>
+<td>JSON fields (<code>event</code>, <code>path</code>, <code>status</code>, <code>hostname</code>, <code>version</code>) are auto-discovered</td>
+<td>app now logs one JSON object per request (verified)</td>
+</tr>
+<tr>
+<td>Challenge H · lifecycle policy</td>
+<td>two rules, preview shows nothing to expire yet</td>
+<td>console flow as of 2026-11; JSON given for the CLI</td>
+</tr>
+<tr>
+<td>Challenge J · <code>ValueFrom</code> secret</td>
+<td>with <code>ecsTaskExecutionRole</code>: <code>ResourceInitializationError … ssm:GetParameters</code>; with their own execution role + <code>ssm:GetParameters</code>: page shows the masked launch code</td>
+<td>expected error text from the ECS agent; the <code>aws/ssm</code> default key needs no extra KMS grant</td>
+</tr>
+<tr>
+<td>Challenge K · ECS Exec</td>
+<td><code>enableExecuteCommand</code> + <code>--force-new-deployment</code>, task role with <code>ssmmessages:*Channel</code>, shell as user <code>mission</code>; <code>/tmp</code> file gone in the replacement</td>
+<td>CloudShell should carry the Session Manager plugin; the guide gives the <code>yum install</code> fallback. Have one student try it before announcing it</td>
+</tr>
+<tr>
+<td>Page rows (memory/CPU limits, readiness badge, <code>Running as</code>)</td>
+<td>on Fargate the Memory row should read the task&#39;s 512 MiB; if the cgroup shows no limit the page says so and Exercise D still works</td>
+<td>cgroup v1 and v2 paths both handled; verified in Docker (v2) and minikube</td>
+</tr>
+</tbody></table>
 <p><strong>Where students get stuck</strong></p>
 <table>
 <thead>
@@ -478,8 +538,33 @@ terraform output -raw handout_table            # paste into chat: pipeline link,
 </tr>
 <tr>
 <td>Task definition save fails on the health-check command</td>
-<td>commas inside the quoted Python</td>
-<td>Paste exactly: <code>CMD-SHELL, python -c &quot;…&quot;</code>; the console splits on the first comma only</td>
+<td>they pasted an older Python one-liner with commas</td>
+<td>Use <code>CMD-SHELL, curl -fsS http://127.0.0.1:8080/health || exit 1</code> (the image now has curl)</td>
+</tr>
+<tr>
+<td>Part 9b page panel says <code>NoCredentialsError</code> after they attached the role</td>
+<td>the role was attached to a new revision but the service still runs the old one, or they attached it as the <em>execution</em> role</td>
+<td>Deployments tab: which revision is PRIMARY? Task role vs task execution role dropdowns</td>
+</tr>
+<tr>
+<td><code>AccessDeniedException</code> persists after the inline policy</td>
+<td>policy on the wrong role, resource ARN typo (<code>parameter/</code> prefix, no leading slash after it), or they refreshed within 2 s</td>
+<td>Compare the ARN in the error with the policy; wait 10 s</td>
+</tr>
+<tr>
+<td>Challenge J: tasks never start, <code>ResourceInitializationError … ssm:GetParameters</code></td>
+<td>expected once; afterwards: still using <code>ecsTaskExecutionRole</code>, or <code>GetParameter</code> (singular) in the policy</td>
+<td>Own execution role with <code>ssm:GetParameters</code> (plural)</td>
+</tr>
+<tr>
+<td>Challenge K: <code>SessionManagerPlugin is not found</code></td>
+<td>CloudShell image without the plugin</td>
+<td><code>yum install</code> line in the guide</td>
+</tr>
+<tr>
+<td>Challenge K: <code>execute command was not enabled when the task was run</code></td>
+<td>task predates <code>--enable-execute-command</code></td>
+<td>wait for the forced deployment, re-read <code>$TASK</code></td>
 </tr>
 <tr>
 <td>Tasks stop at once with <code>ResourceInitializationError … unable to pull secrets or registry auth</code></td>
@@ -498,7 +583,7 @@ terraform output -raw handout_table            # paste into chat: pipeline link,
 </tr>
 </tbody></table>
 <p><strong>Cost:</strong> 2 Fargate tasks ≈ US$0.02/hour per student; 15 students ≈ US$0.30/hour. An ALB adds US$0.02/hour each. ECR storage is negligible. Make sure services are deleted at the end of the day.</p>
-<p><strong>Cleanup students cannot do:</strong> the CodeBuild service role (and anything they forget). <code>tools/cleanup-student.sh NN</code> removes every Lab 1, 2 and 4 resource for a student, in dependency order, including the ECS service/cluster, task definitions, ALB/target group, security groups, ECR repository, CodeBuild projects, log groups, buckets and roles.</p>
+<p><strong>Cleanup students cannot do:</strong> the CodeBuild service role, the task role, the task execution role (and anything they forget). <code>tools/cleanup-student.sh NN</code> removes every Lab 1, 2 and 4 resource for a student, in dependency order, including the ECS service/cluster, task definitions, ALB/target group, security groups, ECR repository (force, so immutable repositories go too), CodeBuild projects, log groups, Parameter Store parameters, buckets and roles.</p>
 <hr>
 <h2 id="8-lab-5-eks-shared-cluster-per-student-namespaces">8 · Lab 5 · EKS — shared cluster, per-student namespaces</h2>
 <p>Two Terraform modules, applied in order:</p>
@@ -508,9 +593,11 @@ cd ../students                  &amp;&amp; terraform init &amp;&amp; terraform a
 <p>What students get (RBAC and quotas verified by impersonation with <code>kubectl --as=participant-01 --as-group=participant-01</code>, plus a full run of the guide against the participant-01 namespace; the IAM-user → access-entry → group mapping was verified by inspecting the entries, <strong>not</strong> by logging in as a student, so have one participant run Part 1 before class):</p>
 <ul>
 <li><code>kubectl get nodes</code> works (read-only ClusterRole); <code>kubectl get pods -n participant-02</code> and <code>-n kube-system</code> are <strong>Forbidden</strong>.</li>
-<li>Full rights in their own namespace: Deployments, Services (LoadBalancer type works; the public subnets carry the <code>kubernetes.io/role/elb</code> tag), HPA (metrics-server add-on installed), logs, exec, port-forward.</li>
+<li>Full rights in their own namespace: Deployments, Services (LoadBalancer type works; the public subnets carry the <code>kubernetes.io/role/elb</code> tag), ConfigMaps, Secrets, Jobs (<code>batch</code>), PodDisruptionBudgets (<code>policy</code>), HPA (metrics-server add-on installed), logs, exec, port-forward. The Role&#39;s API groups cover every object the revised lab uses.</li>
 <li>Quota: 12 pods, 2 load balancers, 2 CPU / 3 GiB requests. Scaling to 20 stops at 12 with <code>exceeded quota: lab-quota</code> events. LimitRange defaults 100m/128Mi requests, 250m/256Mi limits.</li>
-<li>Measured: Deployment ready in ~15 s; Classic LB answering in ~90 s; rolling update ~20 s; <code>ImagePullBackOff</code> visible within 30 s; <code>rollout undo</code> ~15 s; HPA 2 → 6 replicas within ~60 s of load.</li>
+<li>Measured on EKS (2026-10-31): Deployment ready in ~15 s; Classic LB answering in ~90 s; rolling update ~20 s; <code>ImagePullBackOff</code> visible within 30 s; <code>rollout undo</code> ~15 s; HPA 2 → 6 replicas within ~60 s of load.</li>
+<li>Measured on a local minikube 1.37 cluster with the revised manifests and the revised image (2026-11-01; not yet re-run on EKS): ConfigMap file visible inside the Pod ~85 s after the edit, env var unchanged until <code>rollout restart</code>; <code>/ready/off</code> removes the Pod from Endpoints within 10 s with <code>RESTARTS 0</code>; <code>/hog</code> → <code>OOMKilled</code>, exit code 137, restart in place; selector typo → <code>ENDPOINTS &lt;none&gt;</code>; smoke-test Job <code>Complete</code> in 8 s; PDB <code>ALLOWED DISRUPTIONS 1</code>; <code>kubectl exec</code>/<code>port-forward</code>/<code>run busybox</code> DNS all fine; <code>rollout status</code> exits with <code>exceeded its progress deadline</code> 120 s into the <code>:v99</code> exercise; readiness-path typo → <code>0/1 Running</code>, <code>statuscode: 404</code>; HPA 2 → 6 about 105 s after the load generator starts and back to 2 about 2.5 min after it is deleted (60 s stabilization window); Secret → masked launch code on the page. The <code>kubectl run --rm -i</code> attach form was flaky with a mismatched client/server pair, so Challenge G uses run → <code>wait</code> → <code>logs</code> → delete instead.</li>
+<li><strong>The image matters.</strong> The revised lab needs an image built from the revised <code>app.zip</code> (<code>/ready</code>, <code>/hog</code>, JSON logs, the ConfigMap file). An image from the previous revision answers 404 on <code>/ready</code>, so every Pod stays <code>0/1</code>. Rebuild the shared fallback <code>participant-01-mission-control</code> before class and tell anyone who kept an old Lab 4 image to rebuild.</li>
 </ul>
 <p><strong>Capacity:</strong> two <code>t3.large</code> nodes (2 vCPU / 8 GiB each) hold about 15 × 2 Pods comfortably (requests 100m each). If the whole class runs the HPA challenge at once (15 × 6 Pods × 100m = 9 vCPU requested) the scheduler will leave Pods <code>Pending</code>; raise <code>node_count</code> to 4 in <code>cluster/main.tf</code> for a large class, or run the challenge in two waves.</p>
 <p><strong>CloudShell:</strong> already allowed for students (<code>AWSCloudShellFullAccess</code> on the group). First launch takes ~60 s; <code>kubectl</code> (v1.36 at the time of writing) and the AWS CLI are pre-installed. If a student&#39;s CloudShell shows the wrong region, the region picker in the console controls it. Note for anyone verifying with a <em>federated</em> console session (GetFederationToken): such sessions have no access entry and get <code>You must be logged in to the server</code>; that is expected and does not affect IAM users.</p>
@@ -546,10 +633,36 @@ cd ../students                  &amp;&amp; terraform init &amp;&amp; terraform a
 <tr>
 <td><code>ImagePullBackOff</code> when it should work</td>
 <td>image URI typo; or they deleted their Lab 4 repository</td>
-<td>Use the shared <code>participant-01-mission-control:v2</code> image kept for this purpose</td>
+<td>Use the shared <code>participant-01-mission-control:v3</code> image kept for this purpose (rebuilt from the revised app)</td>
+</tr>
+<tr>
+<td>Pods <code>0/1 Running</code> right after Part 3, <code>statuscode: 404</code> in the events</td>
+<td>an image from before this revision (no <code>/ready</code> endpoint)</td>
+<td>rebuild from the current <code>app.zip</code>, or use the shared image</td>
+</tr>
+<tr>
+<td><code>kubectl rollout status</code> prints <code>exceeded its progress deadline</code></td>
+<td><code>progressDeadlineSeconds: 120</code> in the manifest; expected in troubleshooting exercise 1</td>
+<td><code>kubectl rollout undo</code></td>
+</tr>
+<tr>
+<td><code>kubectl edit configmap</code> opens vi and they are stuck</td>
+<td>CloudShell&#39;s default editor</td>
+<td><code>:q!</code> to escape; the guide gives the <code>kubectl patch</code> one-liner instead</td>
+</tr>
+<tr>
+<td>Challenge A: HPA stays at 2 and <code>kubectl top</code> says <code>error: Metrics API not available</code></td>
+<td>metrics-server add-on not Ready</td>
+<td><code>kubectl -n kube-system get deploy metrics-server</code> as the instructor</td>
+</tr>
+<tr>
+<td>Challenge H: <code>kubectl apply -f 01-deployment.yaml</code> fails with <code>secret &quot;mission-secret&quot; not found</code> on the Pods</td>
+<td>they added the <code>secretRef</code> before creating the Secret</td>
+<td>create it, Pods start by themselves</td>
 </tr>
 </tbody></table>
 <p><strong>Cost:</strong> the EKS control plane bills per hour, plus 2 × t3.large and one Classic LB per student namespace that creates a Service. Destroy the same day.</p>
+<p><strong>Namespace cleanup:</strong> the revised Part 9 deletes everything the lab creates (ConfigMap, Secret, Job, PDB, HPA, load generator, Service, Deployment); <code>kubectl get all,cm,secret,pdb,hpa,job -n participant-NN</code> should show only <code>kube-root-ca.crt</code>.</p>
 <p><strong>Teardown (order matters):</strong></p>
 <pre><code class="language-bash"># 1. students must delete their Services first (each one owns an AWS load balancer), or do it for them:
 for ns in $(kubectl get ns -l lab=cicd-lab5 -o name); do kubectl -n ${ns#namespace/} delete svc --all; done

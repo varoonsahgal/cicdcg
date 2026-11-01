@@ -1,40 +1,57 @@
 # Mission Control on Kubernetes · two replicas of your Lab 4 image (or the shared one).
-# Replace IMAGE below (the ECR URI from Lab 4, e.g. 962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3)
+# Replace IMAGE below with the ECR URI from Lab 4,
+#   e.g. 962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mission-control
   labels: { app: mission-control }
 spec:
-  replicas: 2
+  replicas: 2                                   # desired count (ECS: desired tasks)
   selector:
-    matchLabels: { app: mission-control }
-  template:
+    matchLabels: { app: mission-control }       # which Pods this Deployment owns
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }   # never below 2 ready Pods, at most 3 during a rollout (ECS: min 100 % / max 150 %)
+  progressDeadlineSeconds: 120                  # a rollout that makes no progress for 2 minutes is reported as failed
+  template:                                     # the Pod spec (ECS: task definition)
     metadata:
       labels: { app: mission-control }
     spec:
       containers:
         - name: web
-          image: IMAGE
+          image: IMAGE                          # ← your ECR URI with a vN tag
           ports:
             - containerPort: 8080
+          envFrom:
+            - configMapRef: { name: mission-control }     # MISSION_NAME and APP_COLOR become env vars
           env:
-            - name: MISSION_NAME
-              value: "Artemis-NN"
-            - name: APP_COLOR
-              value: "#A78BFA"
-            - name: NODE_NAME                      # the page shows which node served you
+            - name: MOTD_FILE
+              value: /etc/mission/motd.txt      # the app reads the mounted ConfigMap key on every page load
+            - name: POD_NAME                    # the Downward API: facts about *this* Pod, injected as env vars
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: NODE_NAME                   # the page shows which node served you
               valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
             - name: POD_NAMESPACE
               valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+          volumeMounts:
+            - name: motd
+              mountPath: /etc/mission
+              readOnly: true
           resources:
-            requests: { cpu: 100m, memory: 128Mi }
-            limits:   { cpu: 250m, memory: 256Mi }
-          readinessProbe:
-            httpGet: { path: /health, port: 8080 }
+            requests: { cpu: 100m, memory: 128Mi }   # what the scheduler reserves (counts against your quota)
+            limits:   { cpu: 250m, memory: 256Mi }   # the ceiling; exceeding memory = OOMKilled, exit code 137
+          readinessProbe:                       # gates traffic: fail → removed from the Service, process untouched
+            httpGet: { path: /ready, port: 8080 }
             initialDelaySeconds: 3
             periodSeconds: 5
-          livenessProbe:
+            failureThreshold: 2
+          livenessProbe:                        # triggers a restart: fail 3× → kubelet restarts the container in place
             httpGet: { path: /health, port: 8080 }
             initialDelaySeconds: 10
             periodSeconds: 10
+      volumes:
+        - name: motd
+          configMap:
+            name: mission-control
+            items: [{ key: motd, path: motd.txt }]

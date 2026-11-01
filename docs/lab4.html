@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ship a container — ECR, CodeBuild and ECS on Fargate · Pipeline Academy</title>
-<meta name="description" content="In Lab 2 you copied one HTML file into an Apache you had installed by hand. Today you ship the whole thing: the operating system userland, the runtime, the app, in one immutable image that a robot builds, a registry stores and an orchestrator runs. Nothing gets installed on your laptop. Not even Docker.">
+<meta name="description" content="In Lab 2 you copied one HTML file into an Apache you had installed by hand. Today you ship the whole thing: the operating system userland, the runtime, the app, in one immutable image that a robot builds, a registry stores and an orchestrator runs. Then you give the running container an identity of its own, turn the blast-radius dial, and break it in six different ways. Nothing gets installed on your laptop. Not even Docker.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0B1220">
 <script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
@@ -36,19 +36,20 @@
   <div>
     <p class="eyebrow">Lab 4 of 5 · Contain it</p>
     <h1>Ship a container — ECR, CodeBuild and ECS on Fargate</h1>
-    <p class="lede">In Lab 2 you copied one HTML file into an Apache you had installed by hand. Today you ship the whole thing: the operating system userland, the runtime, the app, in one immutable image that a robot builds, a registry stores and an orchestrator runs. Nothing gets installed on your laptop. Not even Docker.</p>
-    <div class="mast-meta"><span class="chip"><b>Time</b> 90–110 minutes (core ≈ 65, exercises ≈ 35)</span><span class="chip"><b>Difficulty</b> Intermediate. Labs 1–3 first; container experience not required.</span><span class="chip"><b>AWS services</b> Amazon ECR, CodeBuild, Amazon ECS (Fargate), CloudWatch Logs, EC2 (security groups, optional load balancer), IAM</span><span class="chip"><b>You will build</b> A container image of a small web app, built by CodeBuild and pushed to your own ECR repository · an ECS cluster, task definition and service running two copies on Fargate · a rolling update to a new version</span><span class="chip"><b>You will break & fix</b> A build that cannot log in to ECR · a deployment of an image tag that does not exist · a container you crash on purpose</span></div>
+    <p class="lede">In Lab 2 you copied one HTML file into an Apache you had installed by hand. Today you ship the whole thing: the operating system userland, the runtime, the app, in one immutable image that a robot builds, a registry stores and an orchestrator runs. Then you give the running container an identity of its own, turn the blast-radius dial, and break it in six different ways. Nothing gets installed on your laptop. Not even Docker.</p>
+    <div class="mast-meta"><span class="chip"><b>Time</b> Core path (Parts 1–9) ≈ 90 min · Exercises A–E ≈ 45 min · Challenges F–K 10–20 min each, pick your own</span><span class="chip"><b>Difficulty</b> Intermediate, advanced in the challenges. Labs 1–3 first; container experience not required.</span><span class="chip"><b>AWS services</b> Amazon ECR, CodeBuild, Amazon ECS (Fargate), IAM, Systems Manager Parameter Store, CloudWatch Logs and Logs Insights, EC2 (security groups, load balancer), AWS CloudShell</span><span class="chip"><b>You will build</b> A container image built by CodeBuild and pushed to your own ECR repository · an ECS cluster, task definition and service running two copies on Fargate · a rolling update, then the same update with the blast-radius dial turned · a task role so the app can read its configuration from Parameter Store while it runs · a load balancer, a least-privilege build role, a lifecycle policy, a shell inside a running task</span><span class="chip"><b>You will break & fix</b> A build that cannot log in to ECR · an app with no identity, then an identity with no permission · a tag that does not exist · a container you crash · a container that eats all its memory · a push an immutable repository refuses · a secret the execution role may not read</span></div>
   </div>
 </div></section>
 
 <main id="main" class="labwrap">
-<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</a></li><li><a href="#part-1-get-the-app">Part 1 · Get the app</a></li><li><a href="#part-2-create-your-ecr-repository">Part 2 · Create your ECR repository</a></li><li><a href="#part-3-source-bucket">Part 3 · Source bucket</a></li><li><a href="#part-4-the-build-project-and-its-first-failure">Part 4 · The build project — and its first failure</a></li><li><a href="#part-5-ecs-cluster">Part 5 · ECS cluster</a></li><li><a href="#part-6-task-definition-the-recipe">Part 6 · Task definition (the recipe)</a></li><li><a href="#part-7-service-keep-two-running">Part 7 · Service (keep two running)</a></li><li><a href="#part-8-ship-v3-with-a-rolling-update">Part 8 · Ship v3 with a rolling update</a></li><li><a href="#part-9-exercises">Part 9 · Exercises</a></li><li><a href="#part-10-clean-up-please-do-this-fargate-bills-by-the-second">Part 10 · Clean up (please do this; Fargate bills by the second)</a></li><li><a href="#part-11-what-you-learned">Part 11 · What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your number.</strong> Everywhere you see <code>NN</code>, type your own two digits. Everything you name today contains it: <code>participant-NN-mission-control</code>, <code>participant-NN-cluster</code>, <code>cicd-lab4-participant-NN</code>.</p>
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</a></li><li><a href="#part-1-get-the-app">Part 1 · Get the app</a></li><li><a href="#part-2-create-your-ecr-repository">Part 2 · Create your ECR repository</a></li><li><a href="#part-3-source-bucket">Part 3 · Source bucket</a></li><li><a href="#part-4-the-build-project-and-its-first-failure">Part 4 · The build project, and its first failure</a></li><li><a href="#part-5-ecs-cluster">Part 5 · ECS cluster</a></li><li><a href="#part-6-task-definition-the-recipe">Part 6 · Task definition (the recipe)</a></li><li><a href="#part-7-service-keep-two-running">Part 7 · Service (keep two running)</a></li><li><a href="#part-8-ship-v3-with-a-rolling-update">Part 8 · Ship v3 with a rolling update</a></li><li><a href="#part-9-the-second-robot-give-the-app-a-task-role">Part 9 · The second robot: give the app a task role</a></li><li><a href="#part-10-exercises-and-challenges">Part 10 · Exercises and challenges</a></li><li><a href="#part-11-clean-up-please-do-this-fargate-bills-by-the-second">Part 11 · Clean up (please do this; Fargate bills by the second)</a></li><li><a href="#part-12-what-you-learned">Part 12 · What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your number.</strong> Everywhere you see <code>NN</code>, type your own two digits. Everything you name today contains it: <code>participant-NN-mission-control</code>, <code>participant-NN-cluster</code>, <code>cicd-lab4-participant-NN</code>, <code>/participant-NN/mission-control/motd</code>.</p>
 <p><strong>Your region.</strong> US West (Oregon) · <code>us-west-2</code>.</p>
+<p><strong>Your proof.</strong> Every exercise ends with a one-line <em>proof</em> (a stopped reason, an exit code, a log line). Paste it into the class chat; the instructor keeps a leaderboard.</p>
 </div></div>
 <hr>
 <h2 id="part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</h2>
 <h3>Why containers?</h3>
-<p>A deployment in Lab 2 assumed a lot about the server: that Apache could be installed, that <code>systemctl</code> existed, that nothing else was listening on port 80. Containers remove the assumptions by shipping the environment <em>with</em> the app. A <strong>container image</strong> is a read-only stack of filesystem layers (an OS userland, a Python runtime, your code) plus a little metadata (which command to run, which port to expose). A <strong>container</strong> is a running copy of an image with its own isolated filesystem, network and process tree. Any machine with a container runtime can run it, identically.</p>
+<p>A deployment in Lab 2 assumed a lot about the server: that Apache could be installed, that <code>systemctl</code> existed, that nothing else was listening on port 80. Containers remove the assumptions by shipping the environment <em>with</em> the app. A <strong>container image</strong> is a read-only stack of filesystem layers (an OS userland, a Python runtime, your code) plus a little metadata (which command to run, which port to expose, which user to run as). A <strong>container</strong> is a running copy of an image with its own isolated filesystem, network and process tree, and with <strong>limits</strong>: a slice of CPU and a ceiling on memory that the kernel enforces. Any machine with a container runtime can run it, identically.</p>
 <p><img class="diagram" src="images/diagrams/containers-stack.svg" alt="A container's life" loading="lazy"></p>
 <h3>The four places an image goes</h3>
 <table>
@@ -67,12 +68,12 @@
 <tr>
 <td><strong>Store</strong></td>
 <td>Amazon ECR (Elastic Container Registry)</td>
-<td>A private, per-account registry. Images are pushed with a <strong>tag</strong> (<code>v3</code>) and identified precisely by a <strong>digest</strong> (<code>sha256:…</code>). Can scan images for known vulnerabilities.</td>
+<td>A private, per-account registry. Images are pushed with a <strong>tag</strong> (<code>v3</code>) and identified precisely by a <strong>digest</strong> (<code>sha256:…</code>). Scans images for known vulnerabilities; can expire old ones; can refuse to overwrite a tag.</td>
 </tr>
 <tr>
 <td><strong>Orchestrate</strong></td>
 <td>Amazon ECS (Elastic Container Service)</td>
-<td>You declare &quot;run 2 copies of this task definition&quot;; ECS finds room, starts them, replaces them when they die, rolls out new versions without downtime.</td>
+<td>You declare &quot;run 2 copies of this task definition&quot;; ECS finds room, starts them, replaces them when they die, rolls out new versions without downtime, and gives each one an identity.</td>
 </tr>
 <tr>
 <td><strong>Run</strong></td>
@@ -80,7 +81,7 @@
 <td>Serverless compute for containers: you specify CPU and memory per task and never see, patch or pay for an idle server.</td>
 </tr>
 </tbody></table>
-<h3>ECS vocabulary (there are only five words)</h3>
+<h3>ECS vocabulary (there are only six words)</h3>
 <table>
 <thead>
 <tr>
@@ -94,27 +95,74 @@
 </tr>
 <tr>
 <td><strong>Task definition</strong></td>
-<td>The versioned recipe for one unit of work: image, CPU/memory, ports, environment variables, health check, logging, IAM roles. Every edit creates a new <strong>revision</strong>; revisions are immutable.</td>
+<td>The versioned recipe for one unit of work: image, CPU/memory, ports, environment variables, secrets, health check, logging, IAM roles. Every edit creates a new <strong>revision</strong>; revisions are immutable.</td>
 </tr>
 <tr>
 <td><strong>Task</strong></td>
-<td>One running instance of a task definition (one or more containers). Ephemeral: when it stops, it is gone.</td>
+<td>One running instance of a task definition (one or more containers). Ephemeral: when it stops, it is gone, together with every file it wrote.</td>
 </tr>
 <tr>
 <td><strong>Service</strong></td>
-<td>&quot;Keep N tasks of revision R running, behind this load balancer, and replace them gracefully when I change R.&quot; Owns the rolling update and the <strong>circuit breaker</strong>.</td>
+<td>&quot;Keep N tasks of revision R running, behind this load balancer, and replace them gracefully when I change R.&quot; Owns the rolling update, the <strong>blast-radius dial</strong> (minimum healthy % / maximum %) and the <strong>circuit breaker</strong>.</td>
 </tr>
 <tr>
-<td><strong>Task execution role / task role</strong></td>
-<td>Two different robots. The <strong>execution role</strong> is what ECS uses to pull your image and ship logs <em>before</em> your code runs. The <strong>task role</strong> is what your code would use to call AWS APIs <em>while</em> it runs (this app needs none).</td>
+<td><strong>Task execution role</strong></td>
+<td>Robot #1. What the ECS <em>agent</em> uses to pull your image, ship logs and fetch secrets <em>before</em> your code runs. One shared role per account is normal.</td>
+</tr>
+<tr>
+<td><strong>Task role</strong></td>
+<td>Robot #2. What <em>your code</em> uses to call AWS APIs <em>while</em> it runs. One per application, as small as possible. Part 9 gives Mission Control one.</td>
 </tr>
 </tbody></table>
 <h3>The app: Mission Control</h3>
-<p>A tiny Python web app whose only job is to tell you <strong>where it is running</strong>: container hostname, image version, uptime, a per-container hit counter and, on ECS, the task ID and availability zone. That makes everything an orchestrator does <em>visible</em>: refresh the page and watch the hostname change as a load balancer spreads requests; ship a new version and watch the version badge flip while the old tasks drain.</p>
-<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Students, read the Dockerfile.</strong> It is twelve lines and every line teaches something:</p>
-<pre><code class="language-dockerfile">FROM public.ecr.aws/docker/library/python:3.12-slim   # base layer from the public ECR gallery (no Docker Hub rate limits)
+<p>A tiny Python web app whose only job is to tell you <strong>where and how it is running</strong>: container hostname, image version, uptime, a per-container hit counter, the CPU and memory limits the orchestrator gave it, which user it runs as, whether it is <em>ready</em>, and (on ECS) the task ID and availability zone. It can also show a <strong>message of the day</strong> read from Parameter Store using the task role. That makes everything an orchestrator does <em>visible</em>: refresh behind a load balancer and watch the hostname change; ship a new version and watch the badge flip while the old tasks drain; change a parameter and watch the message change without a deployment.</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>What it does</th>
+<th>Used in</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/</code></td>
+<td>The page</td>
+<td>everywhere</td>
+</tr>
+<tr>
+<td><code>/api/info</code></td>
+<td>The same facts as JSON</td>
+<td>CLI checks, Logs Insights</td>
+</tr>
+<tr>
+<td><code>/health</code></td>
+<td><strong>Liveness</strong>: 200 as long as the process can answer at all</td>
+<td>task definition health check, load balancer health check</td>
+</tr>
+<tr>
+<td><code>/ready</code> · <code>/ready/off</code> · <code>/ready/on</code></td>
+<td><strong>Readiness</strong>: 200 or 503, toggled on purpose; the process keeps running</td>
+<td>Lab 5</td>
+</tr>
+<tr>
+<td><code>/crash</code></td>
+<td>The process exits with code 1</td>
+<td>Exercise C</td>
+</tr>
+<tr>
+<td><code>/hog?mb=N</code></td>
+<td>Allocates memory until the kernel kills the container (exit code 137)</td>
+<td>Exercise D</td>
+</tr>
+</tbody></table>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Students, read the Dockerfile.</strong> Every line teaches something:</p>
+<pre><code class="language-dockerfile">FROM public.ecr.aws/docker/library/python:3.12-slim   # base layers from the public ECR gallery (no Docker Hub rate limits)
 ARG APP_VERSION=dev                                   # a value passed in at build time…
-ENV APP_VERSION=$APP_VERSION PORT=8080 PYTHONUNBUFFERED=1   # …baked into the image as an env var
+ENV APP_VERSION=$APP_VERSION PORT=8080 PYTHONUNBUFFERED=1 \
+    AWS_EC2_METADATA_DISABLED=true                    # …baked in as env vars. The last one: never borrow the host&#39;s identity
+LABEL org.opencontainers.image.version=$APP_VERSION   # metadata travels with the image; the registry shows it
+RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends curl \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*                    # one OS package, installed AND cleaned in ONE layer
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt    # dependencies first: this layer is cached until requirements change
@@ -122,18 +170,19 @@ COPY app.py .                                          # code last: changes here
 RUN useradd --system --no-create-home mission &amp;&amp; chown -R mission /app
 USER mission                                           # never run a web app as root
 EXPOSE 8080
-HEALTHCHECK … CMD python -c &quot;…urlopen(&#39;http://127.0.0.1:8080/health&#39;)…&quot;
+HEALTHCHECK … CMD curl -fsS http://127.0.0.1:8080/health || exit 1
 CMD [&quot;python&quot;, &quot;app.py&quot;]
 </code></pre>
+<p>Why does the <code>apt-get</code> line do three things at once? Because every <code>RUN</code> is a layer, and a layer never shrinks: if you cleaned the package cache in a <em>second</em> <code>RUN</code>, the cache would still be inside the image, in the layer below. Order and grouping in a Dockerfile are size and speed decisions.</p>
 </div></div>
 <hr>
 <h2 id="part-1-get-the-app">Part 1 · Get the app</h2>
 <p>Download <strong><a href="downloads/app.zip"><code>lab4-ecs/app.zip</code></a></strong> (or the folder <a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab4-ecs/app/"><code>lab4-ecs/app/</code></a>). Contents:</p>
 <pre><code>app/
 ├── Dockerfile          ← how to build the image (above)
-├── app.py              ← the web app (Flask, ~120 lines, heavily commented)
-├── requirements.txt    ← flask, pinned
-├── buildspec.yml       ← the CodeBuild recipe: log in to ECR, docker build, docker push
+├── app.py              ← the web app (Flask, ~250 lines, heavily commented; read the docstring at the top)
+├── requirements.txt    ← flask and boto3, pinned
+├── buildspec.yml       ← the CodeBuild recipe: log in to ECR, build, inspect, push, describe
 └── .dockerignore       ← keep the buildspec and zips out of the image
 </code></pre>
 <p>Read <code>buildspec.yml</code>:</p>
@@ -149,21 +198,24 @@ phases:
   build:
     commands:
       - docker build --build-arg APP_VERSION=${IMAGE_TAG} -t ${REPO_URI}:${IMAGE_TAG} -t ${REPO_URI}:latest .
+      - docker history --format &#39;table {{.Size}}\t{{.CreatedBy}}&#39; ${REPO_URI}:${IMAGE_TAG}      # the layers, newest first
+      - docker image inspect --format &#39;Image ID {{.Id}} · {{.Size}} bytes · {{len .RootFS.Layers}} layers …&#39; ${REPO_URI}:${IMAGE_TAG}
   post_build:
     commands:
       - docker push ${REPO_URI}:${IMAGE_TAG}
-      - docker push ${REPO_URI}:latest
+      - docker push ${REPO_URI}:latest               # a moving pointer; Exercise E asks you to delete this line
+      - aws ecr describe-images --repository-name ${REPO_NAME} --image-ids imageTag=${IMAGE_TAG} … --output table   # the digest
       - printf &#39;{&quot;image&quot;:&quot;%s:%s&quot;}\n&#39; &quot;${REPO_URI}&quot; &quot;${IMAGE_TAG}&quot; &gt; image.json
 artifacts:
   files: [image.json]
 </code></pre>
-<p>Three things to notice: the build <em>logs in</em> to ECR with a short-lived token obtained through its IAM role (no password anywhere); the image gets <strong>two</strong> tags, a permanent <code>vN</code> and a moving <code>latest</code>; and the build number becomes the app&#39;s version string via <code>--build-arg</code>.</p>
+<p>Four things to notice: the build <em>logs in</em> to ECR with a short-lived token obtained through its IAM role (no password anywhere); the image gets <strong>two</strong> tags, a permanent <code>vN</code> and a moving <code>latest</code>; the build number becomes the app&#39;s version string via <code>--build-arg</code>; and after the push the build asks the registry what it stored, so the <strong>digest</strong> ends up in the log. <code>image.json</code> is the kind of file a Deploy stage would read (Lab 2&#39;s &quot;self-describing artifact&quot; idea, applied to images).</p>
 <hr>
 <h2 id="part-2-create-your-ecr-repository">Part 2 · Create your ECR repository</h2>
 <ol>
 <li>Console → <strong>Elastic Container Registry</strong> (search &quot;ECR&quot;) → <strong>Private registry → Repositories</strong> → <strong>Create repository</strong>.</li>
 <li>Repository name: <strong><code>participant-NN-mission-control</code></strong>.</li>
-<li>Image tag mutability: <strong>Mutable</strong> (we re-point <code>latest</code> on every build; <code>vN</code> tags are never reused anyway). Encryption: default.</li>
+<li>Image tag mutability: <strong>Mutable</strong> (we re-point <code>latest</code> on every build; Exercise E flips this switch and shows you why it exists). Encryption: default.</li>
 <li>If an <strong>Image scanning settings</strong> section is shown, enable <strong>Scan on push</strong>. <em>(This account uses registry-level &quot;enhanced&quot; scanning through Amazon Inspector, so the repository-level switch may not appear; that is fine.)</em></li>
 <li><strong>Create repository</strong>. Open it: it is empty, and the <strong>View push commands</strong> button shows what a laptop would run. We will let CodeBuild run the equivalent.</li>
 </ol>
@@ -178,7 +230,7 @@ artifacts:
 <li>Upload <strong><code>app.zip</code></strong> to the root of the bucket.</li>
 </ol>
 <hr>
-<h2 id="part-4-the-build-project-and-its-first-failure">Part 4 · The build project — and its first failure</h2>
+<h2 id="part-4-the-build-project-and-its-first-failure">Part 4 · The build project, and its first failure</h2>
 <ol>
 <li><strong>CodeBuild</strong> → <strong>Create build project</strong>.</li>
 <li>Project name <strong><code>participant-NN-image-build</code></strong>.</li>
@@ -212,7 +264,7 @@ is not authorized to perform: ecr:GetAuthorizationToken on resource: *
 
 <details class="reveal solution"><summary>✅ Solution</summary><div class="body">
 
-<p>IAM → Roles → <code>codebuild-participant-NN-image-build-service-role</code> → <strong>Add permissions → Attach policies</strong> → search <strong><code>AmazonEC2ContainerRegistryPowerUser</code></strong> → attach. (It grants login, pull and push to any repository in the account. Challenge D below asks you to scope it to <em>your</em> repository.)</p>
+<p>IAM → Roles → <code>codebuild-participant-NN-image-build-service-role</code> → <strong>Add permissions → Attach policies</strong> → search <strong><code>AmazonEC2ContainerRegistryPowerUser</code></strong> → attach. (It grants login, pull and push to any repository in the account. Challenge I asks you to scope it to <em>your</em> repository.)</p>
 <p><img class="shot" src="images/lab4-iam-codebuild-role-before.png" alt="Role before" loading="lazy" title="Click to zoom"></p>
 <p>Wait ~15 s, then <strong>Retry build</strong> (or Start build). This time:</p>
 <p><img class="shot" src="images/lab4-build2-succeeded.png" alt="Build 2 succeeded" loading="lazy" title="Click to zoom"></p>
@@ -220,13 +272,23 @@ is not authorized to perform: ecr:GetAuthorizationToken on resource: *
 <p><img class="shot" src="images/lab4-build2-phases.png" alt="All phases green" loading="lazy" title="Click to zoom"></p>
 <p>The log ends with layer pushes and <code>Pushed …/participant-NN-mission-control:v2</code>. <strong>Your tag is <code>v&lt;build number&gt;</code></strong>, so if your first build failed your first image is <code>v2</code>. Write your tag down.</p>
 <p><strong>The lesson:</strong> CI that produces container images needs <em>registry</em> permissions in addition to source and log permissions. The error names the role; add the verb to the role.</p>
+<p><strong>Proof:</strong> the <code>Pushed …:v2</code> line.</p>
 </div></details>
 
+<h3>Read the build log like an engineer</h3>
+<p>Scroll up in the successful build&#39;s log. Three things the buildspec printed for you, in order:</p>
+<ol>
+<li><strong>The layer table</strong> (<code>docker history</code>). Newest layer first. Read it bottom-up: the Debian base, Python, then <em>your</em> lines. Find the ~15 MB <code>apt-get</code> layer, the ~40 MB <code>pip install</code> layer, and the tiny <code>COPY app.py</code> layer. Which layer will be rebuilt when you change <code>app.py</code> in Part 8? Which ones will be reused from cache?</li>
+<li><strong>The image ID</strong> (<code>docker image inspect</code>): a <code>sha256:…</code> that is a hash of the image&#39;s configuration, the number of layers, and the <code>org.opencontainers.image.version</code> label (<code>v2</code>) that the Dockerfile stamped in.</li>
+<li><strong>What the registry stored</strong> (<code>aws ecr describe-images</code>): the <strong>digest</strong>, the list of tags that point at it (<code>v2</code> and <code>latest</code>), and the compressed size in bytes.</li>
+</ol>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Tag vs digest.</strong> A tag is a name somebody <em>chose</em> and can move (<code>latest</code> moves on every build). A digest is computed from the bytes and <em>cannot</em> move: <code>…mission-control@sha256:3f1a…</code> means exactly one image, forever, in any registry. Pipelines that care about reproducibility deploy by digest (Exercise E shows how). The image ID and the registry digest differ because the registry hashes the <em>compressed</em> manifest; both are stable.</p>
+</div></div>
 <h3>Look at what you built</h3>
-<p>ECR → your repository. One image, two tags (<code>latest</code>, <code>v2</code>), ~49 MB, a digest, and (after a minute) a vulnerability scan.</p>
+<p>ECR → your repository. One image, two tags (<code>latest</code>, <code>v2</code>), roughly 60–70 MB (ECR shows compressed sizes; on disk the image is about three times that), a digest, and (after a minute) a vulnerability scan.</p>
 <p><img class="shot" src="images/lab4-ecr-images.png" alt="Images" loading="lazy" title="Click to zoom"></p>
-<p>Click the image → <strong>Vulnerabilities</strong>. Scanning runs in the background and can take several minutes to report; a freshly rebuilt <code>python:3.12-slim</code> base may show zero findings, an older one a handful of low/medium CVEs inherited from Debian packages. Either way the point stands: most of an image&#39;s vulnerabilities come from layers you did not write, which is why teams rebuild images on a schedule even when their own code has not changed.</p>
-<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Build time.</strong> Build 2 took ~35 s. Most of it was pulling the base image and <code>pip install</code>. Because the Dockerfile copies <code>requirements.txt</code> <em>before</em> <code>app.py</code>, a change to the app alone reuses the cached dependency layer. Order in a Dockerfile is a performance decision.</p>
+<p>Click the image → <strong>Vulnerabilities</strong>. Scanning runs in the background and can take several minutes to report; a freshly rebuilt <code>python:3.12-slim</code> base may show zero findings, an older one a handful of low/medium CVEs inherited from Debian packages, and <code>curl</code> adds a few more candidates. Either way the point stands: most of an image&#39;s vulnerabilities come from layers you did not write, which is why teams rebuild images on a schedule even when their own code has not changed, and why every extra package is a decision.</p>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Build time.</strong> Build 2 took about a minute. Most of it was pulling the base image, <code>apt-get</code> and <code>pip install</code>. Because the Dockerfile copies <code>requirements.txt</code> <em>before</em> <code>app.py</code>, a change to the app alone reuses the cached dependency layer. Order in a Dockerfile is a performance decision.</p>
 </div></div>
 <hr>
 <h2 id="part-5-ecs-cluster">Part 5 · ECS cluster</h2>
@@ -243,7 +305,7 @@ is not authorized to perform: ecr:GetAuthorizationToken on resource: *
 <ol>
 <li>ECS → <strong>Task definitions</strong> → <strong>Create new task definition</strong> (not &quot;with JSON&quot;).</li>
 <li><strong>Task definition family:</strong> <code>participant-NN-mission-control</code>.</li>
-<li><strong>Infrastructure requirements:</strong> Launch type <strong>AWS Fargate</strong> · OS/Architecture <strong>Linux/X86_64</strong> · Network mode <strong>awsvpc</strong> · <strong>Task size: 0.25 vCPU, 0.5 GB</strong> · <strong>Task role: none</strong> · <strong>Task execution role: <code>ecsTaskExecutionRole</code></strong> (it already exists in this account; <code>cicd-lab4-task-execution-role</code> also works).</li>
+<li><strong>Infrastructure requirements:</strong> Launch type <strong>AWS Fargate</strong> · OS/Architecture <strong>Linux/X86_64</strong> · Network mode <strong>awsvpc</strong> · <strong>Task size: 0.25 vCPU, 0.5 GB</strong> · <strong>Task role: none</strong> (for now; Part 9 changes this) · <strong>Task execution role: <code>ecsTaskExecutionRole</code></strong> (it already exists in this account; <code>cicd-lab4-task-execution-role</code> also works).</li>
 </ol>
 <p><img class="shot" src="images/lab4-ecs-task-definition-create.png" alt="Task definition – infrastructure" loading="lazy" title="Click to zoom"></p>
 <ol start="4">
@@ -252,9 +314,9 @@ is not authorized to perform: ecr:GetAuthorizationToken on resource: *
 <li>Port mappings: container port <strong>8080</strong>, TCP, port name <code>web-8080</code>, app protocol HTTP</li>
 <li><strong>Environment variables:</strong> <code>MISSION_NAME</code> = <code>Artemis-NN</code> · <code>APP_COLOR</code> = <code>#22C55E</code></li>
 <li><strong>Logging:</strong> keep <strong>Use log collection</strong> ticked (Amazon CloudWatch; the default log group name <code>/ecs/participant-NN-mission-control</code> is fine)</li>
-<li>Expand <strong>HealthCheck</strong> → Command:<pre><code>CMD-SHELL, python -c &quot;import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(&#39;http://127.0.0.1:8080/health&#39;, timeout=2).status==200 else 1)&quot;
+<li>Expand <strong>HealthCheck</strong> → Command:<pre><code>CMD-SHELL, curl -fsS http://127.0.0.1:8080/health || exit 1
 </code></pre>
-Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
+Interval 15 · Timeout 5 · Start period 10 · Retries 3. <em>(The screenshot shows an older Python one-liner; either works. <code>curl -f</code> turns any non-2xx answer into a non-zero exit code, which is all a health check is: a command whose exit code ECS trusts.)</em></li>
 </ul>
 </li>
 </ol>
@@ -277,7 +339,7 @@ Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
 </ul>
 </li>
 <li><strong>Networking:</strong> default VPC · all four default subnets · Security group <strong>Create a new security group</strong> named <strong><code>participant-NN-mission-sg</code></strong> · inbound rule <strong>Custom TCP, port 8080, Anywhere (0.0.0.0/0)</strong> · <strong>Public IP: Turned on</strong>.</li>
-<li>Leave Load balancing <strong>off</strong> for now (Challenge C adds one). → <strong>Create</strong>.</li>
+<li>Leave Load balancing <strong>off</strong> for now (Challenge F adds one). → <strong>Create</strong>.</li>
 </ol>
 <p><img class="shot" src="images/lab4-ecs-service-create.png" alt="Create service" loading="lazy" title="Click to zoom"></p>
 <p>ECS now provisions two tasks: each gets its own network interface and public IP (that is what <code>awsvpc</code> mode means), pulls the image, starts, and waits for the health check.</p>
@@ -288,21 +350,47 @@ Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
 <p><img class="shot" src="images/lab4-ecs-task-details.png" alt="Task details" loading="lazy" title="Click to zoom"></p>
 <p><img class="shot" src="images/lab4-webpage-v2.png" alt="Mission Control v2" loading="lazy" title="Click to zoom"></p>
 <ol start="7">
+<li><p>Read the page slowly once. Beyond the hostname and the version badge (the screenshot predates a few rows): <strong>Running as</strong> <code>mission · pid 1</code> (the non-root user from the Dockerfile; your app <em>is</em> the container&#39;s only process), <strong>Memory</strong> (what the kernel will enforce; on Fargate the task&#39;s 512 MiB, unless the row says the limit sits one level up), <strong>CPU limit</strong> <code>0.25 vCPU</code>, a green <strong>READY</strong> badge, and the <strong>ECS task · AZ · task definition</strong> rows read from the task metadata endpoint. There is no message of the day yet; Part 9 adds one.</p>
+</li>
 <li><p>Open the <strong>second</strong> task&#39;s IP too. Different hostname, different hit counter, different availability zone. Two containers from one image share nothing at runtime.</p>
 </li>
-<li><p><strong>Logs</strong> tab on a task: your app&#39;s request log, streamed to CloudWatch by the execution role. The <code>/health</code> lines every 15 s are the container health check.</p>
+<li><p><strong>Logs</strong> tab on a task: your app&#39;s request log, streamed to CloudWatch by the execution role, <strong>one JSON line per request</strong> (<code>event</code>, <code>path</code>, <code>status</code>, <code>hostname</code>, <code>version</code>). The <code>/health</code> lines every 15 s are the container health check; they carry <code>&quot;probe&quot;: true</code> so you can filter them out later (Challenge G).</p>
 </li>
 </ol>
 <p><img class="shot" src="images/lab4-ecs-task-logs.png" alt="Task logs" loading="lazy" title="Click to zoom"></p>
 <p>The <strong>Health and metrics</strong> tab shows the service&#39;s view: desired vs running, and CPU/memory per task.</p>
 <p><img class="shot" src="images/lab4-ecs-service-health.png" alt="Service health" loading="lazy" title="Click to zoom"></p>
-<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Service shows <em>2 running / 2 desired</em>, Deployment status <em>Success</em>; both IPs serve the page with the badge <strong>v2</strong>.</p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Service shows <em>2 running / 2 desired</em>, Deployment status <em>Success</em>; both IPs serve the page with the badge <strong>v2</strong> and a green READY.</p>
 </blockquote>
+<h3>7b · The same view from the command line</h3>
+<p>Everything you just clicked is an API. Open <strong>CloudShell</strong> (the <code>&gt;_</code> icon in the console&#39;s top bar; it opens a Linux shell signed in as you) and ask ECS and ECR directly. Replace <code>NN</code> in each command:</p>
+<pre><code class="language-bash">aws ecs describe-services --cluster participant-NN-cluster --services participant-NN-svc \
+  --query &#39;services[0].{status:status,desired:desiredCount,running:runningCount,taskDef:taskDefinition,deployments:deployments[].{status:status,running:runningCount,rev:taskDefinition}}&#39; --output table
+
+aws ecs list-tasks --cluster participant-NN-cluster --service-name participant-NN-svc --output text
+
+TASK=$(aws ecs list-tasks --cluster participant-NN-cluster --service-name participant-NN-svc --query &#39;taskArns[0]&#39; --output text)
+aws ecs describe-tasks --cluster participant-NN-cluster --tasks $TASK \
+  --query &#39;tasks[0].{lastStatus:lastStatus,health:healthStatus,az:availabilityZone,cpu:cpu,memory:memory,image:containers[0].image,digest:containers[0].imageDigest,stoppedReason:stoppedReason}&#39;
+
+aws ecr describe-images --repository-name participant-NN-mission-control \
+  --query &#39;sort_by(imageDetails,&amp;imagePushedAt)[].{tags:imageTags,digest:imageDigest,pushed:imagePushedAt}&#39; --output table
+</code></pre>
+<details class="reveal plain"><summary>What to look at</summary><div class="body">
+
+<ul>
+<li><code>describe-services</code> is the <strong>Deployments</strong> tab as data: one <code>PRIMARY</code> deployment, running count 2. During a rollout you will see two deployments here.</li>
+<li><code>describe-tasks</code> is the task page: note <code>imageDigest</code>, which the console does not show. The task is running <em>that</em> image, whatever the tag says now. <code>stoppedReason</code> is <code>null</code> for a healthy task; in Exercise A it is where the truth lives.</li>
+<li><code>describe-images</code> is the registry&#39;s own list: tags and digests, oldest first.</li>
+</ul>
+<p>You will use these three commands again in the exercises. Lab 5 is entirely command-line; this is your warm-up.</p>
+</div></details>
+
 <hr>
 <h2 id="part-8-ship-v3-with-a-rolling-update">Part 8 · Ship v3 with a rolling update</h2>
 <p>The whole point of the pipeline is that v3 is cheap. Three steps: rebuild, new revision, update service.</p>
 <ol>
-<li><strong>Change the app.</strong> In <code>app.py</code> change the rocket emoji in the <code>&lt;h1&gt;</code> to a satellite (<code>🛰️</code>) and add a line to the <code>FACTS</code> list, for example <code>&quot;v3 shipped by a rolling update: a new task started, passed its health check, then the old one was stopped.&quot;</code>. Re-zip (from inside <code>app/</code>: <code>zip -r app.zip Dockerfile app.py requirements.txt buildspec.yml .dockerignore</code>), upload to S3, <strong>Start build</strong>. Note the new tag (<code>v3</code>).</li>
+<li><strong>Change the app.</strong> In <code>app.py</code> change the rocket emoji in the <code>&lt;h1&gt;</code> to a satellite (<code>🛰️</code>) and add a line to the <code>FACTS</code> list, for example <code>&quot;v3 shipped by a rolling update: a new task started, passed its health check, then the old one was stopped.&quot;</code>. Re-zip (from inside <code>app/</code>: <code>zip -r app.zip Dockerfile app.py requirements.txt buildspec.yml .dockerignore</code>), upload to S3, <strong>Start build</strong>. Note the new tag (<code>v3</code>). Look at the layer table: the <code>pip install</code> layer says <em>CACHED</em>; only <code>COPY app.py</code> and everything after it were rebuilt.</li>
 </ol>
 <p><img class="shot" src="images/lab4-ecr-images-v3.png" alt="v3 in ECR" loading="lazy" title="Click to zoom"></p>
 <ol start="2">
@@ -317,15 +405,200 @@ Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
 <p>What you are seeing: ECS starts <strong>two new tasks</strong> (max 200 %) with revision 2, waits for their health checks, then stops the two old ones (never below 100 %). At no moment were there fewer than two healthy tasks. The new tasks have <strong>new public IPs</strong>; find one and open it:</p>
 <p><img class="shot" src="images/lab4-webpage-v3.png" alt="Mission Control v3" loading="lazy" title="Click to zoom"></p>
 <p><img class="shot" src="images/lab4-ecs-service-deployments-done.png" alt="Deployment complete" loading="lazy" title="Click to zoom"></p>
-<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Config vs code.</strong> Changing <code>APP_COLOR</code> did not need a rebuild: it lives in the task definition, not the image. Changing the HTML did. Teams push <em>configuration</em> into task definitions (or Parameter Store / Secrets Manager references) so that the same image can run in dev, test and prod.</p>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Config vs code.</strong> Changing <code>APP_COLOR</code> did not need a rebuild: it lives in the task definition, not the image. Changing the HTML did. Teams push <em>configuration</em> into task definitions (or Parameter Store / Secrets Manager references) so that the same image can run in dev, test and prod. Part 9 goes one step further: configuration the app reads <em>while it runs</em>, with no deployment at all.</p>
 </div></div>
+<h3>8b · Turn the blast-radius dial</h3>
+<p>Lab 2 taught you that a deployment configuration is a dial between speed, cost and safety (<code>AllAtOnce</code> versus <code>OneAtATime</code>). ECS has the same dial with two numbers. You just used the default position; now try the other end.</p>
+<p><img class="diagram" src="images/diagrams/lab4-rolling-dial.svg" alt="The dial" loading="lazy"></p>
+<ol>
+<li>Create revision <strong>3</strong>: Task definitions → family → latest revision → <strong>Create new revision</strong> → <code>APP_COLOR</code> = <strong><code>#38BDF8</code></strong> → <strong>Create</strong>. (A config-only change: no rebuild.)</li>
+<li>Cluster → service → <strong>Update service</strong> → Revision <strong>3 (LATEST)</strong> → expand <strong>Deployment options</strong> → <strong>Min running tasks 50 %</strong> · <strong>Max running tasks 100 %</strong> → <strong>Update</strong>.</li>
+<li>Open the <strong>Tasks</strong> tab and keep refreshing. <strong>Predict first:</strong> in what order will tasks stop and start, and how many will be running at the lowest point?</li>
+</ol>
+<details class="reveal solution"><summary>✅ What you see, and why</summary><div class="body">
+
+<p>One old task is <strong>stopped first</strong> (ECS may go down to 50 % = 1 task), then one new task starts (it may not exceed 100 % = 2 tasks), passes its health check, then the second old task stops and the second new task starts. For two short windows your service ran on <strong>one</strong> container. Compare Part 8: four tasks at the peak, never fewer than two healthy.</p>
+<p>Which is right? Neither. <em>Min 100 / max 200</em> buys zero capacity loss with a temporary doubling of cost; <em>min 50 / max 100</em> never pays for extra tasks but halves your capacity twice per rollout. User-facing services take the first; batch workers and tight budgets often take the second. The point is that it is <strong>a decision you make per service</strong>, written down in the service definition, not something that happens to you.</p>
+<ol start="4">
+<li>Put it back: <strong>Update service</strong> → Min <strong>100 %</strong> · Max <strong>200 %</strong> → Update (no new revision needed).</li>
+</ol>
+<p><strong>Proof:</strong> a screenshot of the Tasks tab with only one task Running during the rollout, or the <code>describe-services</code> output showing <code>running: 1</code>.</p>
+</div></details>
+
 <hr>
-<h2 id="part-9-exercises">Part 9 · Exercises</h2>
-<h3>Exercise A · Deploy an image that does not exist</h3>
-<p>Create revision <strong>3</strong> of the task definition with the tag <strong><code>:v99</code></strong> and update the service to it. Then investigate.</p>
+<h2 id="part-9-the-second-robot-give-the-app-a-task-role">Part 9 · The second robot: give the app a task role</h2>
+<p>Until now the container has had <strong>no AWS identity at all</strong>. The execution role pulled the image and ships the logs, but that is the <em>agent&#39;s</em> identity, not your code&#39;s. Real apps read parameters, write to S3, call other services; they need robot #2.</p>
+<p><img class="diagram" src="images/diagrams/lab4-two-roles.svg" alt="Two robots" loading="lazy"></p>
+<h3>9a · Something for the app to read</h3>
+<ol>
+<li>Console → <strong>Systems Manager</strong> → <strong>Parameter Store</strong> (under <em>Application Management</em>) → <strong>Create parameter</strong>.</li>
+<li>Name <strong><code>/participant-NN/mission-control/motd</code></strong> · Tier <strong>Standard</strong> · Type <strong>String</strong> · Data type <strong>text</strong> · Value: <code>Hello from Parameter Store. Change me and refresh.</code> → <strong>Create parameter</strong>.</li>
+</ol>
+<p>Mission Control reads the parameter named in the <code>MOTD_PARAMETER</code> environment variable on <strong>every page load</strong> and shows it as the message of the day. If the read fails, it shows the error instead. That is on purpose.</p>
+<h3>9b · No identity</h3>
+<ol>
+<li>Task definitions → family → latest revision → <strong>Create new revision</strong> → container <strong>web</strong> → <strong>Environment variables</strong> → add <strong><code>MOTD_PARAMETER</code></strong> = <strong><code>/participant-NN/mission-control/motd</code></strong> → <strong>Create</strong> (revision <strong>4</strong>). Leave the task role at <em>none</em>.</li>
+<li><strong>Update service</strong> → revision 4 → Update. Wait for the rollout (≈ 2 min), find a new task&#39;s IP, open the page.</li>
+</ol>
+<p>The message-of-the-day panel is red:</p>
+<pre><code>Message of the day · SSM parameter /participant-NN/mission-control/motd
+NoCredentialsError: Unable to locate credentials
+</code></pre>
+<p>The AWS SDK inside the container looked everywhere a credential can live (environment variables, a credentials file, the container credentials endpoint, the EC2 metadata service, which the image disables) and found nothing. <strong>No task role means your code has no identity.</strong> It cannot even be <em>denied</em>; there is nobody to deny.</p>
+<h3>9c · An identity with no permissions</h3>
+<ol>
+<li><strong>IAM</strong> → <strong>Roles</strong> → <strong>Create role</strong> → Trusted entity type <strong>AWS service</strong> → Use case: search <strong>Elastic Container Service</strong> → choose <strong>Elastic Container Service Task</strong> → <strong>Next</strong>.</li>
+<li>Attach <strong>no</strong> policies → <strong>Next</strong> → Role name <strong><code>participant-NN-task-role</code></strong> → <strong>Create role</strong>. Open the role and read its <strong>Trust relationships</strong>: <code>ecs-tasks.amazonaws.com</code> may assume it. That trust policy is why the role will appear in the ECS console&#39;s <em>Task role</em> dropdown.</li>
+<li>Task definitions → <strong>Create new revision</strong> from revision 4 → <strong>Task role: <code>participant-NN-task-role</code></strong> → <strong>Create</strong> (revision <strong>5</strong>). <strong>Update service</strong> → revision 5. Wait, open a new task&#39;s IP.</li>
+</ol>
+<h3>🔧 Troubleshooting exercise 2 — read the sentence, fix exactly that</h3>
+<p>The panel is still red. Read it before you read the hint.</p>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<pre><code>ClientError: An error occurred (AccessDeniedException) when calling the GetParameter operation:
+User: arn:aws:sts::962804699607:assumed-role/participant-NN-task-role/&lt;task id&gt;
+is not authorized to perform: ssm:GetParameter
+on resource: arn:aws:ssm:us-west-2:962804699607:parameter/participant-NN/mission-control/motd
+because no identity-based policy allows the ssm:GetParameter action
+</code></pre>
+<p>Compare with 9b. This time there <em>is</em> an identity: the task role, assumed by a session named after your task ID. It was refused one verb on one resource. Lab 1 Mission E, Lab 3 Stop 2, and now this: the sentence always has the same four parts.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>IAM → Roles → <code>participant-NN-task-role</code> → <strong>Add permissions → Create inline policy → JSON</strong>:</p>
+<pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [{
+    &quot;Effect&quot;: &quot;Allow&quot;,
+    &quot;Action&quot;: &quot;ssm:GetParameter&quot;,
+    &quot;Resource&quot;: &quot;arn:aws:ssm:us-west-2:962804699607:parameter/participant-NN/mission-control/*&quot;
+  }]
+}
+</code></pre>
+<p>Name it <code>read-mission-parameters</code> → <strong>Create policy</strong>. Now <strong>just refresh the page</strong>. Within a few seconds the panel turns green with your message. No new revision, no deployment: the role&#39;s credentials were already in the container; only IAM&#39;s answer changed.</p>
+<p><strong>Proof:</strong> the green panel, and the <code>assumed-role/participant-NN-task-role</code> sentence from before it.</p>
+</div></details>
+
+<h3>9d · Three speeds of change</h3>
+<p>Parameter Store → your parameter → <strong>Edit</strong> → change the value → Save. Refresh the page: the new text is there immediately. You have now changed Mission Control in three ways today:</p>
+<table>
+<thead>
+<tr>
+<th>You changed…</th>
+<th>Needed a…</th>
+<th>Took</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>the code (HTML, a fact)</td>
+<td>rebuild + new revision + rollout</td>
+<td>~4 min</td>
+<td>Part 8</td>
+</tr>
+<tr>
+<td>an environment variable</td>
+<td>new revision + rollout</td>
+<td>~2 min</td>
+<td><code>APP_COLOR</code> in Parts 8 and 8b</td>
+</tr>
+<tr>
+<td>a value the app reads at run time</td>
+<td>nothing</td>
+<td>seconds</td>
+<td>the message of the day</td>
+</tr>
+</tbody></table>
+<p>Each step down the table is cheaper and also <strong>less controlled</strong>: a parameter change has no deployment record, no circuit breaker, no rollback. Teams put feature flags and tunables in the bottom row and keep anything that could break the app in the top two, where the pipeline guards it.</p>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Where did the credentials come from?</strong> The ECS agent gives every task with a task role a tiny private HTTP endpoint (<code>169.254.170.2</code>) and tells the SDK where it is through <code>AWS_CONTAINER_CREDENTIALS_RELATIVE_URI</code>. The SDK fetches short-lived keys for the role from there and refreshes them before they expire. Nothing in the image, nothing in the task definition, nothing to rotate. Challenge K lets you see that variable from inside the task.</p>
+</div></div>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Revision 5 runs with <code>participant-NN-task-role</code>; the page shows a green message of the day; editing the parameter changes the page on refresh.</p>
+</blockquote>
+<hr>
+<h2 id="part-10-exercises-and-challenges">Part 10 · Exercises and challenges</h2>
+<p><img class="diagram" src="images/diagrams/lab4-mission-board.svg" alt="Exercise board" loading="lazy"></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Badge</th>
+<th>What it teaches</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A · The missing tag</td>
+<td>👻</td>
+<td>stopped reasons, the deployment circuit breaker</td>
+<td>10 min + a wait</td>
+</tr>
+<tr>
+<td>B · Healthy, yet dead</td>
+<td>🚧</td>
+<td>health ≠ reachability</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td>C · Crash a container</td>
+<td>💥</td>
+<td>self-healing</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td>D · Out of memory</td>
+<td>🧠</td>
+<td>limits, exit code 137</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>E · Immutable tags</td>
+<td>🔒</td>
+<td>why <code>latest</code> is not a version; deploying by digest</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td>F · Load balancer, scale to 3</td>
+<td>⚖️</td>
+<td>one address, two health checks</td>
+<td>20 min</td>
+</tr>
+<tr>
+<td>G · Log detective</td>
+<td>🔎</td>
+<td>Logs Insights across every task</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>H · Lifecycle policy</td>
+<td>🧹</td>
+<td>registry hygiene</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>I · Least privilege</td>
+<td>🛡️</td>
+<td>scoping the build role</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>J · Secrets, injected</td>
+<td>🔐</td>
+<td>the execution role fetches secrets before your code runs</td>
+<td>20 min · stretch</td>
+</tr>
+<tr>
+<td>K · A shell inside Fargate</td>
+<td>🖥️</td>
+<td>ECS Exec, ephemeral filesystems</td>
+<td>20 min · stretch</td>
+</tr>
+</tbody></table>
+<h3>Exercise A · 👻 Deploy an image that does not exist</h3>
+<p>Create a new revision of the task definition with the tag <strong><code>:v99</code></strong> and update the service to it. Then investigate.</p>
 <details class="reveal hint"><summary>💡 Hint 1 — where to look</summary><div class="body">
 
-<p>Service → <strong>Tasks</strong> → change the filter to <em>Desired status: Stopped</em>. Click a stopped task. The <strong>Stopped reason</strong> says why. The <strong>Deployments</strong> tab and <strong>Events</strong> tab show the service&#39;s side of the story.</p>
+<p>Service → <strong>Tasks</strong> → change the filter to <em>Desired status: Stopped</em>. Click a stopped task. The <strong>Stopped reason</strong> says why. The <strong>Deployments</strong> tab and <strong>Events</strong> tab show the service&#39;s side of the story. From CloudShell: <code>aws ecs describe-tasks … --query &#39;tasks[0].stoppedReason&#39;</code> on a stopped task ARN.</p>
 </div></details>
 
 <details class="reveal hint"><summary>💡 Hint 2 — read it</summary><div class="body">
@@ -334,35 +607,84 @@ Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
 <p><code>CannotPullContainerError: … participant-NN-mission-control:v99: not found</code>. The <strong>execution role</strong> could log in (unlike Part 4), the repository exists, but the <em>tag</em> does not. ECS keeps trying new tasks; each one fails the same way.</p>
 </div></details>
 
-<details class="reveal solution"><summary>✅ Solution & what the circuit breaker does</summary><div class="body">
+<details class="reveal solution"><summary>✅ Solution &amp; what the circuit breaker does</summary><div class="body">
 
 <p><img class="shot" src="images/lab4-ecs-service-deployments-failing.png" alt="Failing deployment" loading="lazy" title="Click to zoom"></p>
 <p><img class="shot" src="images/lab4-ecs-service-events.png" alt="Service events" loading="lazy" title="Click to zoom"></p>
-<p>Because you enabled the <strong>deployment circuit breaker with rollback</strong>, ECS counts consecutive failed task launches and, after the threshold (about ten launches, several minutes), marks the deployment <strong>Failed</strong> and <strong>rolls back to revision 2</strong> by itself. Your v3 tasks were never stopped: the rollout never reached the &quot;stop old tasks&quot; step because no new task ever became healthy.</p>
+<p>Because you enabled the <strong>deployment circuit breaker with rollback</strong>, ECS counts consecutive failed task launches and, after the threshold (about ten launches, several minutes), marks the deployment <strong>Failed</strong> and <strong>rolls back to revision 5</strong> by itself. Your working tasks were never stopped: the rollout never reached the &quot;stop old tasks&quot; step because no new task ever became healthy.</p>
 <p><img class="shot" src="images/lab4-ecs-service-deployments-rolledback.png" alt="Rolled back" loading="lazy" title="Click to zoom"></p>
-<p>If you do not want to wait, fix it yourself: <strong>Update service</strong> → revision 2 → Update.</p>
+<p>If you do not want to wait, fix it yourself: <strong>Update service</strong> → revision 5 → Update. Do B and C while you wait; the service keeps serving the whole time.</p>
 <p><strong>The lesson:</strong> a rolling update with health checks and a circuit breaker turns &quot;we deployed a broken image&quot; from an outage into a log entry. Compare Lab 2, where a failed in-place deploy took the site down.</p>
+<p><strong>Proof:</strong> the <code>not found</code> stopped reason and the <em>Rolled back</em> deployment.</p>
 </div></details>
 
-<h3>Exercise B · Healthy but unreachable</h3>
+<h3>Exercise B · 🚧 Healthy but unreachable</h3>
 <p>EC2 → Security Groups → <code>participant-NN-mission-sg</code> → remove the inbound 8080 rule. Refresh the page: it hangs. Now look at the service: still <em>2 running</em>, health <em>Healthy</em>, deployment <em>Success</em>.</p>
-<details class="reveal plain"><summary>✅ Explanation</summary><div class="body">
+<details class="reveal solution"><summary>✅ Explanation</summary><div class="body">
 
-<p>The container health check runs <em>inside</em> the task against <code>127.0.0.1</code>; it proves the process answers, not that the internet can reach it. Reachability is a network property (security groups, routing, load balancer health checks). Put the rule back. In Challenge C the load balancer&#39;s own health check adds the outside-in view.</p>
+<p>The container health check runs <em>inside</em> the task against <code>127.0.0.1</code>; it proves the process answers, not that the internet can reach it. Reachability is a network property (security groups, routing, load balancer health checks). Put the rule back. Challenge F&#39;s load balancer adds the outside-in view, and the diagram there shows both checks on one picture.</p>
+<p><strong>Proof:</strong> the service page saying <em>Healthy</em> while your browser says nothing.</p>
 </div></details>
 
-<h3>Exercise C · Crash a container and watch ECS replace it</h3>
-<p>Open <code>http://&lt;task IP&gt;:8080/crash</code>. The app calls <code>os._exit(1)</code>.</p>
-<details class="reveal plain"><summary>✅ What happens</summary><div class="body">
+<h3>Exercise C · 💥 Crash a container and watch ECS replace it</h3>
+<p>Open <code>http://&lt;task IP&gt;:8080/crash</code>. The app logs one last JSON line and calls <code>os._exit(1)</code>.</p>
+<details class="reveal solution"><summary>✅ What happens</summary><div class="body">
 
 <p>The browser gets no response (the process died). Within a minute or two the task shows <strong>Stopped</strong>, reason <em>Essential container in task exited</em>, exit code 1 (it sits in <em>Deprovisioning</em> a little longer if a load balancer has to deregister it first). The service notices <em>running &lt; desired</em> and launches a replacement with a <strong>new task ID and IP</strong>.</p>
 <p><img class="shot" src="images/lab4-ecs-task-crashed.png" alt="Crashed task" loading="lazy" title="Click to zoom"></p>
 <p><img class="shot" src="images/lab4-ecs-service-events-selfheal.png" alt="Service events after self-healing" loading="lazy" title="Click to zoom"></p>
-<p>Nobody paged anyone. That is the &quot;supervise&quot; job of an orchestrator; Kubernetes does the same with restarts and ReplicaSets (Lab 5).</p>
+<p>Nobody paged anyone. That is the &quot;supervise&quot; job of an orchestrator. Note what did <em>not</em> happen: ECS did not restart the process inside the same task; it threw the task away and made a new one. Kubernetes (Lab 5) restarts in place first. Different philosophy, same outcome.</p>
+<p><strong>Proof:</strong> the stopped task&#39;s exit code 1 and the replacement&#39;s start event.</p>
 </div></details>
 
-<h3>Challenge D · Put a load balancer in front and scale to three</h3>
+<h3>Exercise D · 🧠 Out of memory</h3>
+<p>Open a task&#39;s page and note the <strong>Memory</strong> row. Then open <code>http://&lt;task IP&gt;:8080/hog</code>. The app allocates memory in 32 MiB chunks, logging as it goes, until something stops it. <strong>Predict:</strong> what stops it, and what will the stopped reason say?</p>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>The task was given 0.5 GB. The kernel enforces that with a cgroup limit; the page&#39;s Memory row showed you the number. When a process in the cgroup tries to go past it, the kernel&#39;s OOM killer sends <code>SIGKILL</code> (signal 9). A process killed by signal <em>n</em> exits with code 128 + <em>n</em>.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>The browser hangs for ~10–20 s, then the connection drops. Service → Tasks → <em>Stopped</em> → the task: <strong>Stopped reason</strong> <code>OutOfMemoryError: Container killed due to memory usage</code>, container <strong>exit code 137</strong>. The service launches a replacement, as in Exercise C.</p>
+<p>Open the stopped task&#39;s <strong>Logs</strong>: the last lines are <code>hog-progress</code> entries with <code>allocated_mib</code> climbing and <code>memory_used_mib</code> approaching the limit, then nothing. An OOM kill leaves no goodbye message; the <em>absence</em> of a shutdown line plus exit code 137 is the signature. Remember it: 137 in any container system means &quot;the memory limit&quot;, nine times out of ten.</p>
+<p><strong>The lesson:</strong> limits are real. They are what lets fifteen students share a cluster in Lab 5 without one runaway process taking the node down. Right-size them from the Health and metrics tab, not from guesses.</p>
+<p><strong>Proof:</strong> <code>exit code 137</code> and the <code>OutOfMemoryError</code> stopped reason.</p>
+</div></details>
+
+<h3>Exercise E · 🔒 Immutable tags, and deploying by digest</h3>
+<p>A registry can refuse to let a tag move. Turn that on and see what it breaks.</p>
+<ol>
+<li>ECR → your repository → <strong>Edit</strong> → Image tag mutability: <strong>Immutable</strong> → <strong>Save</strong>.</li>
+<li>Make any small change to <code>app.py</code> (another fact), re-zip, upload, <strong>Start build</strong>. <strong>Predict:</strong> which phase fails, on which line?</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>Every build produces a <em>different</em> image (the version string is baked in), so every build also tries to re-point <code>latest</code> at a new digest. Which push is that?</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution, part 1 — the failure</summary><div class="body">
+
+<p>The <code>v4</code> push succeeds; the <code>latest</code> push fails and takes <code>POST_BUILD</code> with it:</p>
+<pre><code>tag invalid: The image tag &#39;latest&#39; already exists in the &#39;participant-NN-mission-control&#39; repository
+and cannot be overwritten because the repository is immutable.
+</code></pre>
+<p>The registry did exactly what you asked: it protected the meaning of every tag. <code>latest</code> has no stable meaning, so it cannot survive in an immutable repository. Fix the buildspec: delete the <code>docker push …:latest</code> line and the <code>-t ${REPO_URI}:latest</code> from the <code>docker build</code> line. Re-zip, upload, build: green, <code>v5</code>.</p>
+<p><strong>The lesson:</strong> a tag you can overwrite is a tag you cannot trust. Immutable repositories plus one tag per build give you the same guarantee an S3 object version gave you in Lab 2.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution, part 2 — deploy by digest</summary><div class="body">
+
+<p>Even an immutable tag is still a <em>name</em>. Copy the <code>v5</code> image&#39;s digest from ECR (or from the build log&#39;s <code>describe-images</code> table) and create a new task definition revision whose image URI is</p>
+<pre><code>962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control@sha256:&lt;your digest&gt;
+</code></pre>
+<p>(no tag; <code>@</code> instead of <code>:</code>). Update the service. The page shows <strong>v5</strong>, and <code>aws ecs describe-tasks … --query &#39;tasks[0].containers[0].{image:image,digest:imageDigest}&#39;</code> shows that the image reference and the digest are the same thing. This is the reference a pipeline should write into a task definition: it is what <code>image.json</code> would carry from the Build stage to the Deploy stage.</p>
+<p><strong>Proof:</strong> the <code>cannot be overwritten</code> log line, then a running task whose image reference contains <code>@sha256:</code>.</p>
+</div></details>
+
+<h3>Challenge F · ⚖️ Put a load balancer in front and scale to three</h3>
 <p>Right now each task has its own IP and users would have to know them. Give the service one stable address.</p>
+<p><img class="diagram" src="images/diagrams/lab4-request-path.svg" alt="The request path" loading="lazy"></p>
 <details class="reveal hint"><summary>💡 Hint 1 — the pieces</summary><div class="body">
 
 <p>An <strong>Application Load Balancer</strong> (internet-facing, its own security group allowing port 80) → a <strong>listener</strong> on port 80 → a <strong>target group</strong> of type <strong>IP</strong> on port 8080 with health check path <code>/health</code>. Then <strong>Update service</strong>: attach the target group to container <code>web</code> port 8080 and set desired tasks to 3. The ALB&#39;s security group must be allowed into the task security group on 8080 (your rule already allows anywhere).</p>
@@ -370,7 +692,7 @@ Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
 
 <details class="reveal hint"><summary>💡 Hint 2 — console path</summary><div class="body">
 
-<p>EC2 → Load balancers → Create → Application Load Balancer, name <code>participant-NN-mission-alb</code>, all four subnets, new SG <code>participant-NN-alb-sg</code> with HTTP 80 from anywhere; under Listeners → &quot;Create target group&quot; (target type <strong>IP addresses</strong>, protocol HTTP 8080, health check <code>/health</code>), do <strong>not</strong> register targets by hand (ECS will). Back in ECS: service → Update → Load balancing → Application Load Balancer → use existing → pick the listener and target group → Desired tasks 3.</p>
+<p>EC2 → Load balancers → Create → Application Load Balancer, name <code>participant-NN-mission-alb</code>, all four subnets, new SG <code>participant-NN-alb-sg</code> with HTTP 80 from anywhere; under Listeners → &quot;Create target group&quot; (name <code>participant-NN-mission-tg</code>, target type <strong>IP addresses</strong>, protocol HTTP 8080, health check <code>/health</code>), do <strong>not</strong> register targets by hand (ECS will). Back in ECS: service → Update → Load balancing → Application Load Balancer → use existing → pick the listener and target group → Desired tasks 3.</p>
 </div></details>
 
 <details class="reveal solution"><summary>✅ Solution</summary><div class="body">
@@ -380,12 +702,74 @@ Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
 <p><img class="shot" src="images/lab4-alb-target-groups.png" alt="Three healthy targets" loading="lazy" title="Click to zoom"></p>
 <p><img class="shot" src="images/lab4-ecs-service-3-tasks.png" alt="Three tasks" loading="lazy" title="Click to zoom"></p>
 <p><img class="shot" src="images/lab4-ecs-service-health-alb.png" alt="Health and metrics with the load balancer attached" loading="lazy" title="Click to zoom"></p>
-<p>Two health checks now guard the service: the container&#39;s own (<code>/health</code> from inside) and the target group&#39;s (<code>/health</code> from the ALB). A task failing the second is deregistered <em>and</em> replaced.</p>
+<p>Two health checks now guard the service: the container&#39;s own (<code>/health</code> from inside) and the target group&#39;s (<code>/health</code> from the ALB). A task failing the second is deregistered <em>and</em> replaced. Repeat Exercise C through the ALB: the crashed task leaves the rotation in seconds and users never see an error.</p>
+<p><strong>Tighten the network while you are here:</strong> edit <code>participant-NN-mission-sg</code> and replace <em>port 8080 from anywhere</em> with <em>port 8080 from <code>participant-NN-alb-sg</code></em> (type the security group&#39;s name in the source field). The tasks&#39; public IPs stop answering; the ALB still works. That is how production looks: nothing but the load balancer can talk to the containers.</p>
 <p><strong>Cost note:</strong> an ALB costs about US$0.02 per hour plus traffic. Delete it in the clean-up.</p>
+<p><strong>Proof:</strong> three healthy targets and two different hostnames from the same URL.</p>
 </div></details>
 
-<h3>Challenge E · Least privilege for the build role</h3>
-<p>Replace <code>AmazonEC2ContainerRegistryPowerUser</code> on the CodeBuild role with an inline policy that allows <code>ecr:GetAuthorizationToken</code> on <code>*</code> and push/pull actions only on <strong>your</strong> repository ARN.</p>
+<h3>Challenge G · 🔎 Log detective, containers edition</h3>
+<p>Lab 1&#39;s Mission H queried one build project. Now you have a log group with one stream per task that ever ran, and every line is JSON. Answer questions about <em>all</em> of them at once.</p>
+<ol>
+<li><strong>CloudWatch</strong> → <strong>Logs</strong> → <strong>Logs Insights</strong> (the console may redirect you to <strong>Log Analytics</strong>; either page works).</li>
+<li>Log group <strong><code>/ecs/participant-NN-mission-control</code></strong>, time range <strong>3h</strong>. On the Log Analytics page replace everything <em>after</em> the generated <code>SOURCE … |</code> line with each query below; on the classic page just paste it.</li>
+</ol>
+<pre><code>fields @timestamp, hostname, path, status
+| filter event = &quot;request&quot; and path = &quot;/&quot;
+| stats count(*) as page_loads by hostname, version
+| sort page_loads desc
+</code></pre>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>Logs Insights discovers the JSON fields by itself: <code>event</code>, <code>path</code>, <code>status</code>, <code>hostname</code>, <code>version</code> are all queryable without <code>parse</code>. <code>@logStream</code> is the task ID, if you prefer that to the hostname.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution &amp; two more questions</summary><div class="body">
+
+<p>One row per container that ever served the page, with its version: the v2 pair, the v3 pair, the Part 8b pair, the Part 9 pairs, Exercise E&#39;s… Your morning as a table. If you did Challenge F, the three current containers have nearly equal counts: that is the ALB spreading load.</p>
+<p><em>When did things go wrong today?</em></p>
+<pre><code>fields @timestamp, hostname, event, @message
+| filter event in [&quot;startup&quot;, &quot;crash&quot;, &quot;hog-start&quot;, &quot;readiness-changed&quot;]
+| sort @timestamp desc
+| limit 30
+</code></pre>
+<p>Every <code>startup</code> is a container being born; a <code>crash</code> or <code>hog-start</code> right before one explains why.</p>
+<p><em>How busy is the service, per minute?</em></p>
+<pre><code>filter event = &quot;request&quot; and path = &quot;/&quot;
+| stats count(*) as hits by bin(1m)
+</code></pre>
+<p><strong>The lesson:</strong> structured logs (one JSON object per line) turn &quot;grep through fifteen task logs&quot; into one query. Design log lines for the question you will ask at 3 a.m.</p>
+<p><strong>Proof:</strong> your page-loads table.</p>
+</div></details>
+
+<h3>Challenge H · 🧹 A lifecycle policy: keep the last five</h3>
+<p>Every build pushes ~65 MB that nobody will ever delete by hand. Make the registry do it.</p>
+<ol>
+<li>ECR → your repository → <strong>Lifecycle policy</strong> (in the left menu, or under <em>Actions</em>) → <strong>Create rule</strong>.</li>
+<li>Rule priority <strong>1</strong> · description <code>keep the last five version tags</code> · Image status <strong>Tagged (wildcard matching)</strong> · tag pattern <strong><code>v*</code></strong> · Match criteria <strong>Image count more than 5</strong> → <strong>Save</strong>.</li>
+<li>Add rule priority <strong>2</strong>: Image status <strong>Untagged</strong> · <strong>Since image pushed more than 1 day</strong> → Save.</li>
+<li>Use the console&#39;s <strong>test</strong> (dry run) if offered: it lists which images <em>would</em> expire. With four or five images, none yet.</li>
+</ol>
+<details class="reveal solution"><summary>✅ The same policy as JSON (for the CLI or Terraform)</summary><div class="body">
+
+<pre><code class="language-json">{
+  &quot;rules&quot;: [
+    { &quot;rulePriority&quot;: 1, &quot;description&quot;: &quot;keep the last five version tags&quot;,
+      &quot;selection&quot;: { &quot;tagStatus&quot;: &quot;tagged&quot;, &quot;tagPatternList&quot;: [&quot;v*&quot;], &quot;countType&quot;: &quot;imageCountMoreThan&quot;, &quot;countNumber&quot;: 5 },
+      &quot;action&quot;: { &quot;type&quot;: &quot;expire&quot; } },
+    { &quot;rulePriority&quot;: 2, &quot;description&quot;: &quot;untagged images are build leftovers&quot;,
+      &quot;selection&quot;: { &quot;tagStatus&quot;: &quot;untagged&quot;, &quot;countType&quot;: &quot;sinceImagePushed&quot;, &quot;countUnit&quot;: &quot;days&quot;, &quot;countNumber&quot;: 1 },
+      &quot;action&quot;: { &quot;type&quot;: &quot;expire&quot; } }
+  ]
+}
+</code></pre>
+<p><code>aws ecr put-lifecycle-policy --repository-name participant-NN-mission-control --lifecycle-policy-text file://policy.json</code>, and <code>aws ecr start-lifecycle-policy-preview</code> to dry-run it.</p>
+<p><strong>The lesson:</strong> a registry is storage with a bill. Keep enough history to roll back (five versions is a common choice), and never keep untagged layers. Note the tension with Exercise E: a lifecycle policy can expire an image that a task definition still references by digest, so pipelines pin <em>and</em> keep.</p>
+<p><strong>Proof:</strong> the policy with two rules on your repository page.</p>
+</div></details>
+
+<h3>Challenge I · 🛡️ Least privilege for the build role</h3>
+<p>Replace <code>AmazonEC2ContainerRegistryPowerUser</code> on the CodeBuild role with an inline policy that allows <code>ecr:GetAuthorizationToken</code> on <code>*</code> and push/pull/describe actions only on <strong>your</strong> repository ARN.</p>
 <details class="reveal solution"><summary>✅ Solution</summary><div class="body">
 
 <pre><code class="language-json">{
@@ -394,63 +778,152 @@ Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
     { &quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: &quot;ecr:GetAuthorizationToken&quot;, &quot;Resource&quot;: &quot;*&quot; },
     { &quot;Effect&quot;: &quot;Allow&quot;,
       &quot;Action&quot;: [&quot;ecr:BatchCheckLayerAvailability&quot;, &quot;ecr:InitiateLayerUpload&quot;, &quot;ecr:UploadLayerPart&quot;,
-                 &quot;ecr:CompleteLayerUpload&quot;, &quot;ecr:PutImage&quot;, &quot;ecr:BatchGetImage&quot;, &quot;ecr:GetDownloadUrlForLayer&quot;],
+                 &quot;ecr:CompleteLayerUpload&quot;, &quot;ecr:PutImage&quot;, &quot;ecr:BatchGetImage&quot;, &quot;ecr:GetDownloadUrlForLayer&quot;,
+                 &quot;ecr:DescribeImages&quot;],
       &quot;Resource&quot;: &quot;arn:aws:ecr:us-west-2:962804699607:repository/participant-NN-mission-control&quot; }
   ]
 }
 </code></pre>
-<p><code>GetAuthorizationToken</code> is registry-wide by nature (it issues the login token); everything else can be pinned to one repository. Students cannot detach the managed policy in this account; ask the instructor, or verify the inline policy alone is sufficient by reading both.</p>
+<p><code>GetAuthorizationToken</code> is registry-wide by nature (it issues the login token); everything else can be pinned to one repository. <code>DescribeImages</code> is there because the buildspec asks the registry for the digest after pushing. Students cannot detach the managed policy in this account; ask the instructor, or verify the inline policy alone is sufficient by reading both.</p>
+<p><strong>Proof:</strong> the inline policy JSON on the role.</p>
+</div></details>
+
+<h3>Challenge J · 🔐 Secrets, injected by the execution role (stretch)</h3>
+<p>Part 9 had your <em>code</em> read a parameter at run time with the task role. There is a second pattern: ECS itself fetches a secret <strong>before the container starts</strong> and hands it over as an environment variable. Different robot, different moment, different failure. Mission Control shows a <code>LAUNCH_CODE</code> variable, masked, if it has one.</p>
+<ol>
+<li>Parameter Store → <strong>Create parameter</strong> → Name <strong><code>/participant-NN/mission-control/launch-code</code></strong> · Type <strong>SecureString</strong> · KMS key <code>alias/aws/ssm</code> (the default) · Value <code>orbit-7f3a-launch-code</code> → Create. Copy its <strong>ARN</strong>.</li>
+<li>Task definitions → <strong>Create new revision</strong> → container <strong>web</strong> → Environment variables → <strong>Add</strong> → Key <strong><code>LAUNCH_CODE</code></strong> · Value type <strong>ValueFrom</strong> · Value = the parameter ARN → Create. Keep the execution role as <code>ecsTaskExecutionRole</code>. <strong>Update service</strong> to the new revision. <strong>Predict</strong> before you look: will the task start?</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>Tasks → <em>Stopped</em> → the newest stopped task → Stopped reason. Which role is named in it? It is not the task role.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<pre><code>ResourceInitializationError: unable to pull secrets or registry auth: execution resource retrieval failed:
+unable to retrieve secrets from ssm: … AccessDeniedException: User: arn:aws:sts::…:assumed-role/ecsTaskExecutionRole/…
+is not authorized to perform: ssm:GetParameters on resource: arn:aws:ssm:…:parameter/participant-NN/mission-control/launch-code
+</code></pre>
+<p>The <strong>execution role</strong> fetches <code>ValueFrom</code> secrets, before your code exists, and the shared <code>ecsTaskExecutionRole</code> may not read your parameter. (Note the verb: <code>GetParameters</code>, plural; Part 9&#39;s code used <code>GetParameter</code>. IAM is exact.) The circuit breaker will eventually roll this back; do not wait for it.</p>
+<p>The fix is your own execution role, because the shared one belongs to everybody:</p>
+<ol>
+<li>IAM → Create role → AWS service → <strong>Elastic Container Service Task</strong> → attach <strong><code>AmazonECSTaskExecutionRolePolicy</code></strong> → name <strong><code>participant-NN-task-execution-role</code></strong> → Create.</li>
+<li>Add an inline policy allowing <strong><code>ssm:GetParameters</code></strong> on <code>arn:aws:ssm:us-west-2:962804699607:parameter/participant-NN/mission-control/*</code>. (A SecureString under the default <code>aws/ssm</code> key needs no extra KMS permission.)</li>
+<li>Task definitions → new revision from the failing one → <strong>Task execution role: <code>participant-NN-task-execution-role</code></strong> → Create → Update service.</li>
+</ol>
+<p>The page now shows <strong>Launch code (from a Secret): <code>orbi…••••••••</code></strong>. The value itself never appears in the task definition, the console or the logs; only its ARN does.</p>
+<p><strong>The lesson:</strong> two robots, two moments. <em>Before</em> the container: the execution role (image, logs, injected secrets). <em>During</em>: the task role (whatever the code calls). A secret that must be present at start-up goes through the first; data the app reads on demand goes through the second. The error message always tells you which robot was refused.</p>
+<p><strong>Proof:</strong> the <code>ssm:GetParameters</code> denial naming <code>ecsTaskExecutionRole</code>, then the masked launch code on the page.</p>
+</div></details>
+
+<h3>Challenge K · 🖥️ A shell inside a running Fargate task (stretch)</h3>
+<p>There is no server to SSH into, and that is a feature. But sometimes you need to look inside. <strong>ECS Exec</strong> opens a shell in a running container through Systems Manager, using the task role.</p>
+<ol>
+<li>IAM → <code>participant-NN-task-role</code> → edit the inline policy and add a statement allowing <strong><code>ssmmessages:CreateControlChannel</code>, <code>ssmmessages:CreateDataChannel</code>, <code>ssmmessages:OpenControlChannel</code>, <code>ssmmessages:OpenDataChannel</code></strong> on <code>*</code>.</li>
+<li>In <strong>CloudShell</strong>, switch the service on for exec and roll the tasks (the flag only applies to tasks started after it):</li>
+</ol>
+<pre><code class="language-bash">aws ecs update-service --cluster participant-NN-cluster --service participant-NN-svc \
+  --enable-execute-command --force-new-deployment --query &#39;service.enableExecuteCommand&#39;
+aws ecs wait services-stable --cluster participant-NN-cluster --services participant-NN-svc     # ~2 min
+TASK=$(aws ecs list-tasks --cluster participant-NN-cluster --service-name participant-NN-svc --query &#39;taskArns[0]&#39; --output text)
+aws ecs describe-tasks --cluster participant-NN-cluster --tasks $TASK \
+  --query &#39;tasks[0].{exec:enableExecuteCommand,agent:containers[0].managedAgents[0].lastStatus}&#39;
+aws ecs execute-command --cluster participant-NN-cluster --task $TASK --container web --interactive --command &quot;/bin/bash&quot;
+</code></pre>
+<ol start="3">
+<li>You are inside. Try:</li>
+</ol>
+<pre><code class="language-bash">hostname; id                                       # the container&#39;s hostname; user &quot;mission&quot;, not root
+env | grep -E &#39;^(APP_|MISSION|MOTD|AWS_|ECS_)&#39; | sort  # your config, and AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: the task role&#39;s door
+curl -s &quot;$ECS_CONTAINER_METADATA_URI_V4/task&quot; | head -c 300; echo   # what the page reads its ECS rows from
+curl -s localhost:8080/api/info | python -m json.tool | head -25
+echo &quot;I was here&quot; &gt; /tmp/note.txt &amp;&amp; ls -l /tmp     # write a file…
+exit
+</code></pre>
+<ol start="4">
+<li>Now stop that task and look for your file in its replacement:</li>
+</ol>
+<pre><code class="language-bash">aws ecs stop-task --cluster participant-NN-cluster --task $TASK --reason &quot;lab: ephemeral filesystem demo&quot; &gt;/dev/null
+sleep 90
+TASK=$(aws ecs list-tasks --cluster participant-NN-cluster --service-name participant-NN-svc --query &#39;taskArns[0]&#39; --output text)
+aws ecs execute-command --cluster participant-NN-cluster --task $TASK --container web --interactive --command &quot;ls -l /tmp&quot;
+</code></pre>
+<details class="reveal solution"><summary>✅ What you learn, and the usual snags</summary><div class="body">
+
+<p>The file is gone. A task&#39;s filesystem lives exactly as long as the task; anything that must survive goes to S3, a database, or an EFS volume mounted in the task definition. That is also why Mission Control&#39;s hit counter resets on every replacement.</p>
+<p>What made the shell possible: the <strong>task role</strong> (the SSM agent inside the task uses it to open the channel; hence the <code>ssmmessages</code> verbs), the service flag, and your own <code>ecs:ExecuteCommand</code> permission. No port was opened, no key was issued, and CloudTrail recorded the session.</p>
+<p>Snags: <em>&quot;SessionManagerPlugin is not found&quot;</em> → install it in CloudShell with <code>curl -sS https://s3.amazonaws.com/session-manager-downloads/session-manager-plugin/linux_64bit/session-manager-plugin.rpm -o /tmp/smp.rpm &amp;&amp; sudo yum install -y /tmp/smp.rpm</code>. <em>&quot;execute command was not enabled when the task was run&quot;</em> → the task predates step 2; wait for the new deployment and re-read <code>$TASK</code>. Agent status not <code>RUNNING</code> → the task role is missing the <code>ssmmessages</code> verbs.</p>
+<p>Kubernetes spells the same thing <code>kubectl exec</code> (Lab 5, Part 6).</p>
+<p><strong>Proof:</strong> the <code>AWS_CONTAINER_CREDENTIALS_RELATIVE_URI</code> line from inside the task, and an empty <code>/tmp</code> in the replacement.</p>
 </div></details>
 
 <hr>
-<h2 id="part-10-clean-up-please-do-this-fargate-bills-by-the-second">Part 10 · Clean up (please do this; Fargate bills by the second)</h2>
+<h2 id="part-11-clean-up-please-do-this-fargate-bills-by-the-second">Part 11 · Clean up (please do this; Fargate bills by the second)</h2>
 <p>In this order:</p>
 <ol>
 <li>ECS → cluster → service → <strong>Delete service</strong> (tick <em>Force delete</em>). Wait until it is gone.</li>
 <li>ECS → cluster → <strong>Delete cluster</strong>.</li>
-<li>If you did Challenge D: EC2 → Load balancers → delete <code>participant-NN-mission-alb</code>; Target groups → delete <code>participant-NN-mission-tg</code>; Security groups → delete <code>participant-NN-alb-sg</code>.</li>
+<li>If you did Challenge F: EC2 → Load balancers → delete <code>participant-NN-mission-alb</code>; Target groups → delete <code>participant-NN-mission-tg</code>; Security groups → delete <code>participant-NN-alb-sg</code>.</li>
 <li>EC2 → Security groups → delete <code>participant-NN-mission-sg</code> (after the tasks are gone).</li>
 <li>ECS → Task definitions → your family → select all revisions → <strong>Deregister</strong> (then <em>Delete</em> if offered).</li>
-<li>ECR → repository → select all images → <strong>Delete</strong>; then delete the repository.</li>
+<li>ECR → repository → select all images → <strong>Delete</strong>; then delete the repository (switch it back to <em>Mutable</em> first if deletion complains, or just use <em>Force delete</em>).</li>
 <li>CodeBuild → delete <code>participant-NN-image-build</code>. CloudWatch → Log groups → delete <code>/aws/codebuild/participant-NN-image-build</code> and <code>/ecs/participant-NN-mission-control</code>.</li>
+<li>Systems Manager → Parameter Store → delete <code>/participant-NN/mission-control/motd</code> and, if you did Challenge J, <code>…/launch-code</code>.</li>
 <li>S3 → empty and delete <code>cicd-lab4-participant-NN</code>.</li>
-<li>IAM roles stay; the instructor removes them.</li>
+<li>IAM roles stay (<code>participant-NN-task-role</code>, <code>participant-NN-task-execution-role</code>, the CodeBuild role); the instructor removes them.</li>
 </ol>
 <hr>
-<h2 id="part-11-what-you-learned">Part 11 · What you learned</h2>
+<h2 id="part-12-what-you-learned">Part 12 · What you learned</h2>
 <ul>
-<li>An <strong>image</strong> is built once, from a Dockerfile, by CI; it carries its runtime with it; it is tagged per build and identified by digest.</li>
-<li>A <strong>registry</strong> (ECR) stores images privately, scans them, and is accessed through IAM roles with short-lived tokens.</li>
-<li>ECS separates the <strong>recipe</strong> (task definition, immutable revisions) from the <strong>intent</strong> (service: how many, how to roll) from the <strong>runtime</strong> (tasks on Fargate).</li>
-<li><strong>Two roles:</strong> execution role (pull + logs, before your code) vs task role (your code&#39;s AWS access).</li>
-<li><strong>Rolling updates</strong> start new before stopping old; <strong>health checks</strong> decide what &quot;ready&quot; means; the <strong>circuit breaker</strong> turns a bad image into an automatic rollback.</li>
-<li><strong>Healthy ≠ reachable</strong> (Exercise B) and <strong>orchestrators self-heal</strong> (Exercise C).</li>
-<li><strong>Config lives in the task definition</strong>, code lives in the image.</li>
+<li>An <strong>image</strong> is built once, from a Dockerfile, by CI; it carries its runtime with it; every <code>RUN</code> is a layer, layers are cached and never shrink; it is tagged per build and identified by <strong>digest</strong>.</li>
+<li>A <strong>registry</strong> (ECR) stores images privately, scans them, expires them by policy, can refuse to overwrite a tag, and is accessed through IAM roles with short-lived tokens.</li>
+<li>ECS separates the <strong>recipe</strong> (task definition, immutable revisions) from the <strong>intent</strong> (service: how many, how to roll, how far down the dial) from the <strong>runtime</strong> (tasks on Fargate).</li>
+<li><strong>Two roles, two moments:</strong> the execution role works <em>before</em> your code (pull, logs, injected secrets) and fails as a task that never starts; the task role works <em>during</em> (your code&#39;s API calls) and fails as an error your app can show. No task role means no identity at all.</li>
+<li><strong>Rolling updates</strong> start new before stopping old, or not, depending on the <strong>min/max dial</strong>; <strong>health checks</strong> decide what &quot;ready&quot; means; the <strong>circuit breaker</strong> turns a bad image into an automatic rollback.</li>
+<li><strong>Healthy ≠ reachable</strong> (B), orchestrators <strong>self-heal</strong> (C), <strong>limits are enforced by the kernel</strong> and announce themselves as exit code 137 (D).</li>
+<li><strong>Three speeds of change:</strong> code (rebuild), configuration (new revision), run-time values (no deployment); each faster and less guarded than the one above.</li>
+<li><strong>Everything is an API:</strong> the console, CloudShell and a pipeline see the same <code>describe-*</code> data; a task&#39;s filesystem is as ephemeral as the task.</li>
 </ul>
 <h3>Quiz yourself</h3>
 <details class="reveal quiz"><summary>1. A task stops with CannotPullContainerError. Name three different root causes and how you would tell them apart.</summary><div class="body">
 
-<p>(a) Tag does not exist – message says <code>not found</code>; (b) the execution role lacks ECR permissions – message says <code>AccessDenied</code>/<code>not authorized</code>; (c) the task has no route to ECR – message mentions a timeout / <code>ResourceInitializationError</code> (tasks in private subnets without NAT or VPC endpoints). The <em>text</em> of the stopped reason differs in each case.</p>
+<p>(a) Tag does not exist – message says <code>not found</code>; (b) the execution role lacks ECR permissions – message says <code>AccessDenied</code>/<code>not authorized</code>; (c) the task has no route to ECR – message mentions a timeout / <code>ResourceInitializationError</code> (tasks in private subnets without NAT or VPC endpoints, or <em>Public IP: off</em> in the default VPC). The <em>text</em> of the stopped reason differs in each case.</p>
 </div></details>
 
-<details class="reveal quiz"><summary>2. You changed an environment variable. Do you need a new image, a new task definition revision, or both?</summary><div class="body">
+<details class="reveal quiz"><summary>2. You changed an environment variable. Do you need a new image, a new task definition revision, or both? And a Parameter Store value?</summary><div class="body">
 
-<p>A new revision only. Images are for code; task definitions are for configuration. (Lab 4 Part 8 changed <code>APP_COLOR</code> this way.)</p>
+<p>A new revision only. Images are for code; task definitions are for configuration. A Parameter Store value that the app reads at run time needs neither; it also gets no deployment record and no rollback, so keep it for tunables, not for things that can break the app.</p>
 </div></details>
 
-<details class="reveal quiz"><summary>3. Why does the service never drop below two healthy tasks during an update?</summary><div class="body">
+<details class="reveal quiz"><summary>3. Why does the service never drop below two healthy tasks during an update, and when would you let it?</summary><div class="body">
 
-<p>Min running 100 % and max 200 %: ECS may add tasks up to double the desired count but may not remove any until replacements are healthy. Health is defined by the task definition&#39;s health check (and the target group&#39;s, if attached).</p>
+<p>Min running 100 % and max 200 %: ECS may add tasks up to double the desired count but may not remove any until replacements are healthy. Health is defined by the task definition&#39;s health check (and the target group&#39;s, if attached). You would turn the dial down (min 50 / max 100) for workloads where a temporary capacity dip is cheaper than temporary extra tasks: batch workers, dev environments, tight budgets.</p>
 </div></details>
 
-<details class="reveal quiz"><summary>4. Why is `latest` a bad tag to put in a task definition?</summary><div class="body">
+<details class="reveal quiz"><summary>4. Why is `latest` a bad tag to put in a task definition, and what should go there instead?</summary><div class="body">
 
-<p>It is a moving pointer: the revision would deploy whatever was pushed last, so two deployments of &quot;the same&quot; revision can run different code, and rollback becomes meaningless. Use <code>vN</code> (or a digest).</p>
+<p>It is a moving pointer: the revision would deploy whatever was pushed last, so two deployments of &quot;the same&quot; revision can run different code, and rollback becomes meaningless. Use <code>vN</code> in an immutable repository, or better a digest (<code>@sha256:…</code>), which cannot be moved by anyone.</p>
 </div></details>
 
-<details class="reveal quiz"><summary>5. Which two IAM roles were involved in running your task, and what would break if each were missing?</summary><div class="body">
+<details class="reveal quiz"><summary>5. Your page shows NoCredentialsError. Your colleague's shows AccessDeniedException. Who is closer to done, and what does each of you do next?</summary><div class="body">
 
-<p>Execution role missing ECR/logs permissions: task never starts (pull or log-configuration error). Task role: nothing breaks for this app because it calls no AWS APIs; an app that reads S3 would get AccessDenied at run time.</p>
+<p>Your colleague: they have a task role (an identity) and need one more verb on one resource (read the sentence, add it to the role&#39;s inline policy, refresh; no deployment). You have no task role at all: create one trusted by <code>ecs-tasks.amazonaws.com</code>, attach it in a new revision, roll the service.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>6. A task is Stopped with exit code 137 and no error in its last log lines. What happened, and what is the one-line proof?</summary><div class="body">
+
+<p>The kernel killed it for exceeding its memory limit: 137 = 128 + 9 (SIGKILL). The proof is the stopped reason <code>OutOfMemoryError: Container killed due to memory usage</code>. Fix the leak or raise the task&#39;s memory; look at Health and metrics before guessing a number.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>7. The execution role and the task role each need to read Parameter Store for Mission Control. Why are the verbs different, and what breaks if you swap them?</summary><div class="body">
+
+<p>ECS fetches <code>ValueFrom</code> secrets with <code>ssm:GetParameters</code> (plural, batch) on the execution role before the container starts; the app calls <code>ssm:GetParameter</code> (singular) with the task role at run time. Swap them and IAM denies both: a task that never starts (<code>ResourceInitializationError</code>) and a red panel on the page. IAM matches action names exactly.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>8. You wrote a file in /tmp inside a task with ECS Exec. Two days later it is gone. Nobody deleted it. Why?</summary><div class="body">
+
+<p>The task was replaced (a deployment, a crash, a scaling event, an AZ rebalance) and a task&#39;s filesystem lives only as long as the task. Anything that must persist goes to S3, a database or an EFS volume declared in the task definition. The same is true of a Kubernetes Pod.</p>
 </div></details>
 
 <p><strong>Next:</strong> <a href="lab5.html">Lab 5 – Kubernetes on EKS: the same ideas with different words</a></p>

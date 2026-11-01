@@ -15,11 +15,17 @@ phases:
     commands:
       - echo "Building ${REPO_URI}:${IMAGE_TAG}"
       - docker build --build-arg APP_VERSION=${IMAGE_TAG} -t ${REPO_URI}:${IMAGE_TAG} -t ${REPO_URI}:latest .
+      - echo "---- the layers, newest first (size, then the Dockerfile line that made it) ----"
+      - docker history --format 'table {{.Size}}\t{{.CreatedBy}}' ${REPO_URI}:${IMAGE_TAG}
+      - "docker image inspect --format 'Image ID {{.Id}} · {{.Size}} bytes · {{len .RootFS.Layers}} layers · version label {{index .Config.Labels \"org.opencontainers.image.version\"}}' ${REPO_URI}:${IMAGE_TAG}"
   post_build:
     commands:
       - echo "Pushing to ECR"
       - docker push ${REPO_URI}:${IMAGE_TAG}
+      # "latest" is a moving pointer, not a version. Exercise E asks you to delete the next line.
       - docker push ${REPO_URI}:latest
+      - echo "---- what the registry stored (the digest is the image's true name) ----"
+      - "aws ecr describe-images --repository-name ${REPO_NAME} --image-ids imageTag=${IMAGE_TAG} --query 'imageDetails[0].{digest:imageDigest,tags:imageTags,sizeBytes:imageSizeInBytes}' --output table"
       - echo "Pushed ${REPO_URI}:${IMAGE_TAG}  (copy this into your task definition)"
       - printf '{"image":"%s:%s"}\n' "${REPO_URI}" "${IMAGE_TAG}" > image.json
 artifacts:

@@ -1,0 +1,10 @@
+# Challenge I: a PodDisruptionBudget. "Whatever maintenance you do to the nodes, keep at least one of my Pods running."
+# Honoured by `kubectl drain` and by EKS managed node group upgrades; ignored by crashes (that is what replicas are for).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mission-control
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: mission-control }

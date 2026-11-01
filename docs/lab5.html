@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kubernetes on EKS — the same ideas with different words · Pipeline Academy</title>
-<meta name="description" content="Yesterday's orchestrator was ECS. Today's is Kubernetes, the one the rest of the industry speaks. You will run the exact same Mission Control image, on a cluster the whole class shares, inside a namespace that is yours alone. Every concept from Lab 4 reappears under a new name: that is the point.">
+<meta name="description" content="Yesterday's orchestrator was ECS. Today's is Kubernetes, the one the rest of the industry speaks. You will run the exact same Mission Control image, on a cluster the whole class shares, inside a namespace that is yours alone. Every concept from Lab 4 reappears under a new name, and a few new ones appear that ECS does not have words for: readiness versus liveness, configuration that changes under a running container, a Job that runs to completion. That is the point.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0B1220">
 <script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
@@ -36,19 +36,19 @@
   <div>
     <p class="eyebrow">Lab 5 of 5 · Orchestrate it</p>
     <h1>Kubernetes on EKS — the same ideas with different words</h1>
-    <p class="lede">Yesterday's orchestrator was ECS. Today's is Kubernetes, the one the rest of the industry speaks. You will run the exact same Mission Control image, on a cluster the whole class shares, inside a namespace that is yours alone. Every concept from Lab 4 reappears under a new name: that is the point.</p>
-    <div class="mast-meta"><span class="chip"><b>Time</b> 80–100 minutes (core ≈ 55, challenges ≈ 35)</span><span class="chip"><b>Difficulty</b> Intermediate. Lab 4 first (you reuse its image). No Kubernetes experience assumed.</span><span class="chip"><b>AWS services</b> Amazon EKS (one cluster, created by the instructor), AWS CloudShell, Amazon ECR, Elastic Load Balancing, CloudWatch</span><span class="chip"><b>Tools</b> <code>kubectl</code> – already installed in CloudShell. Nothing on your laptop.</span><span class="chip"><b>You will build</b> A Deployment with two Pods of your image, a Service with an internet-facing load balancer, a rolling update, a rollback, and (challenge) an autoscaler that reacts to load</span><span class="chip"><b>You will break & fix</b> A Pod that cannot pull its image · a scale-up the namespace quota refuses · a peek at a neighbour&#39;s namespace that RBAC refuses</span></div>
+    <p class="lede">Yesterday's orchestrator was ECS. Today's is Kubernetes, the one the rest of the industry speaks. You will run the exact same Mission Control image, on a cluster the whole class shares, inside a namespace that is yours alone. Every concept from Lab 4 reappears under a new name, and a few new ones appear that ECS does not have words for: readiness versus liveness, configuration that changes under a running container, a Job that runs to completion. That is the point.</p>
+    <div class="mast-meta"><span class="chip"><b>Time</b> Core path (Parts 1–7) ≈ 80 min · Challenges A–D ≈ 45 min · all ten challenges ≈ 95 min</span><span class="chip"><b>Difficulty</b> Intermediate, advanced in the challenges. Lab 4 first (you reuse its image). No Kubernetes experience assumed.</span><span class="chip"><b>AWS services</b> Amazon EKS (one cluster, created by the instructor), AWS CloudShell, Amazon ECR, Elastic Load Balancing, CloudWatch</span><span class="chip"><b>Tools</b> <code>kubectl</code> – already installed in CloudShell. Nothing on your laptop.</span><span class="chip"><b>You will build</b> A ConfigMap, a Deployment with two Pods of your image and a Service with an internet-facing load balancer · a rolling update you can prove had no downtime, a rollback, a stuck rollout you diagnose two different ways · configuration that changes without a restart · a shell inside a Pod · and, in the challenges, an autoscaler, a smoke-test Job, a Secret, a PodDisruptionBudget</span><span class="chip"><b>You will break & fix</b> A Pod that cannot pull its image · a Pod that runs but is never ready · a scale-up the namespace quota refuses · a Service whose selector matches nobody · a container that eats its memory limit · a peek at a neighbour&#39;s namespace that RBAC refuses</span></div>
   </div>
 </div></section>
 
 <main id="main" class="labwrap">
-<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</a></li><li><a href="#part-1-open-cloudshell-and-connect-kubectl">Part 1 · Open CloudShell and connect kubectl</a></li><li><a href="#part-2-rbac-says-no-on-purpose">Part 2 · RBAC says no (on purpose)</a></li><li><a href="#part-3-deploy-mission-control">Part 3 · Deploy Mission Control</a></li><li><a href="#part-4-scale-and-meet-the-quota">Part 4 · Scale, and meet the quota</a></li><li><a href="#part-5-rolling-update-and-rollback">Part 5 · Rolling update and rollback</a></li><li><a href="#part-6-self-healing-and-logs">Part 6 · Self-healing and logs</a></li><li><a href="#part-7-challenges">Part 7 · Challenges</a></li><li><a href="#part-8-clean-up-your-namespace-only">Part 8 · Clean up (your namespace only)</a></li><li><a href="#part-9-what-you-learned">Part 9 · What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your namespace is your sandbox.</strong> The cluster <code>cicd-lab5-eks</code> is shared by everyone. Each of you has a namespace named after your user (<code>participant-NN</code>) with <strong>full rights inside it and none outside it</strong>. Every command below runs in your namespace; if you forget to set it, Kubernetes will politely refuse (you will see this on purpose in Part 2).</p>
-<p><strong>Region:</strong> us-west-2, as always.</p>
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</a></li><li><a href="#part-1-open-cloudshell-and-connect-kubectl">Part 1 · Open CloudShell and connect kubectl</a></li><li><a href="#part-2-rbac-says-no-on-purpose">Part 2 · RBAC says no (on purpose)</a></li><li><a href="#part-3-deploy-mission-control">Part 3 · Deploy Mission Control</a></li><li><a href="#part-4-scale-and-meet-the-quota">Part 4 · Scale, and meet the quota</a></li><li><a href="#part-5-rolling-update-with-proof">Part 5 · Rolling update, with proof</a></li><li><a href="#part-6-inside-a-pod-self-healing-logs-exec-port-forward">Part 6 · Inside a Pod: self-healing, logs, exec, port-forward</a></li><li><a href="#part-7-configuration-at-run-time">Part 7 · Configuration at run time</a></li><li><a href="#part-8-challenges">Part 8 · Challenges</a></li><li><a href="#part-9-clean-up-your-namespace-only">Part 9 · Clean up (your namespace only)</a></li><li><a href="#part-10-what-you-learned">Part 10 · What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your namespace is your sandbox.</strong> The cluster <code>cicd-lab5-eks</code> is shared by everyone. Each of you has a namespace named after your user (<code>participant-NN</code>) with <strong>full rights inside it and none outside it</strong>. Every command below runs in your namespace; if you forget to set it, Kubernetes will politely refuse (you will see this on purpose in Part 2).</p>
+<p><strong>Region:</strong> us-west-2, as always. <strong>Proofs:</strong> every challenge ends with one line to paste into the class chat.</p>
 </div></div>
 <hr>
 <h2 id="part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</h2>
 <h3>Kubernetes in one paragraph</h3>
-<p>Kubernetes is a control loop. You hand it a <strong>desired state</strong> written in YAML (&quot;two copies of this image, exposed on port 80&quot;) and a set of controllers works continuously to make reality match: scheduling Pods onto nodes, restarting them when they die, adding replicas when you ask, swapping versions one Pod at a time. You never tell it <em>how</em>; you tell it <em>what</em>, and you watch it converge. Everything you did by clicking in Lab 4 you do here with <code>kubectl apply -f file.yaml</code>.</p>
+<p>Kubernetes is a control loop. You hand it a <strong>desired state</strong> written in YAML (&quot;two copies of this image, exposed on port 80, each allowed 256 MiB&quot;) and a set of controllers works continuously to make reality match: scheduling Pods onto nodes, restarting them when they die, adding replicas when you ask, swapping versions one Pod at a time, keeping a mounted file in sync with the ConfigMap it came from. You never tell it <em>how</em>; you tell it <em>what</em>, and you watch it converge. Everything you did by clicking in Lab 4 you do here with <code>kubectl apply -f file.yaml</code>.</p>
 <p><img class="diagram" src="images/diagrams/ecs-vs-eks.svg" alt="Same four jobs, two vocabularies" loading="lazy"></p>
 <h3>The translation table (keep it open)</h3>
 <table>
@@ -75,23 +75,53 @@
 <td><code>01-deployment.yaml</code></td>
 </tr>
 <tr>
-<td>Service + ALB target group</td>
-<td><strong>Service</strong> of <code>type: LoadBalancer</code></td>
-<td><code>02-service.yaml</code></td>
-</tr>
-<tr>
-<td>Container health check</td>
-<td><strong>readinessProbe</strong> (gates traffic) and <strong>livenessProbe</strong> (triggers restart)</td>
+<td>Min running % / max running % (the blast-radius dial)</td>
+<td><code>strategy.rollingUpdate.maxUnavailable</code> / <code>maxSurge</code></td>
 <td><code>01-deployment.yaml</code></td>
 </tr>
 <tr>
+<td>Service + ALB target group</td>
+<td><strong>Service</strong> of <code>type: LoadBalancer</code> (+ its <strong>Endpoints</strong>)</td>
+<td><code>02-service.yaml</code></td>
+</tr>
+<tr>
+<td>Container health check (one check, one answer: replace)</td>
+<td><strong>readinessProbe</strong> (gates traffic) and <strong>livenessProbe</strong> (triggers a restart in place)</td>
+<td><code>01-deployment.yaml</code></td>
+</tr>
+<tr>
+<td>Environment variables in the task definition</td>
+<td><strong>ConfigMap</strong> → env vars, or → a <strong>mounted file</strong> that stays in sync</td>
+<td><code>00-configmap.yaml</code></td>
+</tr>
+<tr>
+<td><code>ValueFrom</code> secrets, execution role</td>
+<td><strong>Secret</strong> → env var (Challenge H)</td>
+<td><code>kubectl create secret</code></td>
+</tr>
+<tr>
 <td>Rolling update, circuit breaker, &quot;Update service&quot;</td>
-<td><code>kubectl set image</code>, <code>kubectl rollout status / undo</code></td>
+<td><code>kubectl set image</code>, <code>kubectl rollout status / history / undo</code>, <code>progressDeadlineSeconds</code></td>
 <td>commands</td>
 </tr>
 <tr>
-<td>Cluster per team</td>
-<td><strong>Namespace</strong> per student + <strong>RBAC</strong> + <strong>ResourceQuota</strong></td>
+<td><code>ecs execute-command</code></td>
+<td><code>kubectl exec</code>, <code>kubectl port-forward</code>, <code>kubectl logs</code></td>
+<td>commands</td>
+</tr>
+<tr>
+<td>Service Auto Scaling</td>
+<td><strong>HorizontalPodAutoscaler</strong></td>
+<td><code>03-hpa.yaml</code></td>
+</tr>
+<tr>
+<td><code>ecs run-task</code> (one-off)</td>
+<td><strong>Job</strong> (run to completion), <strong>CronJob</strong></td>
+<td><code>05-smoke-test.yaml</code></td>
+</tr>
+<tr>
+<td>Cluster per team, IAM</td>
+<td><strong>Namespace</strong> per student + <strong>RBAC</strong> + <strong>ResourceQuota</strong> + <strong>LimitRange</strong></td>
 <td>made by the instructor</td>
 </tr>
 <tr>
@@ -109,6 +139,8 @@
 </ul>
 <p><img class="shot" src="images/lab5-eks-cluster-compute.png" alt="Compute tab" loading="lazy" title="Click to zoom"></p>
 <p><img class="shot" src="images/lab5-eks-cluster-access.png" alt="Access tab: one access entry per student" loading="lazy" title="Click to zoom"></p>
+<p>By the end of Part 3 your namespace will contain the solid boxes on this map; the challenges add the dashed ones. Come back to it whenever a name is unfamiliar.</p>
+<p><img class="diagram" src="images/diagrams/lab5-objects-map.svg" alt="Your namespace" loading="lazy"></p>
 <hr>
 <h2 id="part-1-open-cloudshell-and-connect-kubectl">Part 1 · Open CloudShell and connect kubectl</h2>
 <ol>
@@ -134,9 +166,19 @@ ip-172-31-59-50.us-west-2.compute.internal    Ready    &lt;none&gt;   22m   v1.3
 
 <blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>kubectl config view --minify | grep namespace</code> prints <code>namespace: participant-NN</code>.</p>
 </blockquote>
+<h3>1b · Read your guard rails</h3>
+<p>Before you build, look at the fence you are standing in. Everything below is <em>data</em> you are allowed to read:</p>
+<pre><code class="language-bash">kubectl auth can-i --list | head -12                 # what may I do here?
+kubectl auth can-i list pods -n kube-system          # &quot;no&quot;
+kubectl auth can-i delete deployments                # &quot;yes&quot; (in your namespace)
+kubectl describe quota lab-quota                     # how much may I use?
+kubectl describe limitrange lab-defaults             # what do containers get when they forget to ask?
+kubectl get rolebinding namespace-owner -o yaml      # the exact rule that lets you in
+</code></pre>
+<p><img class="diagram" src="images/diagrams/lab5-rbac-chain.svg" alt="How identity becomes permission" loading="lazy"></p>
 <details class="reveal plain"><summary>🔍 How did kubectl know who I am? (identity, briefly)</summary><div class="body">
 
-<p><code>update-kubeconfig</code> wrote a kubeconfig whose credential plugin runs <code>aws eks get-token</code>. Every <code>kubectl</code> call presents a short-lived token signed by your IAM credentials; EKS maps your IAM user ARN (via the access entry) to the Kubernetes group <code>participant-NN</code>; Kubernetes RBAC then decides what that group may do. IAM authenticates, Kubernetes authorises. No kubeconfig secrets, nothing to rotate.</p>
+<p><code>update-kubeconfig</code> wrote a kubeconfig whose credential plugin runs <code>aws eks get-token</code>. Every <code>kubectl</code> call presents a short-lived token signed by your IAM credentials; EKS maps your IAM user ARN (via the access entry) to the Kubernetes group <code>participant-NN</code>; a <strong>RoleBinding</strong> in your namespace binds that group to a <strong>Role</strong> whose rules say <code>verbs: *</code> on <code>resources: *</code> for the API groups you need. IAM authenticates, Kubernetes authorises. No kubeconfig secrets, nothing to rotate. The <code>can-i --list</code> output is the Role, rendered.</p>
 </div></details>
 
 <hr>
@@ -152,23 +194,37 @@ kubectl get pods                          # your own namespace: empty, but allow
 Error from server (Forbidden): pods is forbidden: User &quot;participant-01&quot; cannot list resource &quot;pods&quot; in API group &quot;&quot; in the namespace &quot;kube-system&quot;
 No resources found in participant-01 namespace.
 </code></pre>
-<p>Read the first message like the IAM errors of Lab 3: <strong>who</strong> (<code>User &quot;participant-01&quot;</code>), <strong>verb</strong> (<code>list</code>), <strong>resource</strong> (<code>pods</code>), <strong>where</strong> (<code>namespace &quot;participant-02&quot;</code>). A RoleBinding exists only in <em>your</em> namespace, so every other namespace is a wall. This is multi-tenancy with one cluster and fifteen tenants.</p>
+<p>Read the first message like the IAM errors of Lab 3 and Lab 4: <strong>who</strong> (<code>User &quot;participant-01&quot;</code>), <strong>verb</strong> (<code>list</code>), <strong>resource</strong> (<code>pods</code>), <strong>where</strong> (<code>namespace &quot;participant-02&quot;</code>). A RoleBinding exists only in <em>your</em> namespace, so every other namespace is a wall. This is multi-tenancy with one cluster and fifteen tenants.</p>
 </div></details>
 
 <hr>
 <h2 id="part-3-deploy-mission-control">Part 3 · Deploy Mission Control</h2>
-<p>Download <strong><a href="downloads/lab5-manifests.zip"><code>lab5-eks/lab5-manifests.zip</code></a></strong> (or the folder <a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab5-eks/manifests/"><code>lab5-eks/manifests/</code></a>) and upload the four YAML files to CloudShell (<strong>Actions → Upload file</strong>), or create them with <code>nano</code>. Then edit <code>01-deployment.yaml</code>:</p>
+<p>Download <strong><a href="downloads/lab5-manifests.zip"><code>lab5-eks/lab5-manifests.zip</code></a></strong> (or the folder <a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab5-eks/manifests/"><code>lab5-eks/manifests/</code></a>) and upload the YAML files to CloudShell (<strong>Actions → Upload file</strong>, then <code>unzip lab5-manifests.zip</code>), or create them with <code>nano</code>. Then edit <code>01-deployment.yaml</code>:</p>
 <ul>
-<li>replace <code>IMAGE</code> with <strong>your Lab 4 image URI</strong>, e.g. <code>962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v2</code> (if you deleted it already, use the shared <code>…/participant-01-mission-control:v2</code>);</li>
-<li>replace <code>Artemis-NN</code> with your number.</li>
+<li>replace <code>IMAGE</code> with <strong>your Lab 4 image URI</strong>, e.g. <code>962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3</code> (if you deleted it already, use the shared <code>…/participant-01-mission-control:v3</code>);</li>
 </ul>
-<p>The Deployment, annotated:</p>
+<p>and in <code>00-configmap.yaml</code> replace <code>Artemis-NN</code> and the <code>participant-NN</code> in the message with your number.</p>
+<p>Three files, three kinds of object. <strong>The ConfigMap</strong> holds configuration, outside the image:</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: ConfigMap
+metadata: { name: mission-control }
+data:
+  MISSION_NAME: &quot;Artemis-NN&quot;          # → env vars, copied into the container when it STARTS
+  APP_COLOR: &quot;#A78BFA&quot;
+  motd: |                             # → a file, kept in sync while the Pod RUNS (Part 7)
+    Welcome aboard, participant-NN. This text comes from a ConfigMap mounted as a file.
+</code></pre>
+<p><strong>The Deployment</strong>, annotated:</p>
 <pre><code class="language-yaml">apiVersion: apps/v1
 kind: Deployment
 metadata: { name: mission-control, labels: { app: mission-control } }
 spec:
   replicas: 2                                    # desired count (ECS: desired tasks)
   selector: { matchLabels: { app: mission-control } }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }   # the dial: never below 2 ready, at most 3 (ECS: min 100 % / max 150 %)
+  progressDeadlineSeconds: 120                   # a rollout stuck for 2 minutes is reported as failed
   template:                                      # the Pod spec (ECS: task definition)
     metadata: { labels: { app: mission-control } }
     spec:
@@ -176,54 +232,75 @@ spec:
         - name: web
           image: IMAGE                           # ← your ECR URI with a vN tag
           ports: [{ containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: mission-control }   # MISSION_NAME and APP_COLOR become env vars
           env:
-            - { name: MISSION_NAME, value: &quot;Artemis-NN&quot; }
-            - { name: APP_COLOR,    value: &quot;#A78BFA&quot; }
-            - name: NODE_NAME                    # the Downward API: the page shows which node served you
+            - { name: MOTD_FILE, value: /etc/mission/motd.txt }
+            - name: POD_NAME                     # the Downward API: facts about this Pod, as env vars
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: NODE_NAME                    # the page shows which node served you
               valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
             - name: POD_NAMESPACE
               valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+          volumeMounts: [{ name: motd, mountPath: /etc/mission, readOnly: true }]
           resources:
             requests: { cpu: 100m, memory: 128Mi }   # what the scheduler reserves (counts against your quota)
-            limits:   { cpu: 250m, memory: 256Mi }   # the ceiling; exceeding memory = OOMKilled
-          readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 3, periodSeconds: 5 }
-          livenessProbe:  { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
+            limits:   { cpu: 250m, memory: 256Mi }   # the ceiling; exceeding memory = OOMKilled, exit code 137
+          readinessProbe:                        # gates traffic
+            httpGet: { path: /ready, port: 8080 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 2
+          livenessProbe:                         # triggers a restart
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: motd
+          configMap: { name: mission-control, items: [{ key: motd, path: motd.txt }] }
 </code></pre>
-<p>And the Service:</p>
+<p>Two probes, two different endpoints, two different jobs. Lab 4&#39;s single health check hit <code>/health</code>; here <code>/health</code> means &quot;alive&quot; and <code>/ready</code> means &quot;send me traffic&quot;. Challenge B makes the difference visible.</p>
+<p><strong>The Service:</strong></p>
 <pre><code class="language-yaml">apiVersion: v1
 kind: Service
 metadata: { name: mission-control }
 spec:
   type: LoadBalancer                  # ask AWS for a load balancer (ECS: ALB + target group)
-  selector: { app: mission-control }  # send traffic to Pods with this label
+  selector: { app: mission-control }  # send traffic to Pods with this label; nothing else connects the two
   ports: [{ port: 80, targetPort: 8080 }]
 </code></pre>
-<p>Apply both and watch:</p>
-<pre><code class="language-bash">kubectl apply -f 01-deployment.yaml -f 02-service.yaml
+<p>Apply all three and watch:</p>
+<pre><code class="language-bash">kubectl apply -f 00-configmap.yaml -f 01-deployment.yaml -f 02-service.yaml
+kubectl annotate deployment/mission-control kubernetes.io/change-cause=&quot;first deploy, image v3&quot;
 kubectl rollout status deployment/mission-control
 kubectl get pods -o wide
+kubectl get endpoints mission-control
 kubectl get svc mission-control
 </code></pre>
 <details class="reveal plain"><summary>Expected output</summary><div class="body">
 
-<pre><code>deployment.apps/mission-control created
+<pre><code>configmap/mission-control created
+deployment.apps/mission-control created
 service/mission-control created
+deployment.apps/mission-control annotated
 Waiting for deployment &quot;mission-control&quot; rollout to finish: 0 of 2 updated replicas are available...
 deployment &quot;mission-control&quot; successfully rolled out
 NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE
 mission-control-78fcfc8d89-tc7jc   1/1     Running   0          12s   172.31.60.107   ip-172-31-59-50.us-west-2.compute.internal
 mission-control-78fcfc8d89-tjh42   1/1     Running   0          12s   172.31.40.173   ip-172-31-37-155.us-west-2.compute.internal
+NAME              ENDPOINTS                               AGE
+mission-control   172.31.40.173:8080,172.31.60.107:8080   12s
 NAME              TYPE           CLUSTER-IP      EXTERNAL-IP                                        PORT(S)
 mission-control   LoadBalancer   10.100.12.34    a2e73277…-2085589031.us-west-2.elb.amazonaws.com   80:31234/TCP
 </code></pre>
-<p>Two Pods on two different nodes (the scheduler spreads them). <code>READY 1/1</code> means the readiness probe passed. The Service&#39;s <code>EXTERNAL-IP</code> is a load balancer hostname; AWS takes a minute or two to create it and register the nodes.</p>
+<p>Two Pods on two different nodes (the scheduler spreads them). <code>READY 1/1</code> means the readiness probe passed. <strong>Endpoints</strong> is the list the Service actually sends traffic to: the two Pod IPs, there because their label matches the selector <em>and</em> they are ready. The Service&#39;s <code>EXTERNAL-IP</code> is a load balancer hostname; AWS takes a minute or two to create it and register the nodes. (<code>kubectl</code> may warn that <code>Endpoints</code> is deprecated in favour of <code>EndpointSlice</code>; both show the same thing.)</p>
 </div></details>
 
 <p>Open <code>http://&lt;EXTERNAL-IP hostname&gt;/</code> in your browser (it may answer 503 for the first minute). Refresh several times.</p>
 <p><img class="shot" src="images/lab5-webpage-lb.png" alt="Mission Control through the Kubernetes load balancer" loading="lazy" title="Click to zoom"></p>
 <p><img class="shot" src="images/lab5-webpage-lb-refresh.png" alt="…and after a refresh: the other Pod, on the other node" loading="lazy" title="Click to zoom"></p>
-<p>The <strong>hostname</strong> is now a Pod name and it alternates between your two Pods; the <strong>Kubernetes node</strong> field shows which EC2 node each runs on; the <strong>namespace</strong> field says <code>participant-NN</code>. Same image as Lab 4, different orchestrator.</p>
-<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>kubectl get deploy,rs,pods,svc</code> shows 1 Deployment (2/2), 1 ReplicaSet, 2 Pods, 1 Service with an external hostname. (The EKS console&#39;s <strong>Resources</strong> tab can show the same objects filtered to your namespace, but <code>kubectl</code> is the tool of this lab.)</p>
+<p>The <strong>hostname</strong> is now a Pod name and it alternates between your two Pods; the <strong>Kubernetes node</strong> field shows which EC2 node each runs on; the <strong>namespace</strong> field says <code>participant-NN</code>; the <strong>Memory</strong> row says <code>… of 256 MiB limit</code> and <strong>CPU limit</strong> <code>0.25 vCPU</code>, straight from your <code>resources:</code>; and the green <strong>message of the day</strong> panel is the ConfigMap, mounted as a file. Same image as Lab 4, different orchestrator.</p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>kubectl get deploy,rs,pods,svc,cm,endpoints</code> shows 1 Deployment (2/2), 1 ReplicaSet, 2 Pods, 1 Service with an external hostname, 1 ConfigMap, 2 endpoints. (The EKS console&#39;s <strong>Resources</strong> tab can show the same objects filtered to your namespace, but <code>kubectl</code> is the tool of this lab.)</p>
 </blockquote>
 <hr>
 <h2 id="part-4-scale-and-meet-the-quota">Part 4 · Scale, and meet the quota</h2>
@@ -239,20 +316,32 @@ kubectl get events --field-selector reason=FailedCreate | tail -3
 mission-control   12/20   12           12          118s
 … Error creating: pods &quot;mission-control-78fcfc8d89-dl7rc&quot; is forbidden: exceeded quota: lab-quota, requested: pods=1, used: pods=12, limited: pods=12
 </code></pre>
-<p>Twelve Pods started; the thirteenth was refused by the <strong>ResourceQuota</strong>. The Deployment keeps <em>trying</em> (that is the control loop), and keeps being told no. Nothing else in the cluster was affected: your blast radius is your namespace.</p>
+<p>Twelve Pods started; the thirteenth was refused by the <strong>ResourceQuota</strong>. The Deployment keeps <em>trying</em> (that is the control loop), and keeps being told no. Nothing else in the cluster was affected: your blast radius is your namespace. <code>kubectl describe quota lab-quota</code> now shows <code>pods 12/12</code> and <code>requests.cpu 1200m/2</code>.</p>
 </div></details>
 
-<p>Scale back down before moving on:</p>
+<p>Scale back down, then look at the cluster&#39;s side of the same story:</p>
 <pre><code class="language-bash">kubectl scale deployment/mission-control --replicas=2
+kubectl describe node | grep -A7 &quot;Allocated resources&quot;     # both nodes: what is reserved, in total, by everyone
+kubectl top pods                                            # live usage (the metrics-server add-on)
 </code></pre>
-<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Requests are promises.</strong> The scheduler places a Pod only on a node with enough <em>unreserved</em> CPU/memory for its <code>requests</code>. Quotas count requests, not actual usage. A Pod with no requests gets the LimitRange defaults, which is why &quot;forgot to set resources&quot; still counts against you.</p>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Requests are promises, limits are walls.</strong> The scheduler places a Pod only on a node with enough <em>unreserved</em> CPU/memory for its <code>requests</code>; the node&#39;s <em>Allocated resources</em> is the sum of everyone&#39;s requests, and it can reach 100 % while actual usage (<code>kubectl top</code>) stays at 5 %. Quotas count requests, not usage. <code>limits</code> are enforced by the kernel at run time: CPU is throttled, memory is killed (Challenge C). A Pod with no requests gets the LimitRange defaults, which is why &quot;forgot to set resources&quot; still counts against you.</p>
 </div></div>
 <hr>
-<h2 id="part-5-rolling-update-and-rollback">Part 5 · Rolling update and rollback</h2>
-<p>Ship your Lab 4 <strong>v3</strong> image (or any other tag you have):</p>
-<pre><code class="language-bash">kubectl set image deployment/mission-control web=962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3
+<h2 id="part-5-rolling-update-with-proof">Part 5 · Rolling update, with proof</h2>
+<p>Lab 4 told you the rolling update had no downtime. This time, measure it.</p>
+<h3>5a · A witness</h3>
+<p>Open a <strong>second CloudShell tab</strong> (the <code>+</code> next to the tab name, or <em>Actions → New tab</em>) and leave this loop running; it prints one status code per request:</p>
+<pre><code class="language-bash">LB=$(kubectl -n participant-NN get svc mission-control -o jsonpath=&#39;{.status.loadBalancer.ingress[0].hostname}&#39;)
+while true; do curl -s -o /dev/null -m 2 -w &#39;%{http_code} &#39; http://$LB/; sleep 0.3; done
+</code></pre>
+<p>A healthy service prints <code>200 200 200 …</code>. Anything else during the next steps is a user who saw an error.</p>
+<h3>5b · Ship v4 (or any other tag you have)</h3>
+<p>Back in the first tab:</p>
+<pre><code class="language-bash">kubectl set image deployment/mission-control web=962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v4
+kubectl annotate deployment/mission-control kubernetes.io/change-cause=&quot;ship v4&quot;
 kubectl rollout status deployment/mission-control
 kubectl rollout history deployment/mission-control
+kubectl get rs
 </code></pre>
 <details class="reveal plain"><summary>Expected output</summary><div class="body">
 
@@ -260,14 +349,18 @@ kubectl rollout history deployment/mission-control
 Waiting for deployment &quot;mission-control&quot; rollout to finish: 1 old replicas are pending termination...
 deployment &quot;mission-control&quot; successfully rolled out
 REVISION  CHANGE-CAUSE
-1         &lt;none&gt;
-2         &lt;none&gt;
+1         first deploy, image v3
+2         ship v4
+NAME                         DESIRED   CURRENT   READY   AGE
+mission-control-78fcfc8d89   0         0         0       14m      ← the old ReplicaSet, kept at 0: your rollback target
+mission-control-7848469d98   2         2         2       40s
 </code></pre>
-<p>Exactly Lab 4&#39;s rolling update: a new ReplicaSet is created, one new Pod comes up and passes readiness, one old Pod is terminated, repeat. Refresh the page: badge <strong>v3</strong>. <code>kubectl get rs</code> shows the old ReplicaSet kept at 0 replicas: that is your rollback target.</p>
+<p>Exactly Lab 4&#39;s rolling update with the dial at <em>maxSurge 1 / maxUnavailable 0</em>: a new ReplicaSet is created, one new Pod comes up and passes <strong>readiness</strong>, one old Pod is terminated, repeat. The witness tab printed nothing but <code>200</code>. Refresh the page: badge <strong>v4</strong>. The change-cause annotations turn <code>rollout history</code> from a list of numbers into a changelog; make it a habit.</p>
 </div></details>
 
-<h3>🔧 Troubleshooting exercise — a Pod that will never start</h3>
+<h3>🔧 Troubleshooting exercise 1 — a Pod that will never start</h3>
 <pre><code class="language-bash">kubectl set image deployment/mission-control web=962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v99
+kubectl annotate deployment/mission-control kubernetes.io/change-cause=&quot;ship v99&quot;
 sleep 30; kubectl get pods
 </code></pre>
 <details class="reveal hint"><summary>💡 Hint 1 — what is the Pod's STATUS?</summary><div class="body">
@@ -277,7 +370,7 @@ mission-control-7559565db7-w8bj8   0/1     ImagePullBackOff   0          41s
 mission-control-7848469d98-r2rhq   1/1     Running            0          58s
 mission-control-7848469d98-wkkb5   1/1     Running            0          51s
 </code></pre>
-<p><code>ImagePullBackOff</code>: the kubelet tried to pull the image, failed, and is backing off between retries. Note the two <strong>old Pods are still Running and serving</strong>. The rollout is stuck, not broken.</p>
+<p><code>ImagePullBackOff</code>: the kubelet tried to pull the image, failed, and is backing off between retries. Note the two <strong>old Pods are still Running and serving</strong>, and the witness tab is still all <code>200</code>. The rollout is stuck, not broken.</p>
 </div></details>
 
 <details class="reveal hint"><summary>💡 Hint 2 — ask the Pod what happened</summary><div class="body">
@@ -287,46 +380,229 @@ mission-control-7848469d98-wkkb5   1/1     Running            0          51s
 <p>The Events section says <code>Failed to pull image &quot;…:v99&quot;: … not found</code>. The same diagnosis as Lab 4&#39;s <code>CannotPullContainerError</code>, with the same three suspects (tag, permissions, network). Here the tag is the culprit.</p>
 </div></details>
 
-<details class="reveal solution"><summary>✅ Solution — roll back</summary><div class="body">
+<details class="reveal solution"><summary>✅ Solution — the deadline, then roll back</summary><div class="body">
 
-<pre><code class="language-bash">kubectl rollout undo deployment/mission-control
+<p>Wait for the deadline you set in the manifest, and watch Kubernetes report it:</p>
+<pre><code class="language-bash">kubectl rollout status deployment/mission-control          # blocks, then after 120 s:
+# error: deployment &quot;mission-control&quot; exceeded its progress deadline
+kubectl get deployment mission-control -o jsonpath=&#39;{range .status.conditions[*]}{.type}={.status} ({.reason}){&quot;\n&quot;}{end}&#39;
+# Available=True (MinimumReplicasAvailable)
+# Progressing=False (ProgressDeadlineExceeded)
+kubectl rollout undo deployment/mission-control
 kubectl rollout status deployment/mission-control
-curl -s http://&lt;EXTERNAL-IP&gt;/api/info | grep version       # &quot;v3&quot; again
+kubectl rollout history deployment/mission-control
 </code></pre>
-<p><code>rollout undo</code> re-activates the previous ReplicaSet. Because the broken Pod never became <em>ready</em>, the Deployment never scaled the old ReplicaSet down: zero user impact, exactly as ECS&#39;s circuit breaker behaved in Lab 4. Kubernetes does not time out a stuck rollout by itself unless you set <code>progressDeadlineSeconds</code>; a human (or a pipeline step that watches <code>rollout status</code>) decides to undo.</p>
+<p><code>rollout undo</code> re-activates the previous ReplicaSet (history now shows revision 4 = a copy of revision 2, &quot;ship v4&quot;). Because the broken Pod never became <em>ready</em>, the Deployment never scaled the old ReplicaSet down: zero user impact, exactly as ECS&#39;s circuit breaker behaved in Lab 4.</p>
+<p>The difference: Kubernetes does <strong>not</strong> roll back by itself. <code>progressDeadlineSeconds</code> makes the Deployment <em>say</em> it failed (<code>Progressing=False</code>), and <code>rollout status</code> exits non-zero at that moment; a human, or a pipeline step that runs <code>kubectl rollout status || kubectl rollout undo</code>, decides. Without the deadline (default 600 s) the stuck rollout would sit there, green on the outside, for ten minutes.</p>
+<p><strong>Proof:</strong> the <code>exceeded its progress deadline</code> line and the <code>Progressing=False (ProgressDeadlineExceeded)</code> condition.</p>
 </div></details>
 
+<h3>🔧 Troubleshooting exercise 2 — running, but never ready</h3>
+<p>A different failure, with a different signature. Edit <code>01-deployment.yaml</code> and change the readiness probe&#39;s path from <code>/ready</code> to <strong><code>/readyz</code></strong> (a plausible typo: several real apps use that path). Apply it.</p>
+<pre><code class="language-bash">kubectl apply -f 01-deployment.yaml
+sleep 25; kubectl get pods
+</code></pre>
+<details class="reveal hint"><summary>💡 Hint 1 — read the columns</summary><div class="body">
+
+<pre><code>NAME                               READY   STATUS    RESTARTS   AGE
+mission-control-6d5c7f9b4-x2k9p    0/1     Running   0          25s
+mission-control-7848469d98-r2rhq   1/1     Running   0          6m
+mission-control-7848469d98-wkkb5   1/1     Running   0          6m
+</code></pre>
+<p>STATUS says <strong>Running</strong>: the image pulled, the process started, <code>/health</code> answers, so liveness is happy and RESTARTS stays 0. READY says <strong>0/1</strong>: the readiness probe has never passed. A Pod can be perfectly alive and still not be allowed to serve. <code>kubectl get endpoints mission-control</code> lists only the two old Pods.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — the probe's own words</summary><div class="body">
+
+<pre><code class="language-bash">kubectl describe pod -l app=mission-control | grep &quot;Readiness probe failed&quot; | tail -1
+#   Warning  Unhealthy  …  kubelet  Readiness probe failed: HTTP probe failed with statuscode: 404
+</code></pre>
+<p>404, not 503, not a timeout: the app answered and said &quot;no such page&quot;. The app is fine; the <em>probe</em> is wrong. (503 would mean the app itself said &quot;not ready&quot;; a timeout would mean the port or the process.)</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>Fix the path back to <code>/ready</code> in the file and <code>kubectl apply -f 01-deployment.yaml</code> (or <code>kubectl rollout undo</code>). The new Pod goes <code>1/1</code> within seconds and the rollout completes.</p>
+<p><strong>The lesson:</strong> <code>kubectl get pods</code> has two columns that look alike and mean different things. STATUS is the kubelet&#39;s view of the process; READY is the probe&#39;s view of the <em>service</em>. Troubleshooting exercise 1 was &quot;cannot start&quot;; this one is &quot;started, cannot serve&quot;. Both left the old Pods serving. The witness tab never printed anything but <code>200</code>.</p>
+<p><strong>Proof:</strong> a Pod with <code>0/1 Running RESTARTS 0</code> and the <code>statuscode: 404</code> event.</p>
+</div></details>
+
+<p>Stop the witness loop (Ctrl-C in the second tab) when you are done; you will want it again in Challenge E.</p>
 <hr>
-<h2 id="part-6-self-healing-and-logs">Part 6 · Self-healing and logs</h2>
+<h2 id="part-6-inside-a-pod-self-healing-logs-exec-port-forward">Part 6 · Inside a Pod: self-healing, logs, exec, port-forward</h2>
+<h3>6a · Delete one, get one</h3>
 <pre><code class="language-bash">POD=$(kubectl get pods -l app=mission-control -o jsonpath=&#39;{.items[0].metadata.name}&#39;)
 kubectl delete pod $POD
 kubectl get pods
-kubectl logs deployment/mission-control --tail=5
 </code></pre>
 <details class="reveal plain"><summary>Expected output</summary><div class="body">
 
 <pre><code>pod &quot;mission-control-7848469d98-r2rhq&quot; deleted
 NAME                               READY   STATUS    RESTARTS   AGE
-mission-control-7848469d98-nx24b   1/1     Running   0          47s     ← brand new
-mission-control-7848469d98-wkkb5   1/1     Running   0          101s
-172.31.59.50 - - [31/Oct/2026 22:50:15] &quot;GET /health HTTP/1.1&quot; 200 -
+mission-control-7848469d98-nx24b   1/1     Running   0          4s      ← brand new
+mission-control-7848469d98-wkkb5   1/1     Running   0          8m
 </code></pre>
-<p>You deleted a Pod; the ReplicaSet noticed <em>1 &lt; 2</em> and created another within seconds. The <code>/health</code> lines in the log are the probes; the source IP is the node&#39;s kubelet. (Lab 4&#39;s Exercise C, with a different verb.)</p>
+<p>You deleted a Pod; the ReplicaSet noticed <em>1 &lt; 2</em> and created another within seconds, with a new name and a new IP. Lab 4&#39;s Exercise C, with a different verb.</p>
 </div></details>
 
+<h3>6b · Logs, across Pods</h3>
+<pre><code class="language-bash">kubectl logs -l app=mission-control --prefix --tail=3
+kubectl logs deployment/mission-control --since=2m | grep -v &#39;&quot;probe&quot;: true&#39; | tail -5
+</code></pre>
+<p>Every line is JSON (<code>event</code>, <code>path</code>, <code>status</code>, <code>hostname</code>): the same lines CloudWatch received in Lab 4. <code>--prefix</code> tells you which Pod said what; <code>-l</code> selects by label rather than by name, so the command keeps working after Pods are replaced. The <code>probe: true</code> lines are the kubelet&#39;s readiness and liveness probes, arriving from the node&#39;s IP every 5 and 10 seconds.</p>
+<h3>6c · A shell inside</h3>
+<pre><code class="language-bash">POD=$(kubectl get pods -l app=mission-control -o jsonpath=&#39;{.items[0].metadata.name}&#39;)
+kubectl exec -it $POD -- bash
+</code></pre>
+<p>You are inside the container, as user <code>mission</code>. Look around, then leave:</p>
+<pre><code class="language-bash">hostname; id                                 # the Pod name; uid 999, not root
+env | grep -E &#39;^(APP_|MISSION|MOTD|POD_|NODE_)&#39; | sort    # ConfigMap values and the Downward API, as env vars
+cat /etc/mission/motd.txt                    # the ConfigMap key, as a file
+curl -s localhost:8080/ready; echo           # the probe, as the kubelet sees it
+cat /sys/fs/cgroup/memory.max 2&gt;/dev/null || cat /sys/fs/cgroup/memory/memory.limit_in_bytes   # 268435456 = 256 MiB: your limit, in the kernel
+echo &quot;I was here&quot; &gt; /tmp/note.txt; ls -l /tmp
+exit
+</code></pre>
+<p>Now delete that Pod (6a) and <code>kubectl exec</code> into its replacement: <code>/tmp/note.txt</code> is gone. A Pod&#39;s filesystem lives exactly as long as the Pod, as in Lab 4&#39;s Challenge K. Anything that must survive goes into a volume: a PersistentVolumeClaim, an S3 bucket, a database.</p>
+<h3>6d · Reach a Pod the load balancer will not show you</h3>
+<p><code>port-forward</code> opens a private tunnel from CloudShell to one Pod, bypassing the Service entirely:</p>
+<pre><code class="language-bash">kubectl port-forward pod/$POD 8080:8080 &amp;        # background; note the PID it prints
+curl -s localhost:8080/api/info | python3 -m json.tool | head -12
+kill %1                                          # close the tunnel
+</code></pre>
+<p>That is how you talk to a specific Pod, or to one that readiness has pulled out of the Service (Challenge B), or to a Deployment that has no Service at all. The ECS equivalent was Challenge K; here no role or agent is needed because <code>kubectl</code> itself is the tunnel.</p>
 <hr>
-<h2 id="part-7-challenges">Part 7 · Challenges</h2>
-<h3>Challenge A · Autoscale on CPU</h3>
+<h2 id="part-7-configuration-at-run-time">Part 7 · Configuration at run time</h2>
+<p>Lab 4 ended with three speeds of change: code, configuration, run-time value. Kubernetes has a fourth: a <strong>file that updates inside a running container</strong>.</p>
+<ol>
+<li>Edit the ConfigMap: <code>kubectl edit configmap mission-control</code> opens it in <code>vi</code>; change the <code>motd</code> text <em>and</em> <code>MISSION_NAME</code> (to <code>Artemis-EDITED</code>), save, quit. (Or, without an editor: <code>kubectl patch configmap mission-control --type merge -p &#39;{&quot;data&quot;:{&quot;motd&quot;:&quot;Edited at run time, no restart.\n&quot;,&quot;MISSION_NAME&quot;:&quot;Artemis-EDITED&quot;}}&#39;</code>.)</li>
+<li>Refresh the page once a minute. Within about a minute the <strong>message of the day changes</strong>. The <strong>mission name in the title does not</strong>.</li>
+<li><code>kubectl get pods</code>: same Pods, RESTARTS 0, AGE unchanged. Nothing restarted.</li>
+</ol>
+<details class="reveal plain"><summary>Why one changed and the other did not</summary><div class="body">
+
+<p>The kubelet re-syncs mounted ConfigMap volumes periodically (roughly every minute); the app reads the file on every request, so the new text appears without anyone restarting anything. Environment variables are different: they were copied into the process when it started and a running process cannot be given new ones. To pick up the new <code>MISSION_NAME</code> you must restart the Pods:</p>
+<pre><code class="language-bash">kubectl rollout restart deployment/mission-control     # a rolling restart with the same image
+kubectl rollout status deployment/mission-control
+</code></pre>
+<p>Now the title changes too, and <code>kubectl get pods</code> shows brand-new Pods. Same dial as Part 5: new Pods came up before old ones went, and the witness would have printed only <code>200</code>.</p>
+<table>
+<thead>
+<tr>
+<th>You changed…</th>
+<th>Kubernetes needs…</th>
+<th>Took</th>
+<th>ECS equivalent</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>the image</td>
+<td><code>set image</code> → rolling update</td>
+<td>~1 min</td>
+<td>rebuild + revision + rollout</td>
+</tr>
+<tr>
+<td>an env var (ConfigMap or manifest)</td>
+<td><code>rollout restart</code> → rolling update</td>
+<td>~30 s</td>
+<td>new revision + rollout</td>
+</tr>
+<tr>
+<td>a mounted ConfigMap file</td>
+<td>nothing</td>
+<td>≤ 1 min</td>
+<td>a Parameter Store value read at run time</td>
+</tr>
+</tbody></table>
+<p><strong>The lesson:</strong> mount configuration that may change while the app runs (feature flags, a maintenance banner, a list of upstreams) and put the things that must not change silently (ports, image tags, the database host) in env vars or the manifest, where a change leaves a revision in <code>rollout history</code>.</p>
+</div></details>
+
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — The page shows your edited message <em>and</em> the edited mission name; <code>kubectl rollout history</code> shows one more revision than before Part 7.</p>
+</blockquote>
+<hr>
+<h2 id="part-8-challenges">Part 8 · Challenges</h2>
+<p><img class="diagram" src="images/diagrams/lab5-mission-board.svg" alt="Challenge board" loading="lazy"></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Badge</th>
+<th>What it teaches</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A · Autoscale on CPU</td>
+<td>📈</td>
+<td>HorizontalPodAutoscaler, metrics-server</td>
+<td>15 min · recommended</td>
+</tr>
+<tr>
+<td>B · Readiness vs liveness, live</td>
+<td>🚦</td>
+<td>the two probes, Endpoints</td>
+<td>10 min · recommended</td>
+</tr>
+<tr>
+<td>C · Crash, then run out of memory</td>
+<td>💥</td>
+<td>restarts in place, <code>OOMKilled</code>, exit code 137</td>
+<td>10 min · recommended</td>
+</tr>
+<tr>
+<td>D · Break the selector</td>
+<td>🏷️</td>
+<td>labels are the only glue</td>
+<td>10 min · recommended</td>
+</tr>
+<tr>
+<td>E · Recreate vs RollingUpdate, measured</td>
+<td>🪂</td>
+<td>strategies, zero downtime as a number</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>F · A smoke test as a Job</td>
+<td>✅</td>
+<td>run-to-completion workloads, <code>kubectl wait</code></td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>G · Service discovery from inside</td>
+<td>🧭</td>
+<td>ClusterIP and DNS</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>H · A Secret, and why base64 is not encryption</td>
+<td>🔑</td>
+<td>Secrets, <code>envFrom</code></td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>I · PodDisruptionBudget</td>
+<td>🛡️</td>
+<td>voluntary disruptions</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td>J · Read the YAML Kubernetes actually stores</td>
+<td>📜</td>
+<td>defaults and status</td>
+<td>5 min</td>
+</tr>
+</tbody></table>
+<h3>Challenge A · 📈 Autoscale on CPU</h3>
 <p>Apply the HorizontalPodAutoscaler and a load generator, then watch:</p>
 <pre><code class="language-bash">kubectl apply -f 03-hpa.yaml -f 04-load-generator.yaml
 kubectl get hpa mission-control --watch        # Ctrl-C to stop
 </code></pre>
 <details class="reveal hint"><summary>💡 Hint</summary><div class="body">
 
-<p>The HPA targets 50 % average CPU of the Pods&#39; <em>requests</em> (100m). The load generator is a busybox loop hammering the Service from inside the cluster. Metrics arrive every 15–30 s, so give it two minutes.</p>
+<p>The HPA targets 50 % average CPU of the Pods&#39; <em>requests</em> (100m). The load generator is a busybox loop hammering the Service from inside the cluster. Metrics arrive every 15–30 s, so give it two minutes. <code>kubectl top pods</code> shows the live numbers it is reacting to.</p>
 </div></details>
 
-<details class="reveal plain"><summary>✅ What you will see</summary><div class="body">
+<details class="reveal solution"><summary>✅ What you will see</summary><div class="body">
 
 <pre><code>NAME              REFERENCE                    TARGETS        MINPODS   MAXPODS   REPLICAS   AGE
 mission-control   Deployment/mission-control   cpu: 1%/50%    2         6         2          22s
@@ -334,64 +610,245 @@ mission-control   Deployment/mission-control   cpu: 209%/50%  2         6       
 mission-control   Deployment/mission-control   cpu: 122%/50%  2         6         6          63s
 mission-control   Deployment/mission-control   cpu: 104%/50%  2         6         6          2m5s
 </code></pre>
-<p>Utilisation shoots past the target, the HPA scales the Deployment to its maximum of 6 within a minute, and per-Pod utilisation falls. Delete the load generator (<code>kubectl delete pod load-generator</code>) and, after the five-minute stabilisation window, it scales back to 2. <code>kubectl top pods</code> shows the live numbers (that is the metrics-server add-on).</p>
+<p>Utilisation shoots past the target, the HPA scales the Deployment to its maximum of 6 within a minute, and per-Pod utilisation falls. Delete the load generator (<code>kubectl delete pod load-generator</code>) and watch it come back down: the manifest sets <code>scaleDown.stabilizationWindowSeconds: 60</code> instead of the default 300, so the scale-in happens within a couple of minutes rather than five. <code>kubectl describe hpa mission-control</code> shows the decisions and their reasons as Events.</p>
+<p>Note <code>kubectl get deployment</code>: the HPA <em>edits the Deployment&#39;s <code>replicas</code></em>. If you now <code>kubectl apply -f 01-deployment.yaml</code> with <code>replicas: 2</code>, you fight the autoscaler; production manifests leave <code>replicas</code> out when an HPA owns it.</p>
 <p><strong>ECS equivalent:</strong> Service Auto Scaling with a target-tracking policy on <code>ECSServiceAverageCPUUtilization</code>.</p>
+<p><strong>Proof:</strong> an HPA row with <code>REPLICAS 6</code>. Delete the HPA afterwards (<code>kubectl delete hpa mission-control</code>) so the other challenges see a steady 2.</p>
 </div></details>
 
-<h3>Challenge B · Config without a rebuild</h3>
-<p>Change <code>APP_COLOR</code> and <code>MISSION_NAME</code> without touching the image.</p>
+<h3>Challenge B · 🚦 Readiness vs liveness, live</h3>
+<p>Mission Control can be told to <em>stop being ready</em> without dying. Do it to one Pod and watch what each probe does.</p>
+<pre><code class="language-bash">kubectl get endpoints mission-control                 # two IPs
+LB=$(kubectl get svc mission-control -o jsonpath=&#39;{.status.loadBalancer.ingress[0].hostname}&#39;)
+curl -s http://$LB/ready/off                          # whichever Pod the LB picks turns NOT READY
+sleep 15; kubectl get pods; kubectl get endpoints mission-control
+</code></pre>
+<details class="reveal solution"><summary>✅ What happens, and how to undo it</summary><div class="body">
+
+<pre><code>NAME                               READY   STATUS    RESTARTS   AGE
+mission-control-7848469d98-nx24b   0/1     Running   0          9m
+mission-control-7848469d98-wkkb5   1/1     Running   0          17m
+NAME              ENDPOINTS           AGE
+mission-control   172.31.40.173:8080  38m
+</code></pre>
+<p>One Pod is <code>0/1</code>: its readiness probe (<code>/ready</code>, now 503) failed twice, so the Service <strong>removed it from Endpoints</strong>. The process is untouched: STATUS Running, RESTARTS 0, and <code>kubectl describe pod</code> shows <code>Readiness probe failed: HTTP probe failed with statuscode: 503</code>. Liveness (<code>/health</code>, still 200) is satisfied, so the kubelet has no reason to restart anything. Refresh the page: every request now lands on the <em>other</em> Pod. Wait a minute: still 0 restarts.</p>
+<p>Now bring it back. You cannot reach it through the load balancer (that is the whole point), so tunnel to it directly:</p>
+<pre><code class="language-bash">POD=$(kubectl get pods -l app=mission-control -o jsonpath=&#39;{.items[?(@.status.containerStatuses[0].ready==false)].metadata.name}&#39;)
+kubectl port-forward pod/$POD 8080:8080 &amp; sleep 1
+curl -s localhost:8080/ready/on; kill %1
+sleep 8; kubectl get endpoints mission-control        # two IPs again
+</code></pre>
+<p><strong>The lesson:</strong> readiness is for &quot;not right now&quot; (warming a cache, draining before shutdown, a dependency being down); liveness is for &quot;stuck&quot;. ECS has only the second kind of answer (unhealthy → replace). Kubernetes lets a container step out of rotation and back without losing its state. Note also that <code>/ready/off</code> is reachable by anyone who can reach the page; a real app would protect such a switch.</p>
+<p><img class="diagram" src="images/diagrams/lab5-probes.svg" alt="The three probes" loading="lazy"></p>
+<p><strong>Proof:</strong> a <code>0/1 Running</code> Pod with <code>RESTARTS 0</code> and a one-address Endpoints line.</p>
+</div></details>
+
+<h3>Challenge C · 💥 Crash, then run out of memory</h3>
+<p><strong>Part 1.</strong> Call <code>/crash</code> through the load balancer a few times and watch <code>kubectl get pods</code>.</p>
+<details class="reveal solution"><summary>✅ What happens</summary><div class="body">
+
+<p>The container exits with code 1; the kubelet restarts it <strong>in place</strong> (same Pod name, same IP, <code>RESTARTS</code> column increments) because a Pod&#39;s restart policy defaults to <code>Always</code>. Contrast with Part 6a, where deleting the Pod produced a <em>new</em> Pod. While it restarts, the Pod is <code>0/1</code> and out of Endpoints; the other Pod serves. Keep crashing it and the restart delay doubles each time (<code>CrashLoopBackOff</code>, 10 s, 20 s, 40 s… up to 5 min): the kubelet refuses to spin on a container that cannot stay up. <code>kubectl logs $POD --previous</code> shows the log of the container <em>before</em> the last restart; that is where the reason for a crash usually lives.</p>
+</div></details>
+
+<p><strong>Part 2.</strong> Tunnel to one Pod and ask it to eat memory:</p>
+<pre><code class="language-bash">POD=$(kubectl get pods -l app=mission-control -o jsonpath=&#39;{.items[0].metadata.name}&#39;)
+kubectl port-forward pod/$POD 8080:8080 &amp; sleep 1
+curl -s -m 60 &#39;localhost:8080/hog?mb=1024&#39;; echo &quot; (curl exit=$?)&quot;; kill %1
+sleep 10; kubectl get pod $POD
+kubectl describe pod $POD | grep -A4 &quot;Last State&quot;
+</code></pre>
+<details class="reveal solution"><summary>✅ What happens</summary><div class="body">
+
+<pre><code> (curl exit=52)
+NAME                               READY   STATUS    RESTARTS      AGE
+mission-control-7848469d98-nx24b   1/1     Running   1 (12s ago)   14m
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    137
+</code></pre>
+<p>The app allocated past <code>limits.memory: 256Mi</code>; the kernel killed the process (<code>SIGKILL</code>, 128 + 9 = <strong>137</strong>); curl&#39;s connection dropped (exit 52, empty reply); the kubelet restarted the container in place and recorded the previous one&#39;s fate under <em>Last State</em>. Lab 4&#39;s Exercise D, with a restart instead of a replacement. <code>kubectl top pod $POD</code> shortly before the kill would have shown memory at the limit; the page&#39;s Memory row shows it live.</p>
+<p><strong>The lesson:</strong> <code>limits.memory</code> is a wall, not a hint, and 137 is its signature everywhere (Docker, ECS, Kubernetes). When you see <code>OOMKilled</code> in production the answer is a leak fix or a bigger limit, never &quot;restart it again&quot;.</p>
+<p><strong>Proof:</strong> <code>Reason: OOMKilled · Exit Code: 137</code>.</p>
+</div></details>
+
+<h3>Challenge D · 🏷️ Break the selector</h3>
+<p>Edit <code>02-service.yaml</code> and change the selector to <code>app: mission-controll</code> (one extra <em>l</em>). Apply it. <strong>Predict:</strong> does the load balancer still answer? Do the Pods still run?</p>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<pre><code class="language-bash">kubectl get endpoints mission-control
+kubectl get pods --show-labels
+</code></pre>
+</div></details>
+
 <details class="reveal solution"><summary>✅ Solution</summary><div class="body">
 
-<p>Edit <code>01-deployment.yaml</code> (new values) and <code>kubectl apply -f 01-deployment.yaml</code>. Any change to the Pod template triggers a rolling update: new ReplicaSet, same image, new environment. <code>kubectl rollout history</code> now shows revision 3. Production teams move such values into a <strong>ConfigMap</strong> (<code>kubectl create configmap mission --from-literal=APP_COLOR=#22C55E</code>) referenced with <code>envFrom</code>, so configuration and Deployment definition change independently.</p>
+<pre><code>NAME              ENDPOINTS   AGE
+mission-control   &lt;none&gt;      41m
+</code></pre>
+<p>The Pods are fine (<code>2/2 Running</code>), the load balancer still exists, the Service still has a ClusterIP; but its <strong>Endpoints are empty</strong>, because no Pod carries the label the selector asks for. Users get a connection error or a 503 from the load balancer. Nothing is &quot;down&quot; in any dashboard that looks at Pods or at the LB; only the glue is missing.</p>
+<p>Fix the label, apply, and Endpoints fills in within a second or two.</p>
+<p><strong>The lesson:</strong> in Kubernetes nothing is wired by name. A Service finds Pods by <strong>label selector</strong>, a Deployment owns Pods by selector, a PDB protects Pods by selector, a NetworkPolicy targets Pods by selector. <code>kubectl get endpoints</code> is the first command to run when &quot;the service is up but nothing answers&quot;.</p>
+<p><strong>Proof:</strong> an <code>ENDPOINTS &lt;none&gt;</code> line.</p>
 </div></details>
 
-<h3>Challenge C · Make the liveness probe fire</h3>
-<p>Mission Control has a <code>/crash</code> endpoint that exits the process. Call it through the load balancer a few times and watch <code>kubectl get pods</code>.</p>
-<details class="reveal plain"><summary>✅ What happens</summary><div class="body">
+<h3>Challenge E · 🪂 Recreate vs RollingUpdate, measured</h3>
+<p>Start the witness loop from Part 5a in your second tab. Then change the Deployment&#39;s strategy to <code>Recreate</code> and trigger a rollout with a harmless change:</p>
+<pre><code class="language-bash">kubectl patch deployment mission-control -p &#39;{&quot;spec&quot;:{&quot;strategy&quot;:{&quot;type&quot;:&quot;Recreate&quot;,&quot;rollingUpdate&quot;:null}}}&#39;
+kubectl set env deployment/mission-control DEMO=recreate
+kubectl get pods --watch        # Ctrl-C when the new Pods are 1/1
+</code></pre>
+<details class="reveal solution"><summary>✅ What you see, and the way back</summary><div class="body">
 
-<p>The container exits with code 1; the kubelet restarts it <strong>in place</strong> (same Pod name, <code>RESTARTS</code> column increments) because a Pod&#39;s restart policy defaults to <code>Always</code>. Contrast with Part 6, where deleting the Pod produced a <em>new</em> Pod. If the process hung instead of exiting, the <strong>livenessProbe</strong> would fail three times and the kubelet would restart it too; the readinessProbe meanwhile pulls the Pod out of the Service&#39;s endpoints so no traffic reaches it. Two probes, two jobs.</p>
+<p>Both old Pods go <code>Terminating</code> <strong>first</strong>; for a few seconds there are <strong>zero</strong> Pods; then two new ones start and become ready. The witness tab prints a run of <code>000</code> or <code>503</code> in the middle of its <code>200</code>s: that is downtime, counted in requests. <code>Recreate</code> is the right tool when two versions must never run at once (a schema migration, a singleton) and the wrong one for anything users are looking at.</p>
+<p>Put the dial back and roll once more; the witness prints only <code>200</code>:</p>
+<pre><code class="language-bash">kubectl patch deployment mission-control -p &#39;{&quot;spec&quot;:{&quot;strategy&quot;:{&quot;type&quot;:&quot;RollingUpdate&quot;,&quot;rollingUpdate&quot;:{&quot;maxSurge&quot;:1,&quot;maxUnavailable&quot;:0}}}}&#39;
+kubectl set env deployment/mission-control DEMO-
+</code></pre>
+<p>Try the other corner too: <code>maxSurge: 0, maxUnavailable: 1</code> is Lab 4&#39;s <em>min 50 % / max 100 %</em>: no extra Pod ever, capacity dips to one.</p>
+<p><strong>Proof:</strong> the witness line with non-200 codes from the Recreate, and an all-200 line from the rolling update.</p>
 </div></details>
 
-<h3>Challenge D · Read the YAML Kubernetes actually stores</h3>
+<h3>Challenge F · ✅ A smoke test as a Job</h3>
+<p>Lab 2&#39;s <code>ValidateService</code> hook ran a script on the server after a deployment. Kubernetes has an object for &quot;run this once and tell me the exit code&quot;:</p>
+<pre><code class="language-bash">kubectl apply -f 05-smoke-test.yaml
+kubectl wait --for=condition=complete job/smoke-test --timeout=90s
+kubectl logs job/smoke-test
+kubectl get job smoke-test
+</code></pre>
+<details class="reveal solution"><summary>✅ What you see, and how a pipeline uses it</summary><div class="body">
+
+<pre><code>job.batch/smoke-test condition met
+1/3 liveness
+2/3 readiness
+3/3 version
+&quot;version&quot;:&quot;v4&quot;
+smoke test passed
+NAME         STATUS     COMPLETIONS   DURATION   AGE
+smoke-test   Complete   1/1           8s         8s
+</code></pre>
+<p>The Job created one Pod that ran three <code>wget</code>s against the Service and exited 0; the Job is <code>Complete</code>. Break it: turn one Pod not-ready as in Challenge B, delete and re-apply the Job (Jobs are immutable), and watch <code>kubectl wait</code> time out with the Job <code>Failed</code> after one retry (<code>backoffLimit: 1</code>), and <code>kubectl logs job/smoke-test</code> end at <code>2/3 readiness</code>. The Pod disappears by itself ten minutes later (<code>ttlSecondsAfterFinished</code>).</p>
+<p>A deploy pipeline is just these lines in order: <code>kubectl apply -f deployment.yaml &amp;&amp; kubectl rollout status … &amp;&amp; kubectl apply -f smoke-test.yaml &amp;&amp; kubectl wait --for=condition=complete job/smoke-test || kubectl rollout undo …</code>. For something that must run on a schedule instead, the same Pod template goes into a <strong>CronJob</strong> (<code>schedule: &quot;*/5 * * * *&quot;</code>).</p>
+<p><strong>Proof:</strong> a <code>Complete 1/1</code> Job line, or a <code>Failed</code> one with the log that explains it.</p>
+</div></details>
+
+<h3>Challenge G · 🧭 Service discovery from inside the cluster</h3>
+<p>The load generator talked to <code>http://mission-control/</code> and it worked. Where did that name come from?</p>
+<pre><code class="language-bash">kubectl run tmp --restart=Never --image=public.ecr.aws/docker/library/busybox:1.36 -- \
+  sh -c &#39;nslookup mission-control; echo ---; wget -qO- http://mission-control/api/info | head -c 200; echo&#39;
+kubectl wait --for=jsonpath=&#39;{.status.phase}&#39;=Succeeded pod/tmp --timeout=60s
+kubectl logs tmp
+kubectl get svc mission-control -o jsonpath=&#39;{.spec.clusterIP}{&quot;\n&quot;}&#39;
+kubectl delete pod tmp
+</code></pre>
+<details class="reveal solution"><summary>✅ What you see</summary><div class="body">
+
+<pre><code>Server:         10.100.0.10
+Address:        10.100.0.10:53
+
+Name:   mission-control.participant-NN.svc.cluster.local
+Address: 10.100.12.34
+---
+{&quot;color&quot;:&quot;#A78BFA&quot;,&quot;ecs&quot;:{},&quot;hits_on_this_container&quot;:3863,&quot;hostname&quot;:&quot;mission-control-7848469d98-wkkb5&quot;, …
+10.100.12.34
+</code></pre>
+<p>A throw-away Pod resolves <code>mission-control</code> to the Service&#39;s <strong>ClusterIP</strong> (a stable virtual IP that exists only inside the cluster; the same number <code>get svc</code> prints) and gets the page from whichever Pod the Service picks. The full name is <code>mission-control.participant-NN.svc.cluster.local</code>; the short form works because the Pod is in the same namespace (busybox&#39;s <code>nslookup</code> also prints a few harmless <code>NXDOMAIN</code> lines while it tries the other search suffixes). CoreDNS (one of the add-ons you saw in Part 0) answers; kube-proxy on every node turns the virtual IP into a real Pod IP. Note the shape of the commands: run a Pod, <code>wait</code> for it, read its <code>logs</code>, delete it. That is a Job done by hand (Challenge F).</p>
+<p>Every Service has a ClusterIP whether or not it also has a load balancer; <code>type: LoadBalancer</code> is the ClusterIP <em>plus</em> an AWS load balancer pointing at it. Most Services in a real cluster are ClusterIP-only: internal APIs talking to each other by name, with no public address at all. Try <code>kubectl run … -n participant-02</code>: Forbidden, of course.</p>
+<p><strong>Proof:</strong> the <code>nslookup</code> answer with your Service&#39;s ClusterIP.</p>
+</div></details>
+
+<h3>Challenge H · 🔑 A Secret, and why base64 is not encryption</h3>
+<p>Mission Control shows a <code>LAUNCH_CODE</code> variable, masked, if it has one. Give it one from a Secret:</p>
+<pre><code class="language-bash">kubectl create secret generic mission-secret --from-literal=LAUNCH_CODE=orbit-7f3a-launch-code
+kubectl get secret mission-secret -o yaml | grep LAUNCH_CODE
+</code></pre>
+<p>Then add the Secret to the Deployment: in <code>01-deployment.yaml</code>, under <code>envFrom:</code>, add a second entry <code>- secretRef: { name: mission-secret }</code>, apply, and refresh the page.</p>
+<details class="reveal solution"><summary>✅ What you see, and the uncomfortable part</summary><div class="body">
+
+<p>The page shows <strong>Launch code (from a Secret): <code>orbi…••••••••</code></strong>. The rollout happened because the Pod template changed; <code>kubectl rollout history</code> has one more revision.</p>
+<p>Now the uncomfortable part:</p>
+<pre><code class="language-bash">kubectl get secret mission-secret -o jsonpath=&#39;{.data.LAUNCH_CODE}&#39; | base64 -d; echo
+</code></pre>
+<p>That is the value, in clear, for anyone who can <code>get secrets</code> in the namespace. A Secret is base64-<em>encoded</em> so that binary values survive YAML, not encrypted. What protects it is <strong>RBAC</strong> (who may read Secrets; your Role allows it, a read-only viewer&#39;s would not) and, on EKS, <strong>envelope encryption</strong> of the cluster&#39;s datastore with a KMS key, which the instructor enabled or did not. Teams that need more use External Secrets or the Secrets Store CSI driver to pull from Secrets Manager / Parameter Store at run time, which is Lab 4&#39;s Challenge J with Kubernetes words.</p>
+<p><strong>Proof:</strong> the masked code on the page and the decoded value from one command.</p>
+</div></details>
+
+<h3>Challenge I · 🛡️ PodDisruptionBudget</h3>
+<pre><code class="language-bash">kubectl apply -f 06-pdb.yaml
+kubectl get pdb
+</code></pre>
+<details class="reveal solution"><summary>✅ What it means</summary><div class="body">
+
+<pre><code>NAME              MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+mission-control   1               N/A               1                     3s
+</code></pre>
+<p>A PDB is a promise <em>you</em> extract from the cluster: &quot;during voluntary disruptions, keep at least one of my Pods&quot;. A node drain for a Kubernetes upgrade (EKS managed node group updates do this) evicts Pods one at a time and will wait rather than evict the last one that matches this selector. ALLOWED DISRUPTIONS = 1 because two are ready and one must stay. It does nothing against crashes or OOM kills (that is what replicas and probes are for), and nothing if you set <code>minAvailable: 2</code> with two replicas except block every drain, which annoys the cluster operator. You cannot drain a node in this class (RBAC), so this one is declarative-only; in production it is the difference between a quiet upgrade and a 2 a.m. page.</p>
+<p><strong>Proof:</strong> the <code>ALLOWED DISRUPTIONS 1</code> line.</p>
+</div></details>
+
+<h3>Challenge J · 📜 Read the YAML Kubernetes actually stores</h3>
 <pre><code class="language-bash">kubectl get deployment mission-control -o yaml | less
 </code></pre>
-<p>Find three fields you did not write (<code>strategy.rollingUpdate.maxSurge</code>, <code>revisionHistoryLimit</code>, <code>status.conditions</code>). Those defaults are the ECS &quot;min 100 % / max 200 %&quot; and the deployment history you saw in Lab 4, expressed as data.</p>
+<p>Find three fields you did not write (<code>revisionHistoryLimit</code>, <code>terminationGracePeriodSeconds</code>, <code>dnsPolicy</code>), and the whole <code>status:</code> block with its <code>conditions</code>. Those defaults are the ECS &quot;min 100 % / max 200 %&quot;-style settings and the deployment history you saw in Lab 4, expressed as data. <code>kubectl explain deployment.spec.strategy</code> prints the documentation for any field, offline.</p>
 <hr>
-<h2 id="part-8-clean-up-your-namespace-only">Part 8 · Clean up (your namespace only)</h2>
-<pre><code class="language-bash">kubectl delete -f 04-load-generator.yaml -f 03-hpa.yaml -f 02-service.yaml -f 01-deployment.yaml
-kubectl get all        # should be empty
+<h2 id="part-9-clean-up-your-namespace-only">Part 9 · Clean up (your namespace only)</h2>
+<pre><code class="language-bash">kubectl delete -f 06-pdb.yaml -f 05-smoke-test.yaml -f 04-load-generator.yaml -f 03-hpa.yaml --ignore-not-found
+kubectl delete -f 02-service.yaml -f 01-deployment.yaml -f 00-configmap.yaml
+kubectl delete secret mission-secret --ignore-not-found
+kubectl get all,cm,secret,pdb,hpa,job        # only the kube-root-ca.crt ConfigMap should remain
 </code></pre>
 <p>Deleting the Service deletes the AWS load balancer it created (give it a minute). The instructor destroys the cluster and namespaces after class.</p>
 <hr>
-<h2 id="part-9-what-you-learned">Part 9 · What you learned</h2>
+<h2 id="part-10-what-you-learned">Part 10 · What you learned</h2>
 <ul>
-<li>Kubernetes is <strong>declarative</strong>: you apply desired state; controllers converge reality to it, forever.</li>
-<li><strong>Deployment → ReplicaSet → Pod</strong> is ECS&#39;s service → task definition → task with the names changed.</li>
-<li><strong>Readiness</strong> gates traffic; <strong>liveness</strong> restarts; both are what makes rolling updates and self-healing safe.</li>
-<li><strong>Namespaces + RBAC + ResourceQuota</strong> turn one cluster into fifteen sandboxes with a known blast radius.</li>
-<li><code>rollout status</code>, <code>rollout history</code>, <code>rollout undo</code> are the whole deployment story; <code>describe</code> and <code>logs</code> are the whole debugging story.</li>
-<li>A broken image <strong>stalls</strong> a rollout rather than breaking the service; a human or a pipeline decides to undo.</li>
-<li>IAM authenticates you to EKS; Kubernetes RBAC authorises what you may do. Two systems, one identity.</li>
+<li>Kubernetes is <strong>declarative</strong>: you apply desired state; controllers converge reality to it, forever, including a file you edited under a running container.</li>
+<li><strong>Deployment → ReplicaSet → Pod</strong> is ECS&#39;s service → task definition → task with the names changed; <code>maxSurge</code> / <code>maxUnavailable</code> is the same blast-radius dial.</li>
+<li><strong>Readiness</strong> gates traffic (Endpoints), <strong>liveness</strong> restarts in place, <strong>limits</strong> kill with 137; three different signatures in <code>kubectl get pods</code> and <code>describe</code>.</li>
+<li><strong>Labels are the only glue</strong>: Services, Deployments, PDBs and HPAs all find their Pods by selector; <code>kubectl get endpoints</code> is the first question when &quot;up but not answering&quot;.</li>
+<li><code>rollout status</code>, <code>rollout history</code> (with change-cause), <code>rollout undo</code> and <code>progressDeadlineSeconds</code> are the whole deployment story; <code>describe</code>, <code>logs</code>, <code>exec</code> and <code>port-forward</code> are the whole debugging story.</li>
+<li>A broken image <strong>stalls</strong> a rollout rather than breaking the service; Kubernetes reports it, a human or a pipeline undoes it.</li>
+<li><strong>ConfigMaps and Secrets</strong> separate configuration from the image; mounted files update live, env vars need a restart, and base64 is not encryption.</li>
+<li><strong>Jobs</strong> run to completion and make a smoke test a first-class object a pipeline can <code>wait</code> for.</li>
+<li><strong>Namespaces + RBAC + ResourceQuota + LimitRange</strong> turn one cluster into fifteen sandboxes with a known blast radius. IAM authenticates you to EKS; Kubernetes RBAC authorises what you may do.</li>
 </ul>
 <h3>Quiz yourself</h3>
-<details class="reveal quiz"><summary>1. A Pod shows 0/1 READY but STATUS Running. What does that mean and what would you check?</summary><div class="body">
+<details class="reveal quiz"><summary>1. A Pod shows 0/1 READY but STATUS Running and RESTARTS 0. What does that mean and what would you check?</summary><div class="body">
 
-<p>The container process is up but the <strong>readinessProbe</strong> is failing, so the Pod receives no Service traffic. <code>kubectl describe pod</code> → Events shows the probe failures; <code>kubectl logs</code> shows why <code>/health</code> is not 200.</p>
+<p>The container process is up and liveness is passing, but the <strong>readinessProbe</strong> is failing, so the Pod receives no Service traffic (it is absent from Endpoints). <code>kubectl describe pod</code> → Events shows the probe failures with a status code: 404 means the probe path is wrong, 503 means the app says it is not ready, a timeout means the port or the process. <code>kubectl logs</code> shows what the app thinks.</p>
 </div></details>
 
 <details class="reveal quiz"><summary>2. You scale to 20 and only 12 start. Is the cluster full?</summary><div class="body">
 
-<p>Not necessarily: check <code>kubectl get events</code> first. &quot;exceeded quota&quot; means your namespace&#39;s ResourceQuota, not the nodes. A genuinely full cluster shows Pods <code>Pending</code> with <code>Insufficient cpu/memory</code> in their events.</p>
+<p>Not necessarily: check <code>kubectl get events</code> first. &quot;exceeded quota&quot; means your namespace&#39;s ResourceQuota, not the nodes. A genuinely full cluster shows Pods <code>Pending</code> with <code>Insufficient cpu/memory</code> in their events, and <code>kubectl describe node</code> shows <em>Allocated resources</em> near 100 % of requests, whatever <code>kubectl top</code> says about actual usage.</p>
 </div></details>
 
 <details class="reveal quiz"><summary>3. What is the Kubernetes equivalent of ECS's deployment circuit breaker?</summary><div class="body">
 
-<p>There is no automatic rollback by default. A stuck rollout stays stuck (old Pods keep serving) until <code>kubectl rollout undo</code>; <code>progressDeadlineSeconds</code> makes the Deployment <em>report</em> failure, and CI pipelines typically watch <code>rollout status</code> and undo on timeout.</p>
+<p>There is no automatic rollback by default. A stuck rollout stays stuck (old Pods keep serving) until <code>kubectl rollout undo</code>; <code>progressDeadlineSeconds</code> makes the Deployment <em>report</em> failure (<code>Progressing=False</code>, <code>rollout status</code> exits non-zero), and CI pipelines typically run <code>rollout status || rollout undo</code>.</p>
 </div></details>
 
 <details class="reveal quiz"><summary>4. Why could you run `kubectl get nodes` but not `kubectl get pods -n kube-system`?</summary><div class="body">
 
-<p>Your group is bound to a ClusterRole that allows only <code>nodes</code>/<code>namespaces</code> reads cluster-wide, and to a Role with full rights that exists only in your namespace. RBAC is deny-by-default; every allow is explicit.</p>
+<p>Your group is bound to a ClusterRole that allows only <code>nodes</code>/<code>namespaces</code> reads cluster-wide, and to a Role with full rights that exists only in your namespace. RBAC is deny-by-default; every allow is explicit. <code>kubectl auth can-i --list</code> shows the result.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>5. You edited a ConfigMap. The mounted file changed; the env var did not. Why, and what do you do?</summary><div class="body">
+
+<p>The kubelet re-syncs mounted ConfigMap volumes about once a minute, and the app reads the file per request. Environment variables are copied into a process at start and cannot change afterwards, so <code>kubectl rollout restart deployment/…</code> is needed: a rolling restart with the same image, leaving a revision in the history.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>6. A Pod shows RESTARTS 3 and Last State: Terminated, Reason: OOMKilled, Exit Code: 137. What happened three times and what is the fix?</summary><div class="body">
+
+<p>The container exceeded <code>resources.limits.memory</code> and the kernel SIGKILLed it (137 = 128 + 9); the kubelet restarted it in place each time, with a growing back-off. The fix is a leak fix or a higher limit based on <code>kubectl top</code> data, never a bigger <code>restartPolicy</code>. The same number means the same thing on ECS and plain Docker.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>7. The load balancer answers but every request fails, Pods are 2/2 Running. First command?</summary><div class="body">
+
+<p><code>kubectl get endpoints &lt;service&gt;</code>. If it is <code>&lt;none&gt;</code>, the Service&#39;s selector matches no Pod labels (Challenge D) or no Pod is ready (Challenge B). Fix the label or the readiness; the LB and the Pods were never the problem.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>8. Which Kubernetes objects did a pipeline need to deploy and verify Mission Control, in order?</summary><div class="body">
+
+<p>ConfigMap (configuration), Deployment (<code>apply</code>, then <code>rollout status</code> with a progress deadline), Service (once; it rarely changes), then a Job as the smoke test (<code>apply</code>, <code>wait --for=condition=complete</code>), and <code>rollout undo</code> if either the status or the wait fails. Secrets come from a secret store, not from the repository.</p>
 </div></details>
 
 <p><strong>Done.</strong> Back to the <a href="index.html">handout</a> for the wrap-up and the triage playbook you can take with you.</p>

@@ -1,4 +1,5 @@
-# Challenge: hammer the service from inside the cluster so the HPA has something to react to.
+# Challenge A: hammer the Service from inside the cluster so the HPA has something to react to.
+# Note the URL: "mission-control" is the Service name, resolved by the cluster's DNS (CoreDNS).
 apiVersion: v1
 kind: Pod
 metadata:

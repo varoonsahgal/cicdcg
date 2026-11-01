@@ -1,0 +1,15 @@
+# Configuration lives outside the image. 01-deployment.yaml consumes this ConfigMap in two ways:
+#   MISSION_NAME / APP_COLOR  → environment variables: copied into the container when it STARTS
+#   motd                      → a file at /etc/mission/motd.txt: kept in sync by the kubelet while the Pod RUNS
+# Part 7 of the lab shows the difference between the two.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mission-control
+  labels: { app: mission-control }
+data:
+  MISSION_NAME: "Artemis-NN"
+  APP_COLOR: "#A78BFA"
+  motd: |
+    Welcome aboard, participant-NN. This text comes from a ConfigMap mounted as a file.
+    Edit the ConfigMap and refresh in a minute: no rebuild, no restart.

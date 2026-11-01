@@ -86,6 +86,7 @@ for NN in "$@"; do
   aws ecr delete-repository --repository-name "$STU-mission-control" --force >/dev/null 2>&1 && echo "   ecr repository deleted"
   aws codebuild delete-project --name "$STU-image-build" >/dev/null 2>&1 && echo "   image-build project deleted"
   for lg in "/aws/codebuild/$STU-image-build" "/ecs/$STU-mission-control"; do aws logs delete-log-group --log-group-name "$lg" 2>/dev/null && echo "   log group $lg deleted"; done
+  for p in "/$STU/mission-control/motd" "/$STU/mission-control/launch-code"; do aws ssm delete-parameter --name "$p" 2>/dev/null && echo "   parameter $p deleted"; done
   ## Buckets
   empty_and_delete_bucket "cicd-lab1-$STU"
   empty_and_delete_bucket "cicd-lab2-$STU"
@@ -96,6 +97,8 @@ for NN in "$@"; do
   delete_role "codebuild-$STU-codebuild-demo-service-role"
   delete_role "codebuild-$STU-pipeline-build-service-role"
   delete_role "codebuild-$STU-image-build-service-role"
+  delete_role "$STU-task-role"
+  delete_role "$STU-task-execution-role"
   delete_role "AWSCodePipelineServiceRole-$AWS_DEFAULT_REGION-$STU-pipeline"
   delete_role "cwe-role-$AWS_DEFAULT_REGION-$STU-pipeline"
 done

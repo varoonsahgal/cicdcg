@@ -1,4 +1,4 @@
-# Challenge: scale on CPU. Needs the metrics-server add-on (installed by the instructor).
+# Challenge A: scale on CPU. Needs the metrics-server add-on (installed by the instructor).
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -9,4 +9,7 @@ spec:
   maxReplicas: 6
   metrics:
     - type: Resource
-      resource: { name: cpu, target: { type: Utilization, averageUtilization: 50 } }
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 50 } }   # % of the Pods' CPU *requests*
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60   # default 300: too slow to watch in class
