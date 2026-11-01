@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en" class="hue-lab5" data-page="lab5">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kubernetes on EKS — the same ideas with different words · Pipeline Academy</title>
+<meta name="description" content="Yesterday's orchestrator was ECS. Today's is Kubernetes, the one the rest of the industry speaks. You will run the exact same Mission Control image, on a cluster the whole class shares, inside a namespace that is yours alone. Every concept from Lab 4 reappears under a new name: that is the point.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0B1220">
+<script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1220'/%3E%3Ccircle cx='8' cy='16' r='4' fill='%2322C55E'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2338BDF8'/%3E%3Ccircle cx='24' cy='16' r='4' fill='%23F59E0B'/%3E%3C/svg%3E">
+</head>
+<body data-page="lab5">
+<a class="skip" href="#main">Skip to content</a>
+<div id="readbar" aria-hidden="true"></div>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"/><circle cx="8" cy="16" r="4" fill="#22C55E"/><circle cx="16" cy="16" r="4" fill="#38BDF8"/><circle cx="24" cy="16" r="4" fill="#F59E0B"/><path d="M12 16h0M20 16h0" stroke="#fff"/></svg>Pipeline Academy <span>· AWS CI/CD labs</span></a>
+  <nav class="nav" aria-label="Labs">
+      <a href="index.html">Start here</a>
+      <a href="lab1.html" data-lab="lab1" style="--d:#38BDF8"><span class="dot"></span>Lab 1<span class="lbl-long"> · Build it</span><span class="done">★</span></a>
+      <a href="lab2.html" data-lab="lab2" style="--d:#22C55E"><span class="dot"></span>Lab 2<span class="lbl-long"> · Ship it</span><span class="done">★</span></a>
+      <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
+      <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
+      <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA" aria-current="page"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+  </nav>
+  <div class="tools">
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+    <button class="iconbtn menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div></header>
+
+<section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
+  <div>
+    <p class="eyebrow">Lab 5 of 5 · Orchestrate it</p>
+    <h1>Kubernetes on EKS — the same ideas with different words</h1>
+    <p class="lede">Yesterday's orchestrator was ECS. Today's is Kubernetes, the one the rest of the industry speaks. You will run the exact same Mission Control image, on a cluster the whole class shares, inside a namespace that is yours alone. Every concept from Lab 4 reappears under a new name: that is the point.</p>
+    <div class="mast-meta"><span class="chip"><b>Time</b> 80–100 minutes (core ≈ 55, challenges ≈ 35)</span><span class="chip"><b>Difficulty</b> Intermediate. Lab 4 first (you reuse its image). No Kubernetes experience assumed.</span><span class="chip"><b>AWS services</b> Amazon EKS (one cluster, created by the instructor), AWS CloudShell, Amazon ECR, Elastic Load Balancing, CloudWatch</span><span class="chip"><b>Tools</b> <code>kubectl</code> – already installed in CloudShell. Nothing on your laptop.</span><span class="chip"><b>You will build</b> A Deployment with two Pods of your image, a Service with an internet-facing load balancer, a rolling update, a rollback, and (challenge) an autoscaler that reacts to load</span><span class="chip"><b>You will break & fix</b> A Pod that cannot pull its image · a scale-up the namespace quota refuses · a peek at a neighbour&#39;s namespace that RBAC refuses</span></div>
+  </div>
+</div></section>
+
+<main id="main" class="labwrap">
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</a></li><li><a href="#part-1-open-cloudshell-and-connect-kubectl">Part 1 · Open CloudShell and connect kubectl</a></li><li><a href="#part-2-rbac-says-no-on-purpose">Part 2 · RBAC says no (on purpose)</a></li><li><a href="#part-3-deploy-mission-control">Part 3 · Deploy Mission Control</a></li><li><a href="#part-4-scale-and-meet-the-quota">Part 4 · Scale, and meet the quota</a></li><li><a href="#part-5-rolling-update-and-rollback">Part 5 · Rolling update and rollback</a></li><li><a href="#part-6-self-healing-and-logs">Part 6 · Self-healing and logs</a></li><li><a href="#part-7-challenges">Part 7 · Challenges</a></li><li><a href="#part-8-clean-up-your-namespace-only">Part 8 · Clean up (your namespace only)</a></li><li><a href="#part-9-what-you-learned">Part 9 · What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your namespace is your sandbox.</strong> The cluster <code>cicd-lab5-eks</code> is shared by everyone. Each of you has a namespace named after your user (<code>participant-NN</code>) with <strong>full rights inside it and none outside it</strong>. Every command below runs in your namespace; if you forget to set it, Kubernetes will politely refuse (you will see this on purpose in Part 2).</p>
+<p><strong>Region:</strong> us-west-2, as always.</p>
+</div></div>
+<hr>
+<h2 id="part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</h2>
+<h3>Kubernetes in one paragraph</h3>
+<p>Kubernetes is a control loop. You hand it a <strong>desired state</strong> written in YAML (&quot;two copies of this image, exposed on port 80&quot;) and a set of controllers works continuously to make reality match: scheduling Pods onto nodes, restarting them when they die, adding replicas when you ask, swapping versions one Pod at a time. You never tell it <em>how</em>; you tell it <em>what</em>, and you watch it converge. Everything you did by clicking in Lab 4 you do here with <code>kubectl apply -f file.yaml</code>.</p>
+<p><img class="diagram" src="images/diagrams/ecs-vs-eks.svg" alt="Same four jobs, two vocabularies" loading="lazy"></p>
+<h3>The translation table (keep it open)</h3>
+<table>
+<thead>
+<tr>
+<th>You did this in Lab 4 (ECS)</th>
+<th>Today it is called</th>
+<th>Defined in</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Task definition</td>
+<td><strong>Pod spec</strong> (the <code>template:</code> inside a Deployment)</td>
+<td><code>01-deployment.yaml</code></td>
+</tr>
+<tr>
+<td>Task</td>
+<td><strong>Pod</strong></td>
+<td>created for you by the Deployment</td>
+</tr>
+<tr>
+<td>Service with <em>desired count 2</em></td>
+<td><strong>Deployment</strong> with <code>replicas: 2</code> (it manages a <strong>ReplicaSet</strong>)</td>
+<td><code>01-deployment.yaml</code></td>
+</tr>
+<tr>
+<td>Service + ALB target group</td>
+<td><strong>Service</strong> of <code>type: LoadBalancer</code></td>
+<td><code>02-service.yaml</code></td>
+</tr>
+<tr>
+<td>Container health check</td>
+<td><strong>readinessProbe</strong> (gates traffic) and <strong>livenessProbe</strong> (triggers restart)</td>
+<td><code>01-deployment.yaml</code></td>
+</tr>
+<tr>
+<td>Rolling update, circuit breaker, &quot;Update service&quot;</td>
+<td><code>kubectl set image</code>, <code>kubectl rollout status / undo</code></td>
+<td>commands</td>
+</tr>
+<tr>
+<td>Cluster per team</td>
+<td><strong>Namespace</strong> per student + <strong>RBAC</strong> + <strong>ResourceQuota</strong></td>
+<td>made by the instructor</td>
+</tr>
+<tr>
+<td>Fargate</td>
+<td>EC2 <strong>nodes</strong> in a managed node group (two <code>t3.large</code>), shared by the class</td>
+<td>made by the instructor</td>
+</tr>
+</tbody></table>
+<h3>What the instructor built for you</h3>
+<p><img class="shot" src="images/lab5-eks-cluster-overview.png" alt="EKS cluster overview" loading="lazy" title="Click to zoom"></p>
+<ul>
+<li>One EKS cluster, Kubernetes 1.33, two worker nodes, the usual add-ons (networking, DNS, metrics).</li>
+<li>An <strong>access entry</strong> that maps your IAM user to a Kubernetes group named <code>participant-NN</code>.</li>
+<li>A <strong>namespace</strong> <code>participant-NN</code>, a <strong>Role</strong> granting that group everything inside it, a <strong>ClusterRole</strong> allowing read-only <code>get nodes</code>, a <strong>ResourceQuota</strong> (max 12 pods, 2 load balancers, 2 CPU / 3 GiB requested) and a <strong>LimitRange</strong> (default requests/limits for containers that forget to set them).</li>
+</ul>
+<p><img class="shot" src="images/lab5-eks-cluster-compute.png" alt="Compute tab" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab5-eks-cluster-access.png" alt="Access tab: one access entry per student" loading="lazy" title="Click to zoom"></p>
+<hr>
+<h2 id="part-1-open-cloudshell-and-connect-kubectl">Part 1 · Open CloudShell and connect kubectl</h2>
+<ol>
+<li>In the console&#39;s top bar click the <strong>CloudShell</strong> icon (the <code>&gt;_</code> terminal icon, or the <em>CloudShell</em> link in the bottom-left). A Linux shell opens in your browser, already signed in as <strong>you</strong> (<code>participant-NN</code>), with the AWS CLI and <code>kubectl</code> pre-installed. First start takes about a minute.</li>
+<li>Point <code>kubectl</code> at the class cluster and make your namespace the default:</li>
+</ol>
+<pre><code class="language-bash">aws eks update-kubeconfig --region us-west-2 --name cicd-lab5-eks
+kubectl config set-context --current --namespace participant-NN      # ← your number
+kubectl version --client
+kubectl get nodes
+</code></pre>
+<details class="reveal plain"><summary>Expected output</summary><div class="body">
+
+<pre><code>Client Version: v1.36.2-eks-8f14419
+Added new context arn:aws:eks:us-west-2:962804699607:cluster/cicd-lab5-eks to /home/cloudshell-user/.kube/config
+NAME                                          STATUS   ROLES    AGE   VERSION
+ip-172-31-37-155.us-west-2.compute.internal   Ready    &lt;none&gt;   22m   v1.33.13-eks-6e7947a
+ip-172-31-59-50.us-west-2.compute.internal    Ready    &lt;none&gt;   22m   v1.33.13-eks-6e7947a
+</code></pre>
+<p>Two nodes, both <code>Ready</code>. That <code>get nodes</code> worked because of the read-only ClusterRole; it is the only cluster-wide thing you may see.</p>
+<p>If instead you get <code>error: You must be logged in to the server (the server has asked for the client to provide credentials)</code>, your IAM identity has no <strong>access entry</strong> on the cluster: check that CloudShell shows your own user (<code>aws sts get-caller-identity</code>) and ask the instructor to confirm the cluster module has been applied for your number.</p>
+</div></details>
+
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>kubectl config view --minify | grep namespace</code> prints <code>namespace: participant-NN</code>.</p>
+</blockquote>
+<details class="reveal plain"><summary>🔍 How did kubectl know who I am? (identity, briefly)</summary><div class="body">
+
+<p><code>update-kubeconfig</code> wrote a kubeconfig whose credential plugin runs <code>aws eks get-token</code>. Every <code>kubectl</code> call presents a short-lived token signed by your IAM credentials; EKS maps your IAM user ARN (via the access entry) to the Kubernetes group <code>participant-NN</code>; Kubernetes RBAC then decides what that group may do. IAM authenticates, Kubernetes authorises. No kubeconfig secrets, nothing to rotate.</p>
+</div></details>
+
+<hr>
+<h2 id="part-2-rbac-says-no-on-purpose">Part 2 · RBAC says no (on purpose)</h2>
+<p>Before you build anything, test the fence:</p>
+<pre><code class="language-bash">kubectl get pods -n participant-02        # or any neighbour that is not you
+kubectl get pods -n kube-system
+kubectl get pods                          # your own namespace: empty, but allowed
+</code></pre>
+<details class="reveal plain"><summary>What you see, and why</summary><div class="body">
+
+<pre><code>Error from server (Forbidden): pods is forbidden: User &quot;participant-01&quot; cannot list resource &quot;pods&quot; in API group &quot;&quot; in the namespace &quot;participant-02&quot;
+Error from server (Forbidden): pods is forbidden: User &quot;participant-01&quot; cannot list resource &quot;pods&quot; in API group &quot;&quot; in the namespace &quot;kube-system&quot;
+No resources found in participant-01 namespace.
+</code></pre>
+<p>Read the first message like the IAM errors of Lab 3: <strong>who</strong> (<code>User &quot;participant-01&quot;</code>), <strong>verb</strong> (<code>list</code>), <strong>resource</strong> (<code>pods</code>), <strong>where</strong> (<code>namespace &quot;participant-02&quot;</code>). A RoleBinding exists only in <em>your</em> namespace, so every other namespace is a wall. This is multi-tenancy with one cluster and fifteen tenants.</p>
+</div></details>
+
+<hr>
+<h2 id="part-3-deploy-mission-control">Part 3 · Deploy Mission Control</h2>
+<p>Download <strong><a href="downloads/lab5-manifests.zip"><code>lab5-eks/lab5-manifests.zip</code></a></strong> (or the folder <a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab5-eks/manifests/"><code>lab5-eks/manifests/</code></a>) and upload the four YAML files to CloudShell (<strong>Actions → Upload file</strong>), or create them with <code>nano</code>. Then edit <code>01-deployment.yaml</code>:</p>
+<ul>
+<li>replace <code>IMAGE</code> with <strong>your Lab 4 image URI</strong>, e.g. <code>962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v2</code> (if you deleted it already, use the shared <code>…/participant-01-mission-control:v2</code>);</li>
+<li>replace <code>Artemis-NN</code> with your number.</li>
+</ul>
+<p>The Deployment, annotated:</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata: { name: mission-control, labels: { app: mission-control } }
+spec:
+  replicas: 2                                    # desired count (ECS: desired tasks)
+  selector: { matchLabels: { app: mission-control } }
+  template:                                      # the Pod spec (ECS: task definition)
+    metadata: { labels: { app: mission-control } }
+    spec:
+      containers:
+        - name: web
+          image: IMAGE                           # ← your ECR URI with a vN tag
+          ports: [{ containerPort: 8080 }]
+          env:
+            - { name: MISSION_NAME, value: &quot;Artemis-NN&quot; }
+            - { name: APP_COLOR,    value: &quot;#A78BFA&quot; }
+            - name: NODE_NAME                    # the Downward API: the page shows which node served you
+              valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }   # what the scheduler reserves (counts against your quota)
+            limits:   { cpu: 250m, memory: 256Mi }   # the ceiling; exceeding memory = OOMKilled
+          readinessProbe: { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 3, periodSeconds: 5 }
+          livenessProbe:  { httpGet: { path: /health, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
+</code></pre>
+<p>And the Service:</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata: { name: mission-control }
+spec:
+  type: LoadBalancer                  # ask AWS for a load balancer (ECS: ALB + target group)
+  selector: { app: mission-control }  # send traffic to Pods with this label
+  ports: [{ port: 80, targetPort: 8080 }]
+</code></pre>
+<p>Apply both and watch:</p>
+<pre><code class="language-bash">kubectl apply -f 01-deployment.yaml -f 02-service.yaml
+kubectl rollout status deployment/mission-control
+kubectl get pods -o wide
+kubectl get svc mission-control
+</code></pre>
+<details class="reveal plain"><summary>Expected output</summary><div class="body">
+
+<pre><code>deployment.apps/mission-control created
+service/mission-control created
+Waiting for deployment &quot;mission-control&quot; rollout to finish: 0 of 2 updated replicas are available...
+deployment &quot;mission-control&quot; successfully rolled out
+NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE
+mission-control-78fcfc8d89-tc7jc   1/1     Running   0          12s   172.31.60.107   ip-172-31-59-50.us-west-2.compute.internal
+mission-control-78fcfc8d89-tjh42   1/1     Running   0          12s   172.31.40.173   ip-172-31-37-155.us-west-2.compute.internal
+NAME              TYPE           CLUSTER-IP      EXTERNAL-IP                                        PORT(S)
+mission-control   LoadBalancer   10.100.12.34    a2e73277…-2085589031.us-west-2.elb.amazonaws.com   80:31234/TCP
+</code></pre>
+<p>Two Pods on two different nodes (the scheduler spreads them). <code>READY 1/1</code> means the readiness probe passed. The Service&#39;s <code>EXTERNAL-IP</code> is a load balancer hostname; AWS takes a minute or two to create it and register the nodes.</p>
+</div></details>
+
+<p>Open <code>http://&lt;EXTERNAL-IP hostname&gt;/</code> in your browser (it may answer 503 for the first minute). Refresh several times.</p>
+<p><img class="shot" src="images/lab5-webpage-lb.png" alt="Mission Control through the Kubernetes load balancer" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab5-webpage-lb-refresh.png" alt="…and after a refresh: the other Pod, on the other node" loading="lazy" title="Click to zoom"></p>
+<p>The <strong>hostname</strong> is now a Pod name and it alternates between your two Pods; the <strong>Kubernetes node</strong> field shows which EC2 node each runs on; the <strong>namespace</strong> field says <code>participant-NN</code>. Same image as Lab 4, different orchestrator.</p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>kubectl get deploy,rs,pods,svc</code> shows 1 Deployment (2/2), 1 ReplicaSet, 2 Pods, 1 Service with an external hostname. (The EKS console&#39;s <strong>Resources</strong> tab can show the same objects filtered to your namespace, but <code>kubectl</code> is the tool of this lab.)</p>
+</blockquote>
+<hr>
+<h2 id="part-4-scale-and-meet-the-quota">Part 4 · Scale, and meet the quota</h2>
+<pre><code class="language-bash">kubectl scale deployment/mission-control --replicas=4
+kubectl get pods            # four, within seconds
+kubectl scale deployment/mission-control --replicas=20
+kubectl get deployment mission-control
+kubectl get events --field-selector reason=FailedCreate | tail -3
+</code></pre>
+<details class="reveal plain"><summary>Expected output</summary><div class="body">
+
+<pre><code>NAME              READY   UP-TO-DATE   AVAILABLE   AGE
+mission-control   12/20   12           12          118s
+… Error creating: pods &quot;mission-control-78fcfc8d89-dl7rc&quot; is forbidden: exceeded quota: lab-quota, requested: pods=1, used: pods=12, limited: pods=12
+</code></pre>
+<p>Twelve Pods started; the thirteenth was refused by the <strong>ResourceQuota</strong>. The Deployment keeps <em>trying</em> (that is the control loop), and keeps being told no. Nothing else in the cluster was affected: your blast radius is your namespace.</p>
+</div></details>
+
+<p>Scale back down before moving on:</p>
+<pre><code class="language-bash">kubectl scale deployment/mission-control --replicas=2
+</code></pre>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Requests are promises.</strong> The scheduler places a Pod only on a node with enough <em>unreserved</em> CPU/memory for its <code>requests</code>. Quotas count requests, not actual usage. A Pod with no requests gets the LimitRange defaults, which is why &quot;forgot to set resources&quot; still counts against you.</p>
+</div></div>
+<hr>
+<h2 id="part-5-rolling-update-and-rollback">Part 5 · Rolling update and rollback</h2>
+<p>Ship your Lab 4 <strong>v3</strong> image (or any other tag you have):</p>
+<pre><code class="language-bash">kubectl set image deployment/mission-control web=962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3
+kubectl rollout status deployment/mission-control
+kubectl rollout history deployment/mission-control
+</code></pre>
+<details class="reveal plain"><summary>Expected output</summary><div class="body">
+
+<pre><code>Waiting for deployment &quot;mission-control&quot; rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment &quot;mission-control&quot; rollout to finish: 1 old replicas are pending termination...
+deployment &quot;mission-control&quot; successfully rolled out
+REVISION  CHANGE-CAUSE
+1         &lt;none&gt;
+2         &lt;none&gt;
+</code></pre>
+<p>Exactly Lab 4&#39;s rolling update: a new ReplicaSet is created, one new Pod comes up and passes readiness, one old Pod is terminated, repeat. Refresh the page: badge <strong>v3</strong>. <code>kubectl get rs</code> shows the old ReplicaSet kept at 0 replicas: that is your rollback target.</p>
+</div></details>
+
+<h3>🔧 Troubleshooting exercise — a Pod that will never start</h3>
+<pre><code class="language-bash">kubectl set image deployment/mission-control web=962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v99
+sleep 30; kubectl get pods
+</code></pre>
+<details class="reveal hint"><summary>💡 Hint 1 — what is the Pod's STATUS?</summary><div class="body">
+
+<pre><code>NAME                               READY   STATUS             RESTARTS   AGE
+mission-control-7559565db7-w8bj8   0/1     ImagePullBackOff   0          41s
+mission-control-7848469d98-r2rhq   1/1     Running            0          58s
+mission-control-7848469d98-wkkb5   1/1     Running            0          51s
+</code></pre>
+<p><code>ImagePullBackOff</code>: the kubelet tried to pull the image, failed, and is backing off between retries. Note the two <strong>old Pods are still Running and serving</strong>. The rollout is stuck, not broken.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — ask the Pod what happened</summary><div class="body">
+
+<pre><code class="language-bash">kubectl describe pod -l app=mission-control | grep -A3 Events | tail -5
+</code></pre>
+<p>The Events section says <code>Failed to pull image &quot;…:v99&quot;: … not found</code>. The same diagnosis as Lab 4&#39;s <code>CannotPullContainerError</code>, with the same three suspects (tag, permissions, network). Here the tag is the culprit.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution — roll back</summary><div class="body">
+
+<pre><code class="language-bash">kubectl rollout undo deployment/mission-control
+kubectl rollout status deployment/mission-control
+curl -s http://&lt;EXTERNAL-IP&gt;/api/info | grep version       # &quot;v3&quot; again
+</code></pre>
+<p><code>rollout undo</code> re-activates the previous ReplicaSet. Because the broken Pod never became <em>ready</em>, the Deployment never scaled the old ReplicaSet down: zero user impact, exactly as ECS&#39;s circuit breaker behaved in Lab 4. Kubernetes does not time out a stuck rollout by itself unless you set <code>progressDeadlineSeconds</code>; a human (or a pipeline step that watches <code>rollout status</code>) decides to undo.</p>
+</div></details>
+
+<hr>
+<h2 id="part-6-self-healing-and-logs">Part 6 · Self-healing and logs</h2>
+<pre><code class="language-bash">POD=$(kubectl get pods -l app=mission-control -o jsonpath=&#39;{.items[0].metadata.name}&#39;)
+kubectl delete pod $POD
+kubectl get pods
+kubectl logs deployment/mission-control --tail=5
+</code></pre>
+<details class="reveal plain"><summary>Expected output</summary><div class="body">
+
+<pre><code>pod &quot;mission-control-7848469d98-r2rhq&quot; deleted
+NAME                               READY   STATUS    RESTARTS   AGE
+mission-control-7848469d98-nx24b   1/1     Running   0          47s     ← brand new
+mission-control-7848469d98-wkkb5   1/1     Running   0          101s
+172.31.59.50 - - [31/Oct/2026 22:50:15] &quot;GET /health HTTP/1.1&quot; 200 -
+</code></pre>
+<p>You deleted a Pod; the ReplicaSet noticed <em>1 &lt; 2</em> and created another within seconds. The <code>/health</code> lines in the log are the probes; the source IP is the node&#39;s kubelet. (Lab 4&#39;s Exercise C, with a different verb.)</p>
+</div></details>
+
+<hr>
+<h2 id="part-7-challenges">Part 7 · Challenges</h2>
+<h3>Challenge A · Autoscale on CPU</h3>
+<p>Apply the HorizontalPodAutoscaler and a load generator, then watch:</p>
+<pre><code class="language-bash">kubectl apply -f 03-hpa.yaml -f 04-load-generator.yaml
+kubectl get hpa mission-control --watch        # Ctrl-C to stop
+</code></pre>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>The HPA targets 50 % average CPU of the Pods&#39; <em>requests</em> (100m). The load generator is a busybox loop hammering the Service from inside the cluster. Metrics arrive every 15–30 s, so give it two minutes.</p>
+</div></details>
+
+<details class="reveal plain"><summary>✅ What you will see</summary><div class="body">
+
+<pre><code>NAME              REFERENCE                    TARGETS        MINPODS   MAXPODS   REPLICAS   AGE
+mission-control   Deployment/mission-control   cpu: 1%/50%    2         6         2          22s
+mission-control   Deployment/mission-control   cpu: 209%/50%  2         6         2          42s
+mission-control   Deployment/mission-control   cpu: 122%/50%  2         6         6          63s
+mission-control   Deployment/mission-control   cpu: 104%/50%  2         6         6          2m5s
+</code></pre>
+<p>Utilisation shoots past the target, the HPA scales the Deployment to its maximum of 6 within a minute, and per-Pod utilisation falls. Delete the load generator (<code>kubectl delete pod load-generator</code>) and, after the five-minute stabilisation window, it scales back to 2. <code>kubectl top pods</code> shows the live numbers (that is the metrics-server add-on).</p>
+<p><strong>ECS equivalent:</strong> Service Auto Scaling with a target-tracking policy on <code>ECSServiceAverageCPUUtilization</code>.</p>
+</div></details>
+
+<h3>Challenge B · Config without a rebuild</h3>
+<p>Change <code>APP_COLOR</code> and <code>MISSION_NAME</code> without touching the image.</p>
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>Edit <code>01-deployment.yaml</code> (new values) and <code>kubectl apply -f 01-deployment.yaml</code>. Any change to the Pod template triggers a rolling update: new ReplicaSet, same image, new environment. <code>kubectl rollout history</code> now shows revision 3. Production teams move such values into a <strong>ConfigMap</strong> (<code>kubectl create configmap mission --from-literal=APP_COLOR=#22C55E</code>) referenced with <code>envFrom</code>, so configuration and Deployment definition change independently.</p>
+</div></details>
+
+<h3>Challenge C · Make the liveness probe fire</h3>
+<p>Mission Control has a <code>/crash</code> endpoint that exits the process. Call it through the load balancer a few times and watch <code>kubectl get pods</code>.</p>
+<details class="reveal plain"><summary>✅ What happens</summary><div class="body">
+
+<p>The container exits with code 1; the kubelet restarts it <strong>in place</strong> (same Pod name, <code>RESTARTS</code> column increments) because a Pod&#39;s restart policy defaults to <code>Always</code>. Contrast with Part 6, where deleting the Pod produced a <em>new</em> Pod. If the process hung instead of exiting, the <strong>livenessProbe</strong> would fail three times and the kubelet would restart it too; the readinessProbe meanwhile pulls the Pod out of the Service&#39;s endpoints so no traffic reaches it. Two probes, two jobs.</p>
+</div></details>
+
+<h3>Challenge D · Read the YAML Kubernetes actually stores</h3>
+<pre><code class="language-bash">kubectl get deployment mission-control -o yaml | less
+</code></pre>
+<p>Find three fields you did not write (<code>strategy.rollingUpdate.maxSurge</code>, <code>revisionHistoryLimit</code>, <code>status.conditions</code>). Those defaults are the ECS &quot;min 100 % / max 200 %&quot; and the deployment history you saw in Lab 4, expressed as data.</p>
+<hr>
+<h2 id="part-8-clean-up-your-namespace-only">Part 8 · Clean up (your namespace only)</h2>
+<pre><code class="language-bash">kubectl delete -f 04-load-generator.yaml -f 03-hpa.yaml -f 02-service.yaml -f 01-deployment.yaml
+kubectl get all        # should be empty
+</code></pre>
+<p>Deleting the Service deletes the AWS load balancer it created (give it a minute). The instructor destroys the cluster and namespaces after class.</p>
+<hr>
+<h2 id="part-9-what-you-learned">Part 9 · What you learned</h2>
+<ul>
+<li>Kubernetes is <strong>declarative</strong>: you apply desired state; controllers converge reality to it, forever.</li>
+<li><strong>Deployment → ReplicaSet → Pod</strong> is ECS&#39;s service → task definition → task with the names changed.</li>
+<li><strong>Readiness</strong> gates traffic; <strong>liveness</strong> restarts; both are what makes rolling updates and self-healing safe.</li>
+<li><strong>Namespaces + RBAC + ResourceQuota</strong> turn one cluster into fifteen sandboxes with a known blast radius.</li>
+<li><code>rollout status</code>, <code>rollout history</code>, <code>rollout undo</code> are the whole deployment story; <code>describe</code> and <code>logs</code> are the whole debugging story.</li>
+<li>A broken image <strong>stalls</strong> a rollout rather than breaking the service; a human or a pipeline decides to undo.</li>
+<li>IAM authenticates you to EKS; Kubernetes RBAC authorises what you may do. Two systems, one identity.</li>
+</ul>
+<h3>Quiz yourself</h3>
+<details class="reveal quiz"><summary>1. A Pod shows 0/1 READY but STATUS Running. What does that mean and what would you check?</summary><div class="body">
+
+<p>The container process is up but the <strong>readinessProbe</strong> is failing, so the Pod receives no Service traffic. <code>kubectl describe pod</code> → Events shows the probe failures; <code>kubectl logs</code> shows why <code>/health</code> is not 200.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>2. You scale to 20 and only 12 start. Is the cluster full?</summary><div class="body">
+
+<p>Not necessarily: check <code>kubectl get events</code> first. &quot;exceeded quota&quot; means your namespace&#39;s ResourceQuota, not the nodes. A genuinely full cluster shows Pods <code>Pending</code> with <code>Insufficient cpu/memory</code> in their events.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>3. What is the Kubernetes equivalent of ECS's deployment circuit breaker?</summary><div class="body">
+
+<p>There is no automatic rollback by default. A stuck rollout stays stuck (old Pods keep serving) until <code>kubectl rollout undo</code>; <code>progressDeadlineSeconds</code> makes the Deployment <em>report</em> failure, and CI pipelines typically watch <code>rollout status</code> and undo on timeout.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>4. Why could you run `kubectl get nodes` but not `kubectl get pods -n kube-system`?</summary><div class="body">
+
+<p>Your group is bound to a ClusterRole that allows only <code>nodes</code>/<code>namespaces</code> reads cluster-wide, and to a Role with full rights that exists only in your namespace. RBAC is deny-by-default; every allow is explicit.</p>
+</div></details>
+
+<p><strong>Done.</strong> Back to the <a href="index.html">handout</a> for the wrap-up and the triage playbook you can take with you.</p>
+
+<div class="pager">
+  <a href="lab4.html"><small>Previous</small>← Lab 4 · Containers on ECS</a>
+  <span></span>
+</div>
+</main>
+<footer><span>Pipeline Academy · hands-on AWS CI/CD labs</span><span>Built from <code>labs/*.md</code> · screenshots taken in a real account, then torn down.</span></footer>
+<script src="assets/site.js"></script>
+</body>
+</html>

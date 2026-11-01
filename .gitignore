@@ -1,0 +1,10 @@
+# Terraform state and providers (never commit state: it contains account details)
+**/.terraform/
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/crash.log
+lab3-broken-pipeline/terraform/terraform.tfvars
+# Node
+node_modules/
+# OS
+.DS_Store

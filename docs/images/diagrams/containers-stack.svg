@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#64748B"/></marker></defs>
+  <rect width="960" height="420" rx="18" fill="#0B1220"/>
+  <text x="32" y="42" fill="#E2E8F0" font-size="20" font-weight="700">A container's life: build once, store, run anywhere (Labs 4 and 5)</text>
+  <g font-size="12" text-anchor="middle">
+    <!-- Dockerfile -> image -->
+    <g transform="translate(32,80)"><rect width="200" height="200" rx="14" fill="#1E293B" stroke="#334155"/><text x="100" y="26" fill="#E2E8F0" font-size="14" font-weight="700">1 · Build (CodeBuild)</text>
+      <rect x="18" y="42" width="164" height="22" rx="6" fill="#0F172A" stroke="#475569"/><text x="100" y="57" fill="#93C5FD" font-family="ui-monospace,Menlo,monospace" font-size="11">FROM python:3.12-slim</text>
+      <rect x="18" y="68" width="164" height="22" rx="6" fill="#0F172A" stroke="#475569"/><text x="100" y="83" fill="#93C5FD" font-family="ui-monospace,Menlo,monospace" font-size="11">RUN pip install flask</text>
+      <rect x="18" y="94" width="164" height="22" rx="6" fill="#0F172A" stroke="#475569"/><text x="100" y="109" fill="#93C5FD" font-family="ui-monospace,Menlo,monospace" font-size="11">COPY app.py .</text>
+      <rect x="18" y="120" width="164" height="22" rx="6" fill="#0F172A" stroke="#475569"/><text x="100" y="135" fill="#93C5FD" font-family="ui-monospace,Menlo,monospace" font-size="11">USER mission · CMD python</text>
+      <text x="100" y="166" fill="#94A3B8" font-size="11">each line = one read-only layer</text><text x="100" y="184" fill="#FCD34D" font-size="11">docker build → image :v7</text></g>
+    <!-- Registry -->
+    <g transform="translate(272,80)"><rect width="190" height="200" rx="14" fill="#1E293B" stroke="#334155"/><text x="95" y="26" fill="#E2E8F0" font-size="14" font-weight="700">2 · Store (ECR)</text>
+      <rect x="20" y="48" width="150" height="34" rx="8" fill="#0F172A" stroke="#F59E0B"/><text x="95" y="63" fill="#FCD34D" font-size="11">participant-NN-mission-control</text><text x="95" y="76" fill="#94A3B8" font-size="10">v5 · v6 · v7 · latest</text>
+      <text x="95" y="108" fill="#CBD5E1" font-size="11">private, per account</text><text x="95" y="126" fill="#CBD5E1" font-size="11">scan on push → CVE findings</text><text x="95" y="144" fill="#CBD5E1" font-size="11">pulled with a role, not a password</text>
+      <text x="95" y="178" fill="#FCA5A5" font-size="11">“latest” is a pointer, not a version</text></g>
+    <!-- Orchestrator -->
+    <g transform="translate(502,80)"><rect width="200" height="200" rx="14" fill="#1E293B" stroke="#334155"/><text x="100" y="26" fill="#E2E8F0" font-size="14" font-weight="700">3 · Orchestrate</text>
+      <rect x="16" y="44" width="80" height="60" rx="8" fill="#0F172A" stroke="#F59E0B"/><text x="56" y="64" fill="#FCD34D" font-size="12" font-weight="700">ECS</text><text x="56" y="80" fill="#94A3B8" font-size="10">task definition</text><text x="56" y="93" fill="#94A3B8" font-size="10">service</text>
+      <rect x="104" y="44" width="80" height="60" rx="8" fill="#0F172A" stroke="#A78BFA"/><text x="144" y="64" fill="#C4B5FD" font-size="12" font-weight="700">EKS</text><text x="144" y="80" fill="#94A3B8" font-size="10">pod spec</text><text x="144" y="93" fill="#94A3B8" font-size="10">deployment</text>
+      <text x="100" y="128" fill="#CBD5E1" font-size="11">keep N copies running</text><text x="100" y="146" fill="#CBD5E1" font-size="11">replace what dies</text><text x="100" y="164" fill="#CBD5E1" font-size="11">roll out v7, retire v6</text><text x="100" y="182" fill="#CBD5E1" font-size="11">attach a load balancer</text></g>
+    <!-- Compute -->
+    <g transform="translate(742,80)"><rect width="186" height="200" rx="14" fill="#1E293B" stroke="#334155"/><text x="93" y="26" fill="#E2E8F0" font-size="14" font-weight="700">4 · Run</text>
+      <rect x="16" y="44" width="154" height="44" rx="8" fill="#0F172A" stroke="#22C55E"/><text x="93" y="62" fill="#86EFAC" font-size="12" font-weight="700">Fargate</text><text x="93" y="78" fill="#94A3B8" font-size="10">no servers to see · per-task billing</text>
+      <rect x="16" y="96" width="154" height="44" rx="8" fill="#0F172A" stroke="#38BDF8"/><text x="93" y="114" fill="#7DD3FC" font-size="12" font-weight="700">EC2 nodes</text><text x="93" y="130" fill="#94A3B8" font-size="10">EKS node group · you see the boxes</text>
+      <text x="93" y="166" fill="#CBD5E1" font-size="11">containers are ephemeral:</text><text x="93" y="182" fill="#CBD5E1" font-size="11">files written inside do not survive</text></g>
+  </g>
+  <g stroke="#64748B" stroke-width="2.5" fill="none" marker-end="url(#a)"><path d="M232 180H270"/><path d="M462 180H500"/><path d="M702 180H740"/></g>
+  <text x="252" y="170" fill="#94A3B8" font-size="10" text-anchor="middle">push</text><text x="482" y="170" fill="#94A3B8" font-size="10" text-anchor="middle">pull</text><text x="722" y="170" fill="#94A3B8" font-size="10" text-anchor="middle">place</text>
+  <g font-size="12" fill="#CBD5E1"><text x="32" y="322">Lab 2 copied one HTML file into an Apache you installed by hand. Lab 4 ships the <tspan fill="#fff" font-weight="700">whole</tspan> runtime as an image, so every environment runs identical bytes.</text>
+  <text x="32" y="346">Two robots again: the <tspan fill="#FCD34D">task execution role</tspan> pulls the image and ships logs; the <tspan fill="#FCD34D">task role</tspan> is what your code would use to call AWS. Keep them separate.</text>
+  <text x="32" y="372" fill="#64748B">Why the app shows its hostname: each task/pod is a different container, so the hostname proves which copy answered. Refresh behind a load balancer: it changes.</text></g>
+</svg>

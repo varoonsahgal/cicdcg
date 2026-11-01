@@ -1,0 +1,25 @@
+version: 0.2
+
+# This buildspec is read by CodeBuild.
+phases:
+  install:
+    commands:
+      - echo "Static site - nothing to install."
+  pre_build:
+    commands:
+      - echo "Syntax-checking deployment scripts..."
+      - bash -n scripts/*.sh
+      - echo "Scripts look syntactically valid."
+  build:
+    commands:
+      - echo "Stamping build number and time into index.html..."
+      - sed -i "s/__BUILD_ID__/${CODEBUILD_BUILD_NUMBER}/; s/__BUILD_TIME__/$(date -u +%Y-%m-%dT%H:%M:%SZ)/" index.html
+      - grep -q "Build #${CODEBUILD_BUILD_NUMBER}" index.html
+  post_build:
+    commands:
+      - echo "Build finished. Packaging artifact for CodeDeploy..."
+
+artifacts:
+  files:
+    - appspec.yml
+    - scripts/**/*

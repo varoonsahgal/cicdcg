@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#64748B"/></marker></defs>
+  <rect width="960" height="360" rx="18" fill="#0B1220"/>
+  <text x="32" y="42" fill="#E2E8F0" font-size="20" font-weight="700">Lab 2 · Part 9 — a Build stage in the middle</text>
+  <text x="32" y="64" fill="#94A3B8" font-size="13">A stage that checks the bundle before any server sees it. Mistakes die here, cheaply, instead of on a running website.</text>
+  <g font-size="13" fill="#E2E8F0" text-anchor="middle">
+    <g transform="translate(40,100)"><rect width="200" height="150" rx="14" fill="#1E293B" stroke="#22C55E" stroke-width="2"/><text x="100" y="30" font-weight="700">Source</text><text x="100" y="52" fill="#94A3B8" font-size="12">Amazon S3</text><text x="100" y="80" fill="#CBD5E1" font-size="11.5">SampleApp.zip, pinned</text><text x="100" y="96" fill="#CBD5E1" font-size="11.5">to one object version</text><text x="100" y="128" fill="#64748B" font-size="11">→ SourceArtifact</text></g>
+    <g transform="translate(300,86)"><rect width="340" height="178" rx="14" fill="#0F172A" stroke="#38BDF8" stroke-width="2.5"/><text x="170" y="30" fill="#7DD3FC" font-weight="700">Build · CodeBuild · participant-NN-pipeline-build</text>
+      <g transform="translate(20,48)" text-anchor="start" font-size="11.5">
+        <rect width="300" height="28" rx="8" fill="#1E293B"/><text x="12" y="19" fill="#E2E8F0">1 · <tspan fill="#A5F3FC">bash -n</tspan> every hook script  — syntax errors</text>
+        <rect y="36" width="300" height="28" rx="8" fill="#1E293B"/><text x="12" y="55" fill="#E2E8F0">2 · every script named in <tspan fill="#A5F3FC">appspec.yml</tspan> exists</text>
+        <rect y="72" width="300" height="28" rx="8" fill="#1E293B"/><text x="12" y="91" fill="#E2E8F0">3 · stamp <tspan fill="#A5F3FC">Build #N · time</tspan> into index.html</text>
+      </g>
+      <text x="170" y="166" fill="#64748B" font-size="11">→ BuildArtifact (the stamped bundle)</text></g>
+    <g transform="translate(700,100)"><rect width="220" height="150" rx="14" fill="#1E293B" stroke="#22C55E" stroke-width="2"/><text x="110" y="30" font-weight="700">Deploy</text><text x="110" y="52" fill="#94A3B8" font-size="12">AWS CodeDeploy</text><text x="110" y="80" fill="#CBD5E1" font-size="11.5">input: <tspan fill="#FCD34D">BuildArtifact</tspan></text><text x="110" y="96" fill="#CBD5E1" font-size="11.5">(not SourceArtifact any more)</text><text x="110" y="128" fill="#64748B" font-size="11">→ servers by tag</text></g>
+  </g>
+  <g stroke="#64748B" stroke-width="2.5" fill="none" marker-end="url(#a)"><path d="M240 175H298"/><path d="M640 175H698"/></g>
+  <g transform="translate(40,290)"><rect width="880" height="46" rx="12" fill="#172554" stroke="#3B82F6" stroke-dasharray="5 4"/><text x="440" y="20" fill="#BFDBFE" font-size="12" text-anchor="middle" font-weight="700">“Shift left”</text><text x="440" y="37" fill="#93C5FD" font-size="11.5" text-anchor="middle">In Exercise A a typo reached the server and took the site down. With this stage, a bundle that names a missing script never leaves the pipeline. Same typo, zero downtime.</text></g>
+</svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <rect width="960" height="360" rx="18" fill="#0B1220"/>
+  <text x="32" y="42" fill="#E2E8F0" font-size="20" font-weight="700">Same four jobs, two vocabularies</text>
+  <g font-size="12">
+    <rect x="32" y="64" width="440" height="252" rx="14" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+    <text x="252" y="92" fill="#FCD34D" font-size="16" font-weight="700" text-anchor="middle">Amazon ECS</text>
+    <rect x="488" y="64" width="440" height="252" rx="14" fill="#1E293B" stroke="#A78BFA" stroke-width="2"/>
+    <text x="708" y="92" fill="#C4B5FD" font-size="16" font-weight="700" text-anchor="middle">Amazon EKS · Kubernetes</text>
+    <g fill="#CBD5E1">
+      <text x="52" y="124"><tspan fill="#94A3B8">recipe for one unit</tspan>   → <tspan fill="#fff" font-weight="700">Task definition</tspan> (revision 1, 2, 3…)</text>
+      <text x="508" y="124"><tspan fill="#94A3B8">recipe for one unit</tspan>   → <tspan fill="#fff" font-weight="700">Pod spec</tspan> inside a Deployment</text>
+      <text x="52" y="152"><tspan fill="#94A3B8">running unit</tspan>          → <tspan fill="#fff" font-weight="700">Task</tspan></text>
+      <text x="508" y="152"><tspan fill="#94A3B8">running unit</tspan>          → <tspan fill="#fff" font-weight="700">Pod</tspan></text>
+      <text x="52" y="180"><tspan fill="#94A3B8">keep N running</tspan>        → <tspan fill="#fff" font-weight="700">Service</tspan> (desired count)</text>
+      <text x="508" y="180"><tspan fill="#94A3B8">keep N running</tspan>        → <tspan fill="#fff" font-weight="700">Deployment</tspan> → ReplicaSet (replicas)</text>
+      <text x="52" y="208"><tspan fill="#94A3B8">stable address</tspan>        → ALB target group on the Service</text>
+      <text x="508" y="208"><tspan fill="#94A3B8">stable address</tspan>        → <tspan fill="#fff" font-weight="700">Service</tspan> (ClusterIP / LoadBalancer) + Ingress</text>
+      <text x="52" y="236"><tspan fill="#94A3B8">where it runs</tspan>         → Cluster · Fargate or EC2 capacity</text>
+      <text x="508" y="236"><tspan fill="#94A3B8">where it runs</tspan>         → Cluster · node groups (EC2) or Fargate profiles</text>
+      <text x="52" y="264"><tspan fill="#94A3B8">isolation</tspan>             → separate clusters, IAM</text>
+      <text x="508" y="264"><tspan fill="#94A3B8">isolation</tspan>             → <tspan fill="#fff" font-weight="700">Namespaces</tspan> + RBAC + ResourceQuota</text>
+      <text x="52" y="292"><tspan fill="#94A3B8">how you talk to it</tspan>    → console, CLI, CloudFormation/Terraform</text>
+      <text x="508" y="292"><tspan fill="#94A3B8">how you talk to it</tspan>    → <tspan fill="#fff" font-weight="700">kubectl</tspan> + YAML manifests (portable)</text>
+    </g>
+  </g>
+  <text x="480" y="342" fill="#64748B" font-size="11" text-anchor="middle">schedule · supervise · roll out · expose — if you can explain one column you understand the other</text>
+</svg>

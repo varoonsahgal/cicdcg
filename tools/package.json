@@ -1,0 +1,8 @@
+{
+  "name": "cicd-labs-site-tools",
+  "private": true,
+  "type": "module",
+  "description": "Builds docs/labN.html pages from labs/*.md for the GitHub Pages handout.",
+  "scripts": { "build": "node build-site.mjs" },
+  "dependencies": { "marked": "^15.0.0" }
+}

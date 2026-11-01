@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#64748B"/></marker></defs>
+  <rect width="960" height="420" rx="18" fill="#0B1220"/>
+  <text x="32" y="44" fill="#E2E8F0" font-size="20" font-weight="700">What happens when you click “Start build”</text>
+  <!-- S3 input -->
+  <g transform="translate(40,120)"><rect width="170" height="120" rx="14" fill="#1E293B" stroke="#334155"/><text x="85" y="36" fill="#E2E8F0" font-size="13" text-anchor="middle" font-weight="700">S3 · input bucket</text><rect x="25" y="52" width="120" height="44" rx="8" fill="#0F172A" stroke="#475569"/><text x="85" y="79" fill="#93C5FD" font-size="12" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">input/MessageUtil.zip</text></g>
+  <!-- CodeBuild container -->
+  <g transform="translate(290,80)"><rect width="380" height="250" rx="16" fill="#0F172A" stroke="#2563EB" stroke-width="2"/>
+    <text x="190" y="30" fill="#93C5FD" font-size="13" text-anchor="middle" font-weight="700">CodeBuild · a brand-new Linux container</text>
+    <g font-size="12" fill="#E2E8F0">
+      <rect x="22" y="48" width="336" height="30" rx="7" fill="#1E293B"/><text x="34" y="68">DOWNLOAD_SOURCE  <tspan fill="#94A3B8">unzip the input, read buildspec.yml</tspan></text>
+      <rect x="22" y="84" width="336" height="30" rx="7" fill="#1E293B"/><text x="34" y="104">INSTALL  <tspan fill="#94A3B8">runtime-versions: java: corretto17</tspan></text>
+      <rect x="22" y="120" width="336" height="30" rx="7" fill="#1E293B"/><text x="34" y="140">PRE_BUILD  <tspan fill="#94A3B8">echo …</tspan></text>
+      <rect x="22" y="156" width="336" height="30" rx="7" fill="#1D4ED8"/><text x="34" y="176">BUILD  <tspan fill="#DBEAFE">mvn install → compile · test · package</tspan></text>
+      <rect x="22" y="192" width="336" height="30" rx="7" fill="#1E293B"/><text x="34" y="212">POST_BUILD → UPLOAD_ARTIFACTS  <tspan fill="#94A3B8">keep only the jar</tspan></text>
+    </g>
+    <text x="190" y="240" fill="#64748B" font-size="11" text-anchor="middle">…then the container is destroyed</text>
+  </g>
+  <!-- S3 output -->
+  <g transform="translate(750,80)"><rect width="170" height="110" rx="14" fill="#1E293B" stroke="#334155"/><text x="85" y="36" fill="#E2E8F0" font-size="13" text-anchor="middle" font-weight="700">S3 · output</text><rect x="20" y="52" width="130" height="40" rx="8" fill="#0F172A" stroke="#475569"/><text x="85" y="77" fill="#86EFAC" font-size="11" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">MessageUtil-output.zip</text></g>
+  <!-- Logs -->
+  <g transform="translate(750,220)"><rect width="170" height="110" rx="14" fill="#1E293B" stroke="#334155"/><text x="85" y="36" fill="#E2E8F0" font-size="13" text-anchor="middle" font-weight="700">CloudWatch Logs</text><text x="85" y="62" fill="#94A3B8" font-size="11" text-anchor="middle">every line the container printed</text><text x="85" y="84" fill="#FCA5A5" font-size="11" text-anchor="middle">this is where red builds explain themselves</text></g>
+  <g stroke="#64748B" stroke-width="2.5" fill="none" marker-end="url(#a)"><path d="M210 180H288"/><path d="M670 135H748"/><path d="M670 275H748"/></g>
+  <!-- IAM role -->
+  <g transform="translate(290,350)"><rect width="380" height="46" rx="10" fill="#172554" stroke="#3B82F6" stroke-dasharray="5 4"/><text x="190" y="20" fill="#BFDBFE" font-size="12" text-anchor="middle" font-weight="700">🔐 service role: codebuild-participant-NN-…-service-role</text><text x="190" y="37" fill="#93C5FD" font-size="11" text-anchor="middle">the identity the container uses to read input, write output and logs</text></g>
+</svg>

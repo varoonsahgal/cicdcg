@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en" class="hue-lab1" data-page="lab1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your first automated build with AWS CodeBuild · Pipeline Academy</title>
+<meta name="description" content="&quot;It works on my machine&quot; is not a release strategy. In this lab you hand your code to a robot, watch the robot fail, read its diary, and fix it. That is Continuous Integration.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0B1220">
+<script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1220'/%3E%3Ccircle cx='8' cy='16' r='4' fill='%2322C55E'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2338BDF8'/%3E%3Ccircle cx='24' cy='16' r='4' fill='%23F59E0B'/%3E%3C/svg%3E">
+</head>
+<body data-page="lab1">
+<a class="skip" href="#main">Skip to content</a>
+<div id="readbar" aria-hidden="true"></div>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"/><circle cx="8" cy="16" r="4" fill="#22C55E"/><circle cx="16" cy="16" r="4" fill="#38BDF8"/><circle cx="24" cy="16" r="4" fill="#F59E0B"/><path d="M12 16h0M20 16h0" stroke="#fff"/></svg>Pipeline Academy <span>· AWS CI/CD labs</span></a>
+  <nav class="nav" aria-label="Labs">
+      <a href="index.html">Start here</a>
+      <a href="lab1.html" data-lab="lab1" style="--d:#38BDF8" aria-current="page"><span class="dot"></span>Lab 1<span class="lbl-long"> · Build it</span><span class="done">★</span></a>
+      <a href="lab2.html" data-lab="lab2" style="--d:#22C55E"><span class="dot"></span>Lab 2<span class="lbl-long"> · Ship it</span><span class="done">★</span></a>
+      <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
+      <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
+      <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+  </nav>
+  <div class="tools">
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+    <button class="iconbtn menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div></header>
+
+<section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
+  <div>
+    <p class="eyebrow">Lab 1 of 5 · Build it</p>
+    <h1>Your first automated build with AWS CodeBuild</h1>
+    <p class="lede">"It works on my machine" is not a release strategy. In this lab you hand your code to a robot, watch the robot fail, read its diary, and fix it. That is Continuous Integration.</p>
+    <div class="mast-meta"><span class="chip"><b>Time</b> 45 min core path · then 50–90 min of missions (pick your own)</span><span class="chip"><b>Difficulty</b> Beginner · no prior build/CI experience assumed</span><span class="chip"><b>AWS services</b> CodeBuild, S3, IAM, CloudWatch Logs · then Secrets Manager, EventBridge, SNS and Logs Insights in the missions</span><span class="chip"><b>You will build</b> A CodeBuild project that compiles a tiny Java app, runs its unit tests and publishes a <code>.jar</code> to S3 · then a build that reads a secret, caches its downloads, emails you when it fails, and can be queried like a database</span><span class="chip"><b>You will break & fix</b> A Java version mismatch · a failing test · a test somebody switched off · a robot that is refused a secret</span></div>
+  </div>
+</div></section>
+
+<main id="main" class="labwrap">
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</a></li><li><a href="#part-1-get-the-sample-app">Part 1 · Get the sample app</a></li><li><a href="#part-2-create-the-input-bucket-and-upload-the-source">Part 2 · Create the input bucket and upload the source</a></li><li><a href="#part-3-create-the-build-project">Part 3 · Create the build project</a></li><li><a href="#part-4-run-the-build-watch-it-fail-fix-it">Part 4 · Run the build. Watch it fail. Fix it.</a></li><li><a href="#part-5-read-the-results-like-a-professional">Part 5 · Read the results like a professional</a></li><li><a href="#part-6-missions">Part 6 · Missions</a></li><li><a href="#part-7-clean-up">Part 7 · Clean up</a></li><li><a href="#part-8-what-you-learned">Part 8 · What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your number.</strong> You are signed in as <code>participant-NN</code>. Everywhere this guide shows <code>NN</code>, type <strong>your own two digits</strong> (participant-07 → <code>07</code>). Fifteen people share this AWS account, so every name you create must contain your number.</p>
+<p><strong>Your region.</strong> Everything happens in <strong>US West (Oregon) · <code>us-west-2</code></strong>. Check the region picker in the top-right corner of the console before every step. If you cannot find something you created, you are almost certainly in the wrong region.</p>
+</div></div>
+<hr>
+<h2 id="part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</h2>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>The story so far.</strong> You have just joined a four-person team. The release build runs on <em>Dave&#39;s laptop</em>. Dave is on holiday for two weeks, and the last thing he did was write <code>flaky?? passes on my laptop</code> next to a unit test and switch it off. Your job today: move the build off Dave&#39;s laptop into a machine nobody logs into, then find out what Dave was hiding.</p>
+</div></div>
+<h3>The problem CI solves</h3>
+<p>Imagine four developers on one project. Each builds the app on their own laptop with slightly different Java versions, slightly different environment variables, slightly different &quot;I just tweak this one thing before I compile&quot; habits. The app that ships is whichever laptop happened to produce the release. When it breaks in production nobody can reproduce it.</p>
+<p><strong>Continuous Integration (CI)</strong> replaces that with a rule: <em>every change is built and tested by a machine nobody logs into, from a clean slate, the same way every time.</em> The machine&#39;s verdict (green or red) is the only one that counts.</p>
+<p><img class="diagram" src="images/diagrams/ci-loop.svg" alt="CI loop" loading="lazy"></p>
+<h3>What a &quot;build&quot; actually is</h3>
+<p>A build turns <em>source</em> (files humans wrote) into an <em>artifact</em> (a thing a computer can run or deploy). For our Java app that means:</p>
+<ol>
+<li><strong>Install</strong> the tools (a Java compiler, Maven).</li>
+<li><strong>Compile</strong> the source files into bytecode.</li>
+<li><strong>Test</strong> – run the unit tests; if any fail, stop here with a red light.</li>
+<li><strong>Package</strong> the result into one file – a <code>.jar</code>.</li>
+</ol>
+<h3>What CodeBuild does for you</h3>
+<p>AWS CodeBuild is a <em>fully managed build service</em>: you give it a recipe, it spins up a fresh Linux container, follows the recipe, saves the output, writes down everything that happened, and throws the container away.</p>
+<p><img class="diagram" src="images/diagrams/lab1-codebuild-flow.svg" alt="CodeBuild flow" loading="lazy"></p>
+<table>
+<thead>
+<tr>
+<th>Word</th>
+<th>Meaning in this lab</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Source</strong></td>
+<td>A <code>.zip</code> of your code, stored in an S3 bucket</td>
+</tr>
+<tr>
+<td><strong>Build project</strong></td>
+<td>The CodeBuild configuration: where the source is, which container image to use, where to put the output</td>
+</tr>
+<tr>
+<td><strong>buildspec.yml</strong></td>
+<td>The recipe: shell commands grouped into <em>phases</em> (<code>install</code>, <code>pre_build</code>, <code>build</code>, <code>post_build</code>) plus a list of output files</td>
+</tr>
+<tr>
+<td><strong>Artifact</strong></td>
+<td>The build output (<code>messageUtil-1.0.jar</code>), zipped and uploaded to S3</td>
+</tr>
+<tr>
+<td><strong>Service role</strong></td>
+<td>The IAM identity CodeBuild <em>assumes</em> while working for you. It is what lets the build read your input bucket and write the output. No passwords, no public buckets.</td>
+</tr>
+<tr>
+<td><strong>Build log</strong></td>
+<td>Every line the container printed, streamed to CloudWatch Logs. When a build goes red this is where the truth lives.</td>
+</tr>
+</tbody></table>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Why not just build on my laptop?</strong> You can. But a laptop build proves only that <em>your</em> laptop can build it. A CodeBuild build proves that <em>a clean machine with nothing but the recipe</em> can build it. That is the difference between a hope and a guarantee.</p>
+</div></div>
+<hr>
+<h2 id="part-1-get-the-sample-app">Part 1 · Get the sample app</h2>
+<p>The app is deliberately tiny so the <em>process</em> is the star.</p>
+<pre><code>sample-app/
+├── buildspec.yml                      ← the recipe CodeBuild follows
+├── pom.xml                            ← Maven project file (dependencies, Java version)
+└── src/
+    ├── main/java/MessageUtil.java     ← the &quot;application&quot; (prints a message)
+    └── test/java/TestMessageUtil.java ← three JUnit tests (one of them switched off…)
+</code></pre>
+<ol>
+<li>Download the folder <strong><a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab1-codebuild/sample-app/"><code>lab1-codebuild/sample-app/</code></a></strong> from the course repository to your computer (or clone the repo). A ready-made <strong><a href="downloads/MessageUtil.zip"><code>MessageUtil.zip</code></a></strong> of the same files is also provided for your first upload.</li>
+<li>Open <code>buildspec.yml</code> and read it. Here it is with notes:</li>
+</ol>
+<pre><code class="language-yaml">version: 0.2                     # buildspec format version (always 0.2 today)
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11           # which Java the build container should set up
+  pre_build:
+    commands:
+      - echo &quot;Nothing to do in the pre_build phase...&quot;
+  build:
+    commands:
+      - echo &quot;Build started on $(date)&quot;
+      - mvn install              # compile + run tests + package the jar
+  post_build:
+    commands:
+      - echo &quot;Build completed on $(date)&quot;
+
+artifacts:
+  files:
+    - target/messageUtil-1.0.jar # the ONE file we want to keep when the container dies
+</code></pre>
+<ol start="3">
+<li>Now open <code>pom.xml</code> and find these two lines:</li>
+</ol>
+<pre><code class="language-xml">&lt;maven.compiler.source&gt;17&lt;/maven.compiler.source&gt;
+&lt;maven.compiler.target&gt;17&lt;/maven.compiler.target&gt;
+</code></pre>
+<p>Keep both files in mind. Something here is going to matter in Part 4.</p>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>How to zip correctly (you will do this more than once).</strong> CodeBuild expects <code>buildspec.yml</code> at the <em>top level</em> of the zip, not inside a folder.</p>
+<ul>
+<li><strong>macOS / Linux terminal</strong>, from inside <code>sample-app/</code>:<pre><code class="language-bash">zip -r MessageUtil.zip buildspec.yml pom.xml src/
+unzip -l MessageUtil.zip     # buildspec.yml must appear with no folder in front of it
+</code></pre>
+</li>
+<li><strong>Windows Explorer</strong>: open the <code>sample-app</code> folder, select <code>buildspec.yml</code>, <code>pom.xml</code> and <code>src</code> together → right-click → <em>Send to → Compressed (zipped) folder</em> → rename to <code>MessageUtil.zip</code>.</li>
+<li><strong>macOS Finder</strong>: select the three items → right-click → <em>Compress</em> → rename <code>Archive.zip</code> to <code>MessageUtil.zip</code>.</li>
+</ul>
+</div></div>
+<hr>
+<h2 id="part-2-create-the-input-bucket-and-upload-the-source">Part 2 · Create the input bucket and upload the source</h2>
+<ol>
+<li><p>Console → <strong>S3</strong> → <strong>Create bucket</strong>.</p>
+</li>
+<li><p>Bucket name: <strong><code>cicd-lab1-participant-NN</code></strong> (lowercase, your number). Region: <strong>US West (Oregon)</strong>.</p>
+</li>
+<li><p>Leave <strong>Block all public access = ON</strong>. CodeBuild will read the bucket using its own IAM role; nothing about this lab needs a public bucket. Keep every other default. <strong>Create bucket</strong>.</p>
+<p><img class="shot" src="images/lab1-s3-create-bucket.png" alt="Create bucket" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p>Open the bucket → <strong>Create folder</strong> → name <code>input</code> → <strong>Create folder</strong>.</p>
+</li>
+<li><p>Open the <code>input/</code> folder → <strong>Upload</strong> → <strong>Add files</strong> → choose <code>MessageUtil.zip</code> → <strong>Upload</strong>.</p>
+</li>
+</ol>
+<p><img class="shot" src="images/lab1-s3-input-uploaded.png" alt="Input zip uploaded" loading="lazy" title="Click to zoom"></p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>s3://cicd-lab1-participant-NN/input/MessageUtil.zip</code> exists and is about 2.5 KB.</p>
+</blockquote>
+<hr>
+<h2 id="part-3-create-the-build-project">Part 3 · Create the build project</h2>
+<ol>
+<li><p>Console → <strong>CodeBuild</strong> (search &quot;CodeBuild&quot; in the top bar) → <strong>Build projects</strong> → <strong>Create build project</strong>.</p>
+</li>
+<li><p><strong>Project configuration</strong></p>
+<ul>
+<li>Project name: <strong><code>participant-NN-codebuild-demo</code></strong></li>
+<li>Project type: <strong>Default project</strong></li>
+</ul>
+<p><img class="shot" src="images/lab1-codebuild-create-top.png" alt="Create project – top" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p><strong>Source</strong></p>
+<ul>
+<li>Source provider: <strong>Amazon S3</strong></li>
+<li>Bucket: <strong><code>cicd-lab1-participant-NN</code></strong></li>
+<li>S3 object key or S3 folder: <strong><code>input/MessageUtil.zip</code></strong></li>
+</ul>
+<p><img class="shot" src="images/lab1-codebuild-create-source.png" alt="Create project – source" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p><strong>Environment</strong> – this is the container your build runs in.</p>
+<ul>
+<li>Compute: <strong>EC2</strong> · Provisioning model: <strong>On-demand</strong> · Environment image: <strong>Managed image</strong> · Running mode: <strong>Container</strong></li>
+<li>Operating system: <strong>Amazon Linux</strong> · Runtime(s): <strong>Standard</strong></li>
+<li>Image: the newest <strong><code>aws/codebuild/amazonlinux-x86_64-standard:…</code></strong> offered (6.0 at the time of writing) · Image version: <strong>Always use the latest image for this runtime version</strong></li>
+<li><strong>Service role: New service role.</strong> Accept the suggested name (<code>codebuild-participant-NN-codebuild-demo-service-role</code>). Leave compute size at its default.</li>
+</ul>
+<p><img class="shot" src="images/lab1-codebuild-create-environment.png" alt="Create project – environment" loading="lazy" title="Click to zoom"></p>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>What just got created for you?</strong> An IAM <em>role</em> with a trust policy saying &quot;the CodeBuild service may assume me&quot; and permissions to write logs and read/write the S3 locations you named. This is the single most important security idea in this course: <strong>services act with explicitly granted identities, scoped to the job</strong>. You never type your own credentials into a build.</p>
+</div></div>
+</li>
+<li><p><strong>Buildspec</strong> → <strong>Use a buildspec file</strong>. Leave the name blank (defaults to <code>buildspec.yml</code> at the root of the zip).</p>
+<p><img class="shot" src="images/lab1-codebuild-create-buildspec.png" alt="Create project – buildspec" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p><strong>Batch configuration</strong> → leave unchecked.</p>
+</li>
+<li><p><strong>Artifacts</strong> – where the output goes.</p>
+<ul>
+<li>Type: <strong>Amazon S3</strong></li>
+<li>Bucket name: <strong><code>cicd-lab1-participant-NN</code></strong></li>
+<li>Name: <strong><code>MessageUtil-output</code></strong></li>
+<li>Path: <strong><code>output</code></strong></li>
+<li>Namespace type: <strong>None</strong></li>
+<li>Expand <strong>Additional configuration</strong> → Artifacts packaging: <strong>Zip</strong></li>
+</ul>
+<p><img class="shot" src="images/lab1-codebuild-create-artifacts.png" alt="Create project – artifacts" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p><strong>Logs</strong> → keep <strong>CloudWatch logs</strong> checked (group/stream names optional).</p>
+<p><img class="shot" src="images/lab1-codebuild-create-logs.png" alt="Create project – logs" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p><strong>Create build project</strong>.</p>
+</li>
+</ol>
+<p><img class="shot" src="images/lab1-codebuild-project-created.png" alt="Project created" loading="lazy" title="Click to zoom"></p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — The project page shows <em>Source provider: Amazon S3</em>, <em>Primary repository: cicd-lab1-participant-NN/input/MessageUtil.zip</em>, <em>Artifacts upload location: cicd-lab1-participant-NN</em>, and a service role ARN.</p>
+</blockquote>
+<hr>
+<h2 id="part-4-run-the-build-watch-it-fail-fix-it">Part 4 · Run the build. Watch it fail. Fix it.</h2>
+<div class="callout warning"><div class="ico">⚠️</div><div><span class="box-lbl">Warning</span><p><strong>Your first build is going to fail. That is on purpose.</strong> Nobody learns to read a build log from a green build. Resist the urge to ask for the answer; the hints below are ordered from gentle to blunt.</p>
+</div></div>
+<ol>
+<li><p>On the project page click <strong>Start build</strong> (top-right, orange).</p>
+<p><img class="shot" src="images/lab1-project-start-build.png" alt="Start build" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p>You land on the build page. Watch the <strong>Status</strong> field. Within about a minute it turns to <strong>Failed</strong>.</p>
+</li>
+</ol>
+<p><img class="shot" src="images/lab1-build-failed-overview.png" alt="Build failed" loading="lazy" title="Click to zoom"></p>
+<h3>🔧 Troubleshooting exercise 1 — &quot;invalid target release&quot;</h3>
+<p>Your job: find out <em>why</em> it failed and make it pass, <strong>without changing <code>pom.xml</code></strong>.</p>
+<p><strong>Where to look, in order:</strong></p>
+<ul>
+<li><p><strong>Phase details</strong> tab – which phase went red? (The phases run top to bottom; the first red one is the culprit. Everything after it is skipped or is just clean-up.)</p>
+<p><img class="shot" src="images/lab1-build-failed-phase-details.png" alt="Phase details" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p><strong>Build logs</strong> tab – scroll to the bottom. CodeBuild prints the last few hundred lines; the real error is almost always a few lines <em>above</em> the final &quot;Phase context status code&quot; message.</p>
+<p><img class="shot" src="images/lab1-build-failed-log-error.png" alt="The error in the log" loading="lazy" title="Click to zoom"></p>
+</li>
+</ul>
+<details class="reveal hint"><summary>💡 Hint 1 — which phase, which command</summary><div class="body">
+
+<p>The <strong>BUILD</strong> phase failed, and the phase context says <code>COMMAND_EXECUTION_ERROR … Error while executing command: mvn install. Reason: exit status 1</code>. So Maven itself failed. Scroll up in the log to find Maven&#39;s own <code>[ERROR]</code> lines.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — read Maven's complaint</summary><div class="body">
+
+<p>The key line is:</p>
+<pre><code>[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile
+        (default-compile) on project messageUtil: Fatal error compiling: error: invalid target release: 17
+</code></pre>
+<p>Maven was asked to produce Java <strong>17</strong> bytecode (that is what <code>pom.xml</code> says) but the Java compiler available in the container is older. Which Java did the container install? Search the log for the word <code>corretto</code>.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 3 — the two numbers that disagree</summary><div class="body">
+
+<p>Near the top of the log: <code>Selecting &#39;java&#39; runtime version &#39;corretto11&#39; based on manual selections…</code>. The <em>buildspec</em> asked for Java 11; the <em>project file</em> needs Java 17. One file has to change, and the exercise says not to touch <code>pom.xml</code>.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>In <code>buildspec.yml</code> change the runtime version:</p>
+<pre><code class="language-yaml">  install:
+    runtime-versions:
+      java: corretto17
+</code></pre>
+<p>Then:</p>
+<ol>
+<li>Re-zip (<code>zip -r MessageUtil.zip buildspec.yml pom.xml src/</code> from inside <code>sample-app/</code>).</li>
+<li>In S3, open <code>cicd-lab1-participant-NN/input/</code> → <strong>Upload</strong> the new <code>MessageUtil.zip</code> (same name; S3 simply replaces it).</li>
+<li>Back in CodeBuild → your project → <strong>Start build</strong>.</li>
+</ol>
+<p>The build now reaches <code>BUILD SUCCESS</code> and finishes green.</p>
+<p><strong>Why this is a classic:</strong> the build <em>environment</em> (the container) and the build <em>definition</em> (<code>pom.xml</code>) are two separate sources of truth about &quot;which Java&quot;. CI makes that disagreement visible on every single run instead of on one unlucky laptop.</p>
+</div></details>
+
+<p><img class="shot" src="images/lab1-build-succeeded.png" alt="Build succeeded" loading="lazy" title="Click to zoom"></p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Status <strong>Succeeded</strong>, and under <em>Reports</em> you see an auto-discovered JUnit report link.</p>
+</blockquote>
+<hr>
+<h2 id="part-5-read-the-results-like-a-professional">Part 5 · Read the results like a professional</h2>
+<p>A green build is not the end; it is a pile of evidence. Spend five minutes with each tab.</p>
+<h3>Phase details</h3>
+<p>Every phase, how long it took, and its status. Notice <code>PROVISIONING</code> (starting the container) and <code>DOWNLOAD_SOURCE</code> happen <em>before</em> any of your commands run, and <code>UPLOAD_ARTIFACTS</code> happens after. Total build time is what you pay for.</p>
+<p><img class="shot" src="images/lab1-build-succeeded-phases.png" alt="All phases green" loading="lazy" title="Click to zoom"></p>
+<h3>Reports</h3>
+<p>CodeBuild noticed Maven&#39;s JUnit XML files and turned them into a test report. Click the report link.</p>
+<p><img class="shot" src="images/lab1-build-reports-tab.png" alt="Reports tab" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab1-test-report.png" alt="Test report" loading="lazy" title="Click to zoom"></p>
+<p>Three tests: <strong>two passed, one skipped</strong>, in a fraction of a second. This report is what a team looks at <em>instead of</em> trusting &quot;I ran the tests locally&quot;.</p>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Skipped?</strong> A skipped test is a light that is neither red nor green: somebody turned it off. Remember that. Mission D is about that test.</p>
+</div></div>
+<h3>The artifact</h3>
+<p>S3 → <code>cicd-lab1-participant-NN</code> → <code>output/</code> → <code>MessageUtil-output.zip</code>. Download it and look inside: <code>target/messageUtil-1.0.jar</code>. That jar is the only thing a deployment needs. Everything else (the source, the compiler, the container) is gone.</p>
+<p><img class="shot" src="images/lab1-s3-output-artifact.png" alt="Output artifact in S3" loading="lazy" title="Click to zoom"></p>
+<h3>Build history</h3>
+<p>The project page keeps every run: who started it, which source version, how long it took. In a real team this is your audit trail.</p>
+<p><img class="shot" src="images/lab1-build-history.png" alt="Build history" loading="lazy" title="Click to zoom"></p>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Where are the logs really?</strong> CodeBuild shows the tail of the log, but the complete log lives in <strong>CloudWatch Logs</strong>, log group <code>/aws/codebuild/participant-NN-codebuild-demo</code>. Click <strong>View entire log</strong> on the build page. Logs outlive the container, the build, and even the project.</p>
+</div></div>
+<hr>
+<h2 id="part-6-missions">Part 6 · Missions</h2>
+<p>The core path is done: Dave&#39;s laptop is officially irrelevant. Everything below is a <em>mission</em>: self-contained, 10–15 minutes, with escalating hints and a hidden solution. Missions A–C deepen what you just did. <strong>D is a bug hunt.</strong> E–H each wire <strong>one new AWS service</strong> into your build. Do the four marked <em>recommended</em> if you are short on time; do all eight for the full set of badges.</p>
+<p><img class="diagram" src="images/diagrams/lab1-missions-board.svg" alt="Mission board" loading="lazy"></p>
+<table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Badge</th>
+<th>New idea / service</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A · Gatekeeper</td>
+<td>🧪</td>
+<td>a failing test is a red build</td>
+<td>10 min · recommended</td>
+</tr>
+<tr>
+<td>B · Stamp it</td>
+<td>🏷️</td>
+<td>environment variables, built-in variables</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>C · Ship more</td>
+<td>📦</td>
+<td>multi-file artifacts</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>D · The disabled test</td>
+<td>🕵️</td>
+<td>a real bug hiding behind <code>@Ignore</code></td>
+<td>10 min · recommended</td>
+</tr>
+<tr>
+<td>E · Secret keeper</td>
+<td>🔐</td>
+<td><strong>Secrets Manager</strong> + a role fix</td>
+<td>15 min · recommended</td>
+</tr>
+<tr>
+<td>F · Speed demon</td>
+<td>⚡</td>
+<td><strong>S3 build cache</strong>, measured</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td>G · Town crier</td>
+<td>📣</td>
+<td><strong>EventBridge → SNS</strong> e-mail on failure</td>
+<td>15 min · recommended</td>
+</tr>
+<tr>
+<td>H · Log detective</td>
+<td>🔎</td>
+<td><strong>CloudWatch Logs Insights</strong> across all builds</td>
+<td>10 min</td>
+</tr>
+</tbody></table>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Keep score.</strong> Each mission ends with a one-line <em>proof</em> (a log line, a report, an e-mail, a query result). Paste your proofs into the class chat as you go; the instructor keeps a leaderboard.</p>
+</div></div>
+<h3>Mission A · 🧪 Gatekeeper — make a test fail on purpose</h3>
+<p><strong>Goal:</strong> prove that a failing unit test turns the build red and that the test report tells you exactly which test.</p>
+<ol>
+<li>In <code>src/test/java/TestMessageUtil.java</code>, change the expected salutation in <code>testSalutationMessage</code> so it no longer matches what the code produces.</li>
+<li>Re-zip, re-upload, <strong>Start build</strong>.</li>
+<li>Predict first: which <em>phase</em> will fail? Then check.</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>The tests run inside <code>mvn install</code>, so the failure surfaces in the <strong>BUILD</strong> phase, not in a separate &quot;test&quot; phase. Open the <strong>Reports</strong> tab afterwards: the report now shows 1 failed test case and the assertion message.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>Change</p>
+<pre><code class="language-java">message = &quot;Hi!&quot; + &quot;Robert&quot;;
+</code></pre>
+<p>to</p>
+<pre><code class="language-java">message = &quot;Hello!&quot; + &quot;Robert&quot;;
+</code></pre>
+<p>Build → <strong>Failed</strong> in <code>BUILD</code>. Log shows <code>Tests run: 3, Failures: 1 … testSalutationMessage … expected:&lt;H[ello]!Robert&gt; but was:&lt;H[i]!Robert&gt;</code>. The Reports tab shows the failing test by name:</p>
+<p><img class="shot" src="images/lab1-test-report-failed.png" alt="Test report with one failure" loading="lazy" title="Click to zoom"></p>
+<p><strong>The lesson:</strong> in CI, tests are not advice, they are a <em>gate</em>. Nothing downstream (packaging, deployment) runs while the gate is red. Change the line back, rebuild, and confirm green before moving on.</p>
+<p><strong>Proof:</strong> the report line that names the failed test.</p>
+</div></details>
+
+<h3>Mission B · 🏷️ Stamp it — an environment variable and the build number</h3>
+<p><strong>Goal:</strong> customise the build from the <em>project settings</em> without editing code, and discover CodeBuild&#39;s built-in variables.</p>
+<ol>
+<li>In the console: project → <strong>Edit</strong> → <strong>Environment</strong> → expand <strong>Additional configuration</strong> → <strong>Environment variables</strong> → add <code>GREETING</code> = <code>Hello from participant-NN</code> (type <em>Plaintext</em>) → <strong>Update environment</strong>.</li>
+<li>In <code>buildspec.yml</code>, make the <code>pre_build</code> phase print the greeting <strong>and</strong> the number of this build.</li>
+<li>Re-zip, re-upload, build, and find your line in the log.</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint 1</summary><div class="body">
+
+<p>Environment variables are available to every command in every phase as ordinary shell variables: <code>$GREETING</code>.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2</summary><div class="body">
+
+<p>CodeBuild sets many variables for you. The one you want is <code>CODEBUILD_BUILD_NUMBER</code>. (Others worth knowing: <code>CODEBUILD_BUILD_ID</code>, <code>CODEBUILD_SRC_DIR</code>, <code>CODEBUILD_RESOLVED_SOURCE_VERSION</code>.)</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<pre><code class="language-yaml">  pre_build:
+    commands:
+      - echo &quot;$GREETING — this is build #$CODEBUILD_BUILD_NUMBER&quot;
+</code></pre>
+<p>In the log you will see <code>Hello from participant-NN — this is build #6</code> (your number will differ).</p>
+<p><strong>The lesson:</strong> configuration that varies (names, flags, secrets) belongs <em>outside</em> the code, in the environment. Plaintext is fine for a greeting. For anything secret, see Mission E.</p>
+<p><strong>Proof:</strong> your greeting line in the log, with the build number.</p>
+</div></details>
+
+<h3>Mission C · 📦 Ship more than the jar</h3>
+<p><strong>Goal:</strong> make the build write a <code>build-info.txt</code> (build number + UTC time) and include it in the artifact next to the jar.</p>
+<details class="reveal hint"><summary>💡 Hint 1</summary><div class="body">
+
+<p>Any command can create files inside the container. <code>post_build</code> is a natural place, because by then the build has already succeeded.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2</summary><div class="body">
+
+<p>The <code>artifacts.files</code> list controls what survives the container. It accepts multiple entries and glob patterns.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<pre><code class="language-yaml">  post_build:
+    commands:
+      - echo &quot;Build completed on $(date)&quot;
+      - echo &quot;build=$CODEBUILD_BUILD_NUMBER time=$(date -u +%Y-%m-%dT%H:%M:%SZ)&quot; &gt; target/build-info.txt
+
+artifacts:
+  files:
+    - target/messageUtil-1.0.jar
+    - target/build-info.txt
+</code></pre>
+<p>Download the new <code>output/MessageUtil-output.zip</code>; it now contains both files.</p>
+<p><strong>The lesson:</strong> artifacts should be <em>self-describing</em>. When something misbehaves in production three weeks from now, the first question is &quot;which build is this?&quot; – and the answer should be inside the artifact, not in someone&#39;s memory. (Lab 2&#39;s Build stage stamps the build number straight into the web page for the same reason.)</p>
+<p><strong>Proof:</strong> <code>unzip -l MessageUtil-output.zip</code> showing two files.</p>
+</div></details>
+
+<h3>Mission D · 🕵️ The disabled test</h3>
+<p><strong>Goal:</strong> find out what Dave was hiding. Then fix the <em>code</em>, not the test.</p>
+<ol>
+<li>Open <code>src/test/java/TestMessageUtil.java</code> and read the third test, <code>testSalutationIsStable</code>. Note the line above it:<pre><code class="language-java">@Ignore(&quot;flaky?? passes on my laptop, will look at it next sprint -- Dave&quot;)
+</code></pre>
+</li>
+<li>Delete that <code>@Ignore(...)</code> line (leave <code>@Test</code>). Re-zip, upload, build.</li>
+<li><strong>Predict first:</strong> will the build pass? Then look at the <strong>Reports</strong> tab.</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint 1 — what the report says</summary><div class="body">
+
+<p>The build is red, and the report shows <code>testSalutationIsStable</code> failed with:</p>
+<pre><code>expected:&lt;Hi![]Robert&gt; but was:&lt;Hi![Hi!]Robert&gt;
+</code></pre>
+<p>The test calls <code>salutationMessage()</code> <strong>twice</strong> and expects the same answer both times. The second call returned <code>Hi!Hi!Robert</code>. Why would a method give a different answer the second time?</p>
+<p><img class="shot" src="images/lab1-mission-d-report-failed.png" alt="Report: one failed, two passed" loading="lazy" title="Click to zoom"></p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — read the code, not the test</summary><div class="body">
+
+<p>Look at <code>MessageUtil.salutationMessage()</code>:</p>
+<pre><code class="language-java">message = &quot;Hi!&quot; + message;
+</code></pre>
+<p>It does not just <em>return</em> a greeting; it <strong>overwrites the field</strong> <code>message</code> every time it is called. State leaks from one call to the next. The test is right. The code is wrong. &quot;Flaky on my laptop&quot; was Dave running the tests in a different order.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>In <code>src/main/java/MessageUtil.java</code>:</p>
+<pre><code class="language-java">  public String salutationMessage() {
+    String salutation = &quot;Hi!&quot; + message;
+    System.out.println(salutation);
+    return salutation;
+  }
+</code></pre>
+<p>Re-zip, upload, build → green; the report shows <strong>3 passed, 0 skipped</strong>. The other two tests still pass, so nothing else depended on the bug.</p>
+<p><strong>The lesson:</strong> a skipped test is a red light somebody put a blanket over. When a test fails, the <em>default</em> assumption is that the code is wrong, not the test; &quot;fix&quot; a test only when you can explain why its expectation was incorrect. And a test that passes or fails depending on order is almost always leaking state.</p>
+<p><strong>Proof:</strong> a report with 3 passed and 0 skipped.</p>
+</div></details>
+
+<h3>Mission E · 🔐 Secret keeper — Secrets Manager</h3>
+<p><strong>Goal:</strong> give the build a secret (say, a deploy token) <strong>without</strong> putting it in the zip, the project settings or the log. Along the way, watch the robot get refused and fix its identity.</p>
+<ol>
+<li><p>Console → <strong>Secrets Manager</strong> → <strong>Store a new secret</strong> → Secret type <strong>Other type of secret</strong> → <strong>Plaintext</strong> tab → replace the contents with <code>orbit-7f3a-launch-code</code> (ignore the red underline: it is not JSON and does not need to be) → <strong>Next</strong>.</p>
+</li>
+<li><p>Secret name <strong><code>participant-NN/lab1/deploy-token</code></strong> → <strong>Next</strong> → <strong>Next</strong> → <strong>Store</strong>.</p>
+<p><img class="shot" src="images/lab1-secret-create.png" alt="Store a new secret" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p>In <code>buildspec.yml</code>, add an <code>env</code> section at the top and print the token in <code>pre_build</code>:</p>
+<pre><code class="language-yaml">version: 0.2
+
+env:
+  secrets-manager:
+    DEPLOY_TOKEN: participant-NN/lab1/deploy-token
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+  pre_build:
+    commands:
+      - echo &quot;Deploy token is $DEPLOY_TOKEN&quot;
+</code></pre>
+</li>
+<li><p>Re-zip, upload, <strong>Start build</strong>. It fails. <strong>Before reading on:</strong> which phase, and what does the message say? Which <em>robot</em> was refused?</p>
+<p><img class="shot" src="images/lab1-build-secret-denied-log.png" alt="Secrets Manager AccessDenied" loading="lazy" title="Click to zoom"></p>
+</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint 1 — the sentence</summary><div class="body">
+
+<p>The build fails in <strong>DOWNLOAD_SOURCE</strong>, before any of your commands run, because CodeBuild resolves <code>env</code> variables while preparing the container. The message reads like a sentence:</p>
+<pre><code>Secrets Manager Error Message: AccessDeniedException:
+User: arn:aws:sts::…:assumed-role/codebuild-participant-NN-codebuild-demo-service-role/…
+is not authorized to perform: secretsmanager:GetSecretValue
+on resource: participant-NN/lab1/deploy-token
+</code></pre>
+<p><strong>Who</strong> = the CodeBuild service role. <strong>What</strong> = <code>secretsmanager:GetSecretValue</code>. <strong>Which</strong> = your secret. Fix exactly that, nothing more.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — where to fix it</summary><div class="body">
+
+<p>IAM → <strong>Roles</strong> → <code>codebuild-participant-NN-codebuild-demo-service-role</code> → <strong>Add permissions</strong> → <strong>Create inline policy</strong> → <strong>JSON</strong>. You need the secret&#39;s ARN: Secrets Manager → your secret → <strong>Secret ARN</strong> (it ends in six random characters; copy the whole thing).</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>Inline policy (name it <code>read-lab1-secret</code>):</p>
+<pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [{
+    &quot;Effect&quot;: &quot;Allow&quot;,
+    &quot;Action&quot;: &quot;secretsmanager:GetSecretValue&quot;,
+    &quot;Resource&quot;: &quot;arn:aws:secretsmanager:us-west-2:962804699607:secret:participant-NN/lab1/deploy-token-XXXXXX&quot;
+  }]
+}
+</code></pre>
+<p><img class="shot" src="images/lab1-iam-role-inline-policy.png" alt="Inline policy on the service role" loading="lazy" title="Click to zoom"></p>
+<p>Wait ten seconds, <strong>Start build</strong> again → green. Now read the log:</p>
+<pre><code>Deploy token is ***
+</code></pre>
+<p><img class="shot" src="images/lab1-build-secret-masked-log.png" alt="The token is masked" loading="lazy" title="Click to zoom"></p>
+<p>CodeBuild <strong>masked</strong> the value. Was it really there? Add a second command and rebuild:</p>
+<pre><code class="language-yaml">         - echo &quot;Token length ${#DEPLOY_TOKEN}; sha256 $(echo -n $DEPLOY_TOKEN | sha256sum | cut -c1-12)&quot;
+</code></pre>
+<p>→ <code>Token length 22; sha256 …</code> — the robot had the real value; only the log is masked.</p>
+<p><strong>The lesson, in three parts:</strong></p>
+<ol>
+<li>Secrets are fetched <strong>at run time by the robot&#39;s role</strong>, never stored in the recipe. The zip, the project settings and S3 never contain the value.</li>
+<li>The role gets <strong>one verb on one resource</strong>. Not <code>SecretsManagerReadWrite</code>, not <code>*</code>.</li>
+<li>Masking is a courtesy, not a safety net. The length and hash just leaked; <code>echo $DEPLOY_TOKEN &gt; target/token.txt</code> would ship it in the artifact. Treat the value as radioactive inside the build too.</li>
+</ol>
+<p>(SSM <strong>Parameter Store</strong> works the same way with <code>parameter-store:</code> instead of <code>secrets-manager:</code>; it is free for standard parameters and fine for non-secret config.)</p>
+<p><strong>Proof:</strong> the <code>***</code> line and the <code>Token length 22</code> line from the same build.</p>
+</div></details>
+
+<h3>Mission F · ⚡ Speed demon — cache the downloads</h3>
+<p><strong>Goal:</strong> make the build measurably faster by caching Maven&#39;s downloads between runs, and prove it with numbers.</p>
+<ol>
+<li><p>Open your last green build → <strong>Build logs</strong>. Count the lines that start with <code>Downloading from central:</code> (there are over two hundred). Every build starts from an empty container, so Maven downloads the same plugins and libraries every single time. Note the <strong>BUILD</strong> phase duration in <strong>Phase details</strong> (about 15 s).</p>
+</li>
+<li><p>Project → <strong>Edit</strong> → scroll down to the <strong>Artifacts</strong> section → expand <strong>Additional configuration</strong> (<em>Cache, encryption key</em>) → Cache type <strong>Amazon S3</strong> → Cache bucket <strong><code>cicd-lab1-participant-NN</code></strong> → Cache path prefix <strong><code>cache</code></strong> → scroll to the bottom → <strong>Update project</strong>.</p>
+<p><img class="shot" src="images/lab1-project-edit-cache.png" alt="Cache settings" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p>Tell the buildspec <em>what</em> to cache. Add at the bottom of <code>buildspec.yml</code>:</p>
+<pre><code class="language-yaml">cache:
+  paths:
+    - &#39;/root/.m2/**/*&#39;
+</code></pre>
+</li>
+<li><p>Re-zip, upload and build <strong>twice</strong>. Compare the two logs and the two BUILD durations.</p>
+</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>Build 1 after the change: near the top, <code>Downloading S3 cache… Unable to download cache: AccessDenied … s3:ListBucket</code> (nothing to download yet; read on), then the usual 200+ downloads, then at the very end <code>Uploading S3 cache…</code>. Build 2: <code>Downloading S3 cache… Unarchiving cache…</code> and <strong>zero</strong> <code>Downloading from central:</code> lines.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution &amp; numbers</summary><div class="body">
+
+<p><img class="shot" src="images/lab1-build-cache-hit-log.png" alt="Cache hit" loading="lazy" title="Click to zoom"></p>
+<p>Measured in the class account:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Build before cache</th>
+<th>First cached build</th>
+<th>Second cached build</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Downloading from central:</code> lines</td>
+<td>242</td>
+<td>242</td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>BUILD phase</td>
+<td>16 s</td>
+<td>16 s</td>
+<td><strong>10 s</strong></td>
+</tr>
+</tbody></table>
+<p><img class="shot" src="images/lab1-build-cached-phases.png" alt="Phases with the cache" loading="lazy" title="Click to zoom"></p>
+<p>For a 30-line Java app the saving is a few seconds; for a real project with hundreds of dependencies it is minutes per build, times every build, times every developer.</p>
+<p><strong>About that <code>AccessDenied</code> line.</strong> On the first cached build CodeBuild tried to <em>list</em> the bucket to find an existing cache and the auto-generated role has <code>GetObject</code>/<code>PutObject</code> but not <code>s3:ListBucket</code>. CodeBuild shrugged, built without a cache, and uploaded one at the end. The warning is harmless, but read it like a sentence anyway: who, what, which. If it bothers you, add <code>s3:ListBucket</code> on <code>arn:aws:s3:::cicd-lab1-participant-NN</code> to the role&#39;s inline policy and it disappears.</p>
+<p>S3 → your bucket → <code>cache/</code> → one object of about 18 MB: that is Maven&#39;s <code>.m2</code> folder, zipped. <strong>Delete that object to &quot;clear the cache&quot;.</strong></p>
+<p><strong>The lesson:</strong> caching trades a little complexity (and a new class of &quot;works because of a stale cache&quot; bugs) for speed. Cache <em>dependencies</em>, never build <em>outputs</em>.</p>
+<p><strong>Proof:</strong> two BUILD durations, before and after.</p>
+</div></details>
+
+<h3>Mission G · 📣 Town crier — e-mail on failure (EventBridge + SNS)</h3>
+<p><strong>Goal:</strong> nobody should have to watch a console. Make AWS e-mail you the moment one of <em>your</em> builds fails.</p>
+<ol>
+<li><p><strong>SNS</strong> → <strong>Topics</strong> → <strong>Create topic</strong> → Type <strong>Standard</strong> → Name <strong><code>participant-NN-alerts</code></strong> → <strong>Create topic</strong>.</p>
+</li>
+<li><p>On the topic page → <strong>Create subscription</strong> → Protocol <strong>Email</strong> → Endpoint: your e-mail address → <strong>Create subscription</strong>. Open your inbox and click <strong>Confirm subscription</strong> (check spam). The subscription must say <em>Confirmed</em> before anything arrives.</p>
+<p><img class="shot" src="images/lab1-sns-topic.png" alt="The topic" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p><strong>Amazon EventBridge</strong> → <strong>Rules</strong> → <strong>Create rule</strong> → Name <strong><code>participant-NN-build-failed</code></strong> → Rule type <strong>Rule with an event pattern</strong> → <strong>Next</strong>.</p>
+</li>
+<li><p>Event source <strong>AWS events or EventBridge partner events</strong> → <strong>Creation method: Use pattern form</strong> → AWS service <strong>CodeBuild</strong> → Event type <strong>CodeBuild Build State Change</strong> → <strong>Specific state(s)</strong> → <code>FAILED</code> → <strong>Specific project name(s)</strong> → <code>participant-NN-codebuild-demo</code> → <strong>Next</strong>.</p>
+</li>
+<li><p>Target: <strong>AWS service</strong> → <strong>SNS topic</strong> → <code>participant-NN-alerts</code> → <strong>Next</strong> → <strong>Next</strong> → <strong>Create rule</strong>. (The console grants EventBridge permission to publish to the topic for you.)</p>
+<p><img class="shot" src="images/lab1-eventbridge-rule-pattern.png" alt="The rule and its pattern" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p>Break the build on purpose (Mission A&#39;s edit works well), upload, build, and watch your inbox.</p>
+</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint 1 — the pattern, as JSON</summary><div class="body">
+
+<p>If you prefer the <strong>Custom pattern (JSON editor)</strong>, this is the whole thing:</p>
+<pre><code class="language-json">{
+  &quot;source&quot;: [&quot;aws.codebuild&quot;],
+  &quot;detail-type&quot;: [&quot;CodeBuild Build State Change&quot;],
+  &quot;detail&quot;: {
+    &quot;build-status&quot;: [&quot;FAILED&quot;],
+    &quot;project-name&quot;: [&quot;participant-NN-codebuild-demo&quot;]
+  }
+}
+</code></pre>
+<p>Every build emits one of these events on every state change; the rule is a filter.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — no e-mail?</summary><div class="body">
+
+<p>In order: (1) is the subscription <em>Confirmed</em>? (2) EventBridge → your rule → <strong>Monitoring</strong> tab: did <em>TriggeredRules</em> and <em>Invocations</em> go to 1? If TriggeredRules is 0, the pattern did not match (project name typo, or you filtered on <code>SUCCEEDED</code>). (3) SNS → topic → <strong>Access policy</strong>: there must be a statement allowing <code>events.amazonaws.com</code> to <code>SNS:Publish</code>.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution &amp; a nicer message</summary><div class="body">
+
+<p>The raw e-mail is the full JSON event: useful, ugly. On the rule → <strong>Targets</strong> → <strong>Edit</strong> → <strong>Additional settings</strong> → <strong>Configure target input: Input transformer</strong>:</p>
+<ul>
+<li>Input path:<pre><code class="language-json">{ &quot;project&quot;: &quot;$.detail.project-name&quot;, &quot;status&quot;: &quot;$.detail.build-status&quot;, &quot;id&quot;: &quot;$.detail.build-id&quot; }
+</code></pre>
+</li>
+<li>Template:<pre><code>&quot;🚨 Build &lt;status&gt; for &lt;project&gt;. Build id: &lt;id&gt;. Open CodeBuild in us-west-2 and read the log.&quot;
+</code></pre>
+</li>
+</ul>
+<p>Measured in the class account: the rule triggered and SNS published within the same minute the build failed.</p>
+<p><strong>The lesson:</strong> a pipeline that only reports to a console is a pipeline nobody watches. Events (EventBridge) plus a fan-out (SNS: e-mail, SMS, chat webhooks, Lambda) is the standard AWS pattern, and Lab 2 reuses this very topic for deployment alarms.</p>
+<p><strong>Proof:</strong> the e-mail, or the rule&#39;s <em>Invocations = 1</em> graph.</p>
+</div></details>
+
+<h3>Mission H · 🔎 Log detective — Logs Insights</h3>
+<p><strong>Goal:</strong> answer questions about <em>all</em> your builds at once instead of opening them one by one.</p>
+<ol>
+<li><p><strong>CloudWatch</strong> → <strong>Logs</strong> → <strong>Logs Insights</strong>. The console may redirect you to the new <strong>Log Analytics</strong> page (a blue banner says so; click <strong>OK</strong>). Either page works.</p>
+</li>
+<li><p>Point the query at your log group and run it:</p>
+<ul>
+<li><strong>Log Analytics page:</strong> in <em>Query scope</em>, change the <strong>Log group</strong> filter from <em>All</em> to <strong><code>/aws/codebuild/participant-NN-codebuild-demo</code></strong>, click <strong>3h</strong>, then replace everything <em>after</em> the first <code>SOURCE … |</code> line in the editor with the query below and press <strong>Run</strong>.</li>
+<li><strong>Classic Logs Insights page:</strong> <em>Select log group(s)</em> → your group → time range <strong>3h</strong> → paste the query → <strong>Run query</strong>.</li>
+</ul>
+<pre><code>fields @message
+| filter @message like /BUILD SUCCESS|BUILD FAILURE/
+| parse @message &quot;BUILD *&quot; as verdict
+| stats count() as builds by verdict
+</code></pre>
+<p><img class="shot" src="images/lab1-logs-insights.png" alt="Insights results" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p>Now find every error from every build, newest first:</p>
+<pre><code>fields @timestamp, @logStream, @message
+| filter @message like /\[ERROR\]/
+| sort @timestamp desc
+| limit 20
+</code></pre>
+</li>
+</ol>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>Each build is one <strong>log stream</strong> inside the group; <code>@logStream</code> tells you which build an error came from. Click a row to expand it.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution &amp; a bonus question</summary><div class="body">
+
+<p>Our verdict table after the morning&#39;s missions: <code>FAILURE 3 · SUCCESS 5</code>. The error query lists the <code>expected:&lt;…&gt; but was:&lt;…&gt;</code> lines from Missions A and D with their build streams.</p>
+<p>Bonus: <em>which build was slowest?</em> Maven prints <code>Total time:  3.502 s</code>:</p>
+<pre><code>fields @logStream, @message
+| filter @message like /Total time:/
+| parse @message /Total time:\s+(?&lt;secs&gt;[0-9.]+)/
+| stats max(secs) as slowest, min(secs) as fastest, avg(secs) as average
+</code></pre>
+<p><strong>The lesson:</strong> build logs are data. Retention outlives containers and projects (set it on the log group), and one query across weeks of builds answers &quot;when did this start failing?&quot; faster than any amount of clicking.</p>
+<p><strong>Proof:</strong> your verdict table.</p>
+</div></details>
+
+<hr>
+<h2 id="part-7-clean-up">Part 7 · Clean up</h2>
+<p>Builds are billed per minute and storage per GB, so this lab costs cents, but shared accounts fill up with leftovers fast.</p>
+<ol>
+<li><strong>CodeBuild</strong> → Build projects → select <code>participant-NN-codebuild-demo</code> → <strong>Delete build project</strong>.</li>
+<li><strong>S3</strong> → select <code>cicd-lab1-participant-NN</code> → <strong>Empty</strong> (this removes the <code>cache/</code> object too) → then <strong>Delete</strong>.</li>
+<li>If you did the missions: <strong>EventBridge</strong> → Rules → delete <code>participant-NN-build-failed</code> · <strong>SNS</strong> → Topics → delete <code>participant-NN-alerts</code> (skip this one if you are going on to Lab 2 today; it reuses the topic) · <strong>Secrets Manager</strong> → <code>participant-NN/lab1/deploy-token</code> → <strong>Actions → Delete secret</strong> (Secrets Manager insists on a 7-day waiting period; that is fine).</li>
+<li>The IAM service role and its inline policies stay (students cannot delete roles in this account); the instructor removes those in bulk.</li>
+</ol>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p>If you are continuing to Lab 2 today, you can leave the bucket for now and delete both buckets at the end.</p>
+</div></div>
+<hr>
+<h2 id="part-8-what-you-learned">Part 8 · What you learned</h2>
+<ul>
+<li><strong>CI</strong> = a clean, automated, repeatable build of every change, with a binary verdict.</li>
+<li>A <strong>buildspec</strong> is a recipe with phases; the first red phase is the one to read.</li>
+<li><strong>Logs are the truth.</strong> The error is usually a few lines above the final &quot;exit status&quot; message.</li>
+<li>The build <strong>environment</strong> (container image, runtime versions) is as much a part of your build as the code.</li>
+<li><strong>Artifacts</strong> are the only thing that leaves the container; make them self-describing.</li>
+<li>CodeBuild acts through a <strong>service role</strong> – explicit, scoped permissions instead of shared credentials or public buckets.</li>
+<li>A <strong>skipped test</strong> is a hidden red light; when a test fails, suspect the code first.</li>
+<li><strong>Secrets</strong> are fetched at run time by the role, one verb on one resource; the log masks them but masking is not a safety net.</li>
+<li>A <strong>build cache</strong> trades a little complexity for speed; cache dependencies, never outputs.</li>
+<li>Pipelines should <strong>push news to humans</strong> (EventBridge → SNS), and their <strong>logs are data</strong> (Logs Insights).</li>
+</ul>
+<h3>Quiz yourself</h3>
+<details class="reveal quiz"><summary>1. The BUILD phase fails with "exit status 1". Where exactly do you look next, and why not just at the last line?</summary><div class="body">
+
+<p>Scroll <em>up</em> from the phase-context message in the Build logs: the last line only says that a command failed; the tool&#39;s own error (<code>[ERROR] …</code>) is above it. Phase details tells you <em>which</em> phase; the log tells you <em>why</em>.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>2. You changed `buildspec.yml` on your laptop and clicked Start build, but the build behaves exactly as before. What did you forget?</summary><div class="body">
+
+<p>To re-zip and re-upload to <code>input/MessageUtil.zip</code>. CodeBuild builds what is in S3, not what is on your disk. (A pipeline that watches a repo removes this step; that is Lab 2.)</p>
+</div></details>
+
+<details class="reveal quiz"><summary>3. Why does CodeBuild need a service role at all? Why can't it just use your permissions?</summary><div class="body">
+
+<p>The build runs when you are not there – on a schedule, on a push, at 3 a.m. It needs its own identity whose permissions are limited to the job (read one bucket, write one bucket, write logs). Using a human&#39;s credentials would be both insecure and fragile.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>4. Name two things that are destroyed at the end of every CodeBuild run and one thing that is not.</summary><div class="body">
+
+<p>Destroyed: the build container and everything inside it (source checkout, compiled classes, downloaded Maven dependencies). Kept: the artifact in S3 and the log in CloudWatch Logs.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>5. Mission E's first build failed in DOWNLOAD_SOURCE, before any of your commands ran. Why there, and which of the three words (who / what / which) did you have to change?</summary><div class="body">
+
+<p>CodeBuild resolves <code>env</code> variables (including <code>secrets-manager:</code>) while preparing the container, so a refused secret stops the build before <code>install</code>. You changed <em>who</em> is allowed to do <em>what</em>: the service role gained <code>secretsmanager:GetSecretValue</code>. The <em>which</em> (the secret ARN) was already correct.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>6. "The token is safe, CodeBuild masks it in the log." Name two ways it could still leak.</summary><div class="body">
+
+<p>Writing it to a file that ends up in the artifact; printing a transformation of it (length, hash, base64, first characters); passing it on the command line of a tool that logs its arguments; a build that uploads it somewhere. Masking only covers the literal string in the log.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>7. Mission F's second build downloaded nothing from Maven Central and was six seconds faster. What could now go wrong that could not go wrong before?</summary><div class="body">
+
+<p>A stale cache: if a dependency version changes but the cached copy is used, the build no longer matches a clean machine. Clear the cache object in S3 (or change the cache prefix) whenever you suspect it.</p>
+</div></details>
+
+<p><strong>Next:</strong> <a href="lab2.html">Lab 2 – From a zip in S3 to a live web page with CodePipeline and CodeDeploy</a></p>
+
+<div class="pager">
+  <span></span>
+  <a href="lab2.html" style="text-align:right"><small>Next</small>Lab 2 · CodePipeline + CodeDeploy →</a>
+</div>
+</main>
+<footer><span>Pipeline Academy · hands-on AWS CI/CD labs</span><span>Built from <code>labs/*.md</code> · screenshots taken in a real account, then torn down.</span></footer>
+<script src="assets/site.js"></script>
+</body>
+</html>

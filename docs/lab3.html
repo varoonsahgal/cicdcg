@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en" class="hue-lab3" data-page="lab3">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Pipeline Repair Shop — six bugs between you and a working website · Pipeline Academy</title>
+<meta name="description" content="You just joined the team. A colleague left a note on your desk: &quot;Pipeline is basically done, just needs a tiny fix, back in two weeks.&quot; The pipeline is red. Nobody knows why. The site needs to be live by the end of the session. Welcome to operations.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0B1220">
+<script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1220'/%3E%3Ccircle cx='8' cy='16' r='4' fill='%2322C55E'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2338BDF8'/%3E%3Ccircle cx='24' cy='16' r='4' fill='%23F59E0B'/%3E%3C/svg%3E">
+</head>
+<body data-page="lab3">
+<a class="skip" href="#main">Skip to content</a>
+<div id="readbar" aria-hidden="true"></div>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"/><circle cx="8" cy="16" r="4" fill="#22C55E"/><circle cx="16" cy="16" r="4" fill="#38BDF8"/><circle cx="24" cy="16" r="4" fill="#F59E0B"/><path d="M12 16h0M20 16h0" stroke="#fff"/></svg>Pipeline Academy <span>· AWS CI/CD labs</span></a>
+  <nav class="nav" aria-label="Labs">
+      <a href="index.html">Start here</a>
+      <a href="lab1.html" data-lab="lab1" style="--d:#38BDF8"><span class="dot"></span>Lab 1<span class="lbl-long"> · Build it</span><span class="done">★</span></a>
+      <a href="lab2.html" data-lab="lab2" style="--d:#22C55E"><span class="dot"></span>Lab 2<span class="lbl-long"> · Ship it</span><span class="done">★</span></a>
+      <a href="lab3.html" data-lab="lab3" style="--d:#EF4444" aria-current="page"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
+      <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
+      <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+  </nav>
+  <div class="tools">
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+    <button class="iconbtn menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div></header>
+
+<section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
+  <div>
+    <p class="eyebrow">Lab 3 of 5 · Fix it</p>
+    <h1>The Pipeline Repair Shop — six bugs between you and a working website</h1>
+    <p class="lede">You just joined the team. A colleague left a note on your desk: "Pipeline is basically done, just needs a tiny fix, back in two weeks." The pipeline is red. Nobody knows why. The site needs to be live by the end of the session. Welcome to operations.</p>
+    <div class="mast-meta"><span class="chip"><b>Time</b> 75–100 minutes (≈ 2 minutes of waiting per pipeline run; the rest is thinking)</span><span class="chip"><b>Difficulty</b> Intermediate · you must have done Labs 1 and 2</span><span class="chip"><b>AWS services</b> CodePipeline, CodeBuild, CodeDeploy, S3, IAM, EC2, Systems Manager</span><span class="chip"><b>Format</b> Troubleshooting. Nothing to create: the instructor built your environment. You diagnose and repair.</span><span class="chip"><b>Hidden in it</b> <strong>Six</strong> independent bugs. Two in files, two in IAM, one in a CodeDeploy setting, one &quot;it says green but it&#39;s wrong&quot;.</span></div>
+  </div>
+</div></section>
+
+<main id="main" class="labwrap">
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-your-handoff-note">Part 0 · Your handoff note</a></li><li><a href="#stop-1-the-pipeline-is-red-at-build">Stop 1 · The pipeline is red at Build</a></li><li><a href="#stop-2-still-red-at-build-but-your-commands-all-passed">Stop 2 · Still red at Build — but your commands all passed</a></li><li><a href="#stop-3-build-is-green-deploy-is-red-instantly">Stop 3 · Build is green, Deploy is red — instantly</a></li><li><a href="#stop-4-deploy-red-again-now-it-takes-30-seconds-to-fail">Stop 4 · Deploy red again — now it takes 30 seconds to fail</a></li><li><a href="#stop-5-deploy-red-this-time-it-is-your-script">Stop 5 · Deploy red — this time it is your script</a></li><li><a href="#stop-6-all-green-open-the-website">Stop 6 · All green! …open the website</a></li><li><a href="#debrief-fill-in-the-tracker-then-answer-these">Debrief · fill in the tracker, then answer these</a></li><li><a href="#challenges">Challenges</a></li><li><a href="#clean-up">Clean up</a></li><li><a href="#what-you-learned">What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your number.</strong> Your environment is named <code>cicd-lab3-participant-NN-…</code>. Everything you touch must contain <strong>your</strong> <code>NN</code>. Fifteen identical environments exist side by side: if you edit someone else&#39;s deployment group, you break their lab and learn nothing about yours.</p>
+<p><strong>Region:</strong> US West (Oregon) · <code>us-west-2</code>.</p>
+</div></div>
+<hr>
+<h2 id="part-0-your-handoff-note">Part 0 · Your handoff note</h2>
+<p>The instructor will share a table like this (yours has your own values):</p>
+<table>
+<thead>
+<tr>
+<th>Student</th>
+<th>Pipeline</th>
+<th>Web URL</th>
+<th>Bucket</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>participant-NN</td>
+<td><code>cicd-lab3-participant-NN-pipeline</code></td>
+<td><code>http://&lt;your instance public IP&gt;/</code></td>
+<td><code>cicd-lab3-participant-NN-962804699607</code></td>
+</tr>
+</tbody></table>
+<p>Everything in your environment follows the pattern <strong><code>cicd-lab3-participant-NN-&lt;thing&gt;</code></strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Thing</th>
+<th>Name</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>S3 bucket</td>
+<td><code>cicd-lab3-participant-NN-962804699607</code></td>
+<td>holds <code>source/app.zip</code> (the pipeline&#39;s input) and the pipeline&#39;s intermediate artifacts</td>
+</tr>
+<tr>
+<td>Pipeline</td>
+<td><code>…-pipeline</code></td>
+<td>Source (S3) → Build (CodeBuild) → Deploy (CodeDeploy). Polls S3; every new <code>source/app.zip</code> starts a run</td>
+</tr>
+<tr>
+<td>CodeBuild project</td>
+<td><code>…-build</code></td>
+<td>runs <code>buildspec.yml</code> from the zip: stamps the build number into <code>index.html</code>, packages the artifact</td>
+</tr>
+<tr>
+<td>CodeDeploy app / group</td>
+<td><code>…-app</code> / <code>…-group</code></td>
+<td>deploys the artifact to EC2 instances selected by tag</td>
+</tr>
+<tr>
+<td>EC2 instance</td>
+<td><code>…-web</code></td>
+<td>Amazon Linux 2023, CodeDeploy agent pre-installed, port 80 open. Apache is <em>not</em> installed yet; a hook will do that</td>
+</tr>
+<tr>
+<td>IAM roles</td>
+<td><code>…-codebuild-role</code>, <code>…-codedeploy-role</code>, <code>…-ec2-role</code>, <code>…-codepipeline-role</code></td>
+<td>one per robot (Lab 2!)</td>
+</tr>
+</tbody></table>
+<p><img class="diagram" src="images/diagrams/lab3-map.svg" alt="Everything you were handed" loading="lazy"></p>
+<p>In the console the class looks like this: fifteen pipelines, all red, one of them yours.</p>
+<p><img class="shot" src="images/lab3-00-pipeline-list.png" alt="All fifteen pipelines" loading="lazy" title="Click to zoom"></p>
+<h3>The app you are deploying</h3>
+<p>Download it now: S3 → your bucket → <code>source/</code> → <code>app.zip</code> → <strong>Download</strong>. Unzip it somewhere you can edit.</p>
+<pre><code>app/
+├── appspec.yml                 ← CodeDeploy instructions (files + hooks)
+├── buildspec.yml               ← CodeBuild recipe
+├── index.html                  ← the page; contains __BUILD_ID__ and __BUILD_TIME__ placeholders
+└── scripts/
+    ├── install_dependencies.sh ← BeforeInstall
+    ├── start_server.sh         ← ApplicationStart
+    └── stop_server.sh          ← ApplicationStop
+</code></pre>
+<p>When everything works, the page says <strong>&quot;You fixed the pipeline!&quot;</strong> with a real build number and timestamp stamped in by CodeBuild.</p>
+<h3>Rules of engagement</h3>
+<ol>
+<li><strong>Fix one thing, re-run, observe.</strong> Never change two things between runs; you will not know which one mattered.</li>
+<li><strong>You may change:</strong> the files inside <code>app.zip</code> (edit → re-zip → upload to <code>source/app.zip</code>), the policies on <strong>your</strong> IAM roles, <strong>your</strong> deployment group, and tags on <strong>your</strong> instance.</li>
+<li><strong>You may not change:</strong> the pipeline&#39;s stages, the CodeBuild project settings, anyone else&#39;s anything.</li>
+<li><strong>Three ways to re-run,</strong> fastest first:<ul>
+<li><strong>Retry stage</strong> – the ↻ icon on the red stage card → <em>Retry failed actions</em>. Use after IAM or deployment-group fixes (nothing in the zip changed).</li>
+<li><strong>Release change</strong> (top-right) – re-runs the whole pipeline with the latest <code>source/app.zip</code>.</li>
+<li><strong>Upload a new <code>app.zip</code></strong> – the pipeline notices on its own within about a minute. Use after file fixes.</li>
+</ul>
+</li>
+<li><strong>Write it down.</strong> Keep the bug tracker below; the debrief uses it.</li>
+</ol>
+<h3>Your bug tracker</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Symptom (what was red, what it said)</th>
+<th>Which robot / which file</th>
+<th>Root cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>Triage playbook (keep this open)</h3>
+<table>
+<thead>
+<tr>
+<th>Where it is red</th>
+<th>Open this</th>
+<th>Look for</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Build</strong></td>
+<td>CodeBuild build → <strong>Phase details</strong> → first red phase → <strong>Build logs</strong></td>
+<td>Your commands&#39; output; a <code>COMMAND_EXECUTION_ERROR</code>; or an <code>AccessDenied</code> <em>after</em> your commands</td>
+</tr>
+<tr>
+<td><strong>Deploy</strong>, fails within seconds</td>
+<td>CodeDeploy deployment page → red banner</td>
+<td>&quot;no instances were found&quot; → tags</td>
+</tr>
+<tr>
+<td><strong>Deploy</strong>, fails after ~30 s</td>
+<td>Deployment page → <strong>What failed</strong> → event name</td>
+<td><code>DownloadBundle</code> → the instance&#39;s permissions. <code>BeforeInstall</code> / <code>ApplicationStart</code> → your scripts (read the log tail)</td>
+</tr>
+<tr>
+<td><strong>All green, site wrong</strong></td>
+<td>The artifact: build log <em>&quot;Found N file(s)&quot;</em>, the <code>BuildArtif/…zip</code> in your bucket, or <code>ls /var/www/html</code> on the server</td>
+<td>What was shipped versus what you meant to ship</td>
+</tr>
+</tbody></table>
+<details class="reveal plain"><summary>🔍 How to look inside the server (Session Manager, no SSH)</summary><div class="body">
+
+<p>EC2 → Instances → <code>cicd-lab3-participant-NN-web</code> → <strong>Connect</strong> → <strong>Session Manager</strong> → <strong>Connect</strong>. Useful commands:</p>
+<pre><code class="language-bash">sudo systemctl status codedeploy-agent --no-pager        # is the agent alive?
+sudo tail -n 30 /var/log/aws/codedeploy-agent/codedeploy-agent.log
+sudo ls /opt/codedeploy-agent/deployment-root/            # one folder per deployment
+ls -la /var/www/html/                                     # what did the last deployment put here?
+systemctl is-active httpd                                 # is Apache running?
+</code></pre>
+</div></details>
+
+<hr>
+<h2 id="stop-1-the-pipeline-is-red-at-build">Stop 1 · The pipeline is red at <strong>Build</strong></h2>
+<p>Open your pipeline. Source is green, Build is red, Deploy &quot;didn&#39;t run&quot;.</p>
+<p><img class="shot" src="images/lab3-r1-pipeline-build-failed.png" alt="Build failed" loading="lazy" title="Click to zoom"></p>
+<p>Click <strong>AWS CodeBuild</strong> inside the Build card (or go CodeBuild → Build projects → your project → the latest build).</p>
+<p><strong>Investigate:</strong> Which <em>phase</em> failed? What exact command was CodeBuild running? Compare it to what is written in <code>buildspec.yml</code>.</p>
+<details class="reveal hint"><summary>💡 Hint 1 — the phase and the message</summary><div class="body">
+
+<p><strong>Phase details</strong> shows <strong>two</strong> red phases: <code>BUILD</code> and, further down, <code>UPLOAD_ARTIFACTS</code>. The triage rule is <em>always fix the first red phase first</em>: later failures are often consequences, and if they are not, they will still be there on the next run. <code>BUILD</code>&#39;s context says: <code>Error while executing command: grep -q &quot;Build. Reason: exit status 2</code>. Look at that command carefully. Does it look complete to you?</p>
+<p><img class="shot" src="images/lab3-r1-codebuild-phase-build-failed.png" alt="BUILD phase failed" loading="lazy" title="Click to zoom"></p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — the log</summary><div class="body">
+
+<p>In <strong>Build logs</strong>:</p>
+<pre><code>Running command grep -q &quot;Build
+/codebuild/output/tmp/script.sh: line 4: unexpected EOF while looking for matching `&quot;&#39;
+Command did not exit successfully grep -q &quot;Build exit status 2
+</code></pre>
+<p>The shell got a command that <em>starts</em> a quote and never closes it. In <code>buildspec.yml</code> the line is</p>
+<pre><code class="language-yaml">      - grep -q &quot;Build #${CODEBUILD_BUILD_NUMBER}&quot; index.html
+</code></pre>
+<p>Everything after a certain character vanished before the shell ever saw it. Which character?</p>
+<p><img class="shot" src="images/lab3-r1-codebuild-log-grep-error.png" alt="grep error in the log" loading="lazy" title="Click to zoom"></p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 3 — it is not a shell problem</summary><div class="body">
+
+<p><code>buildspec.yml</code> is <strong>YAML</strong>, and in YAML a <code>#</code> preceded by a space begins a <em>comment</em>. The YAML parser threw away <code> #${CODEBUILD_BUILD_NUMBER}&quot; index.html</code> as if it were a note to humans, and handed CodeBuild the fragment <code>grep -q &quot;Build</code>. The <code>bash -n</code> syntax check in <code>pre_build</code> could never catch this: it checks the shell scripts, not the YAML.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>Quote the whole command so YAML treats it as one string (single quotes are simplest; the double quotes inside are then fine):</p>
+<pre><code class="language-yaml">  build:
+    commands:
+      - echo &quot;Stamping build number and time into index.html...&quot;
+      - sed -i &quot;s/__BUILD_ID__/${CODEBUILD_BUILD_NUMBER}/; s/__BUILD_TIME__/$(date -u +%Y-%m-%dT%H:%M:%SZ)/&quot; index.html
+      - &#39;grep -q &quot;Build #${CODEBUILD_BUILD_NUMBER}&quot; index.html&#39;
+</code></pre>
+<p>Re-zip from inside the <code>app/</code> folder so the files stay at the top level:</p>
+<pre><code class="language-bash">zip -r app.zip appspec.yml buildspec.yml index.html scripts/
+</code></pre>
+<p>Upload to S3 → your bucket → <code>source/</code> → replace <code>app.zip</code>. Within a minute a new execution starts.</p>
+<p><strong>Bug 1 — the YAML comment trap.</strong> Characters that are harmless in a shell (<code>#</code>, <code>:</code>, <code>{</code>) have meaning in YAML. When a logged command looks <em>shorter</em> than what you wrote, suspect the YAML layer, not the tool. Prevention: quote any command containing <code>#</code> or <code>: </code>, and keep an eye on the build log&#39;s <em>&quot;Running command …&quot;</em> lines, which show exactly what survived parsing.</p>
+</div></details>
+
+<hr>
+<h2 id="stop-2-still-red-at-build-but-your-commands-all-passed">Stop 2 · Still red at <strong>Build</strong> — but your commands all passed</h2>
+<p>The new run gets further. Build is red again, but this time <code>BUILD</code> itself is green: the log shows <em>&quot;Stamping build number…&quot;</em> ran and the grep passed. The second red phase from Stop 1 is still there, and it is now the first one.</p>
+<p><strong>Investigate:</strong> Which phase is red now? Is it one of <em>yours</em>? Read the error like a sentence: <strong>who</strong> is not authorized to do <strong>what</strong> on <strong>which resource</strong>?</p>
+<details class="reveal hint"><summary>💡 Hint 1 — a phase you did not write</summary><div class="body">
+
+<p><strong>Phase details:</strong> every phase you control (<code>INSTALL</code>, <code>PRE_BUILD</code>, <code>BUILD</code>, <code>POST_BUILD</code>) is green. The red one is <strong><code>UPLOAD_ARTIFACTS</code></strong> – CodeBuild&#39;s own step that pushes the output zip to the pipeline&#39;s artifact store.</p>
+<p><img class="shot" src="images/lab3-r2-codebuild-phase-details.png" alt="UPLOAD_ARTIFACTS failed" loading="lazy" title="Click to zoom"></p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — read the sentence</summary><div class="body">
+
+<pre><code>Error in UPLOAD_ARTIFACTS phase: AccessDenied:
+User: arn:aws:sts::962804699607:assumed-role/cicd-lab3-participant-NN-codebuild-role/AWSCodeBuild-…
+is not authorized to perform: s3:PutObject
+on resource: &quot;arn:aws:s3:::cicd-lab3-participant-NN-962804699607/cicd-lab3-participan/BuildArtif/…&quot;
+because no identity-based policy allows the s3:PutObject action
+</code></pre>
+<ul>
+<li><strong>Who:</strong> the <em>CodeBuild role</em> (robot #1 from Lab 2&#39;s roles map).</li>
+<li><strong>What:</strong> <code>s3:PutObject</code> – <em>writing</em> to S3.</li>
+<li><strong>Where:</strong> your own bucket.</li>
+</ul>
+<p><img class="shot" src="images/lab3-r2-codebuild-log-tail.png" alt="The log tail" loading="lazy" title="Click to zoom"></p>
+<p>So the build may <em>read</em> its source but may not <em>write</em> its result. Go look at that role.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 3 — the policy</summary><div class="body">
+
+<p>IAM → Roles → <code>cicd-lab3-participant-NN-codebuild-role</code> → its one inline policy → view the JSON. Compare the list of <code>s3:</code> actions against the action named in the error.</p>
+<p><img class="shot" src="images/lab3-r2-iam-codebuild-role.png" alt="The role" loading="lazy" title="Click to zoom"></p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>Edit the inline policy (IAM → role → policy → <strong>Edit</strong> → <strong>JSON</strong>) and add <code>s3:PutObject</code> to the statement that already lists the S3 read actions:</p>
+<p><img class="shot" src="images/lab3-r2-iam-codebuild-policy-json.png" alt="Editing the policy" loading="lazy" title="Click to zoom"></p>
+<pre><code class="language-json">{
+  &quot;Sid&quot;: &quot;ReadArtifacts&quot;,
+  &quot;Effect&quot;: &quot;Allow&quot;,
+  &quot;Action&quot;: [
+    &quot;s3:GetObject&quot;,
+    &quot;s3:GetObjectVersion&quot;,
+    &quot;s3:GetBucketAcl&quot;,
+    &quot;s3:GetBucketLocation&quot;,
+    &quot;s3:ListBucket&quot;,
+    &quot;s3:PutObject&quot;
+  ],
+  &quot;Resource&quot;: [
+    &quot;arn:aws:s3:::cicd-lab3-participant-NN-962804699607&quot;,
+    &quot;arn:aws:s3:::cicd-lab3-participant-NN-962804699607/*&quot;
+  ]
+}
+</code></pre>
+<p><strong>Save</strong>, wait ~15 seconds for IAM to propagate, then on the pipeline click the ↻ on the Build card → <strong>Retry failed actions</strong>. No need to upload anything: nothing in the zip changed.</p>
+<p>(Attaching the AWS-managed <code>AmazonS3FullAccess</code> also &quot;works&quot;. It also lets the build delete every object in every bucket in the account. Prefer the one-line fix.)</p>
+<p><strong>Bug 2 — the robot could read but not write.</strong> A build touches S3 twice: it <em>reads</em> the source and <em>writes</em> the artifact. The error message always names the principal, the action and the resource; those three words are the whole diagnosis. Prevention: role templates per job type, and a test run before handing a pipeline to anyone.</p>
+</div></details>
+
+<hr>
+<h2 id="stop-3-build-is-green-deploy-is-red-instantly">Stop 3 · Build is green, <strong>Deploy</strong> is red — instantly</h2>
+<p>Deploy fails in a few seconds. Click the <strong>AWS CodeDeploy</strong> link in the Deploy card.</p>
+<p><img class="shot" src="images/lab3-r3-pipeline-deploy-failed.png" alt="Deploy failed" loading="lazy" title="Click to zoom"></p>
+<p><strong>Investigate:</strong> Read the banner. Then compare two things that are supposed to match.</p>
+<details class="reveal hint"><summary>💡 Hint 1 — the banner says it all</summary><div class="body">
+
+<p><img class="shot" src="images/lab3-r3-codedeploy-no-instances.png" alt="No instances" loading="lazy" title="Click to zoom"></p>
+<p><em>&quot;The deployment failed because no instances were found for your deployment group. Check your deployment group settings to make sure the tags for your Amazon EC2 instances … correctly identify the instances.&quot;</em></p>
+<p>Which tag is the deployment group looking for, and what tag does your instance actually carry?</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — side by side</summary><div class="body">
+
+<p>Deployment group page → <em>Environment configuration</em>:</p>
+<p><img class="shot" src="images/lab3-r3-deployment-group-tags.png" alt="Deployment group tag filter" loading="lazy" title="Click to zoom"></p>
+<p>EC2 → Instances → search <code>cicd-lab3-participant-NN</code>:</p>
+<p><img class="shot" src="images/lab3-r3-ec2-instances-named-web.png" alt="The instance" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab3-r3-ec2-instance-tags.png" alt="Instance summary" loading="lazy" title="Click to zoom"></p>
+<p>One ends in <strong><code>-server</code></strong>. The other ends in <strong><code>-web</code></strong>.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>Deployment group → <strong>Edit</strong> → <em>Environment configuration</em> → change the tag <strong>Value</strong> to <code>cicd-lab3-participant-NN-web</code>. The line under the checkbox should change from <em>0</em> to <strong>1 unique matched instance</strong> before you save. <strong>Save changes</strong>, then <strong>Retry</strong> the Deploy stage.</p>
+<p><img class="shot" src="images/lab3-r3-deployment-group-edit-tags.png" alt="Editing the tag filter" loading="lazy" title="Click to zoom"></p>
+<p>(Re-tagging the <em>instance</em> to <code>…-server</code> would also work. Changing the deployment group is better: the instance tag is the truth that other systems may rely on – billing, monitoring, Terraform.)</p>
+<p><strong>Bug 3 — a tag is a contract.</strong> CodeDeploy never &quot;knows&quot; your servers; it searches for tags at deployment time. One wrong word = zero matches = instant failure. Prevention: use the console&#39;s <em>&quot;N unique matched instances&quot;</em> preview before saving, and let one source (infrastructure code) generate both the tag and the filter.</p>
+</div></details>
+
+<hr>
+<h2 id="stop-4-deploy-red-again-now-it-takes-30-seconds-to-fail">Stop 4 · <strong>Deploy</strong> red again — now it takes 30 seconds to fail</h2>
+<p>Progress: CodeDeploy found the instance and talked to the agent. Then something on the server failed. Open the deployment and read <strong>What failed</strong>.</p>
+<p><strong>Investigate:</strong> Which lifecycle event failed? Which <em>identity</em> appears in the error? (Careful: it is not the same robot as Stop 2.)</p>
+<details class="reveal hint"><summary>💡 Hint 1 — the event</summary><div class="body">
+
+<p><img class="shot" src="images/lab3-r4-codedeploy-downloadbundle-failed.png" alt="DownloadBundle failed" loading="lazy" title="Click to zoom"></p>
+<p><strong><code>DownloadBundle</code></strong> – the step where the <em>agent on the instance</em> fetches the zip from S3. The hooks after it were skipped.</p>
+<p><img class="shot" src="images/lab3-r4-codedeploy-lifecycle-events.png" alt="Lifecycle events" loading="lazy" title="Click to zoom"></p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — the sentence, again</summary><div class="body">
+
+<p><code>User: arn:aws:sts::…:assumed-role/cicd-lab3-participant-NN-ec2-role/i-0123… is not authorized to perform: s3:GetObjectVersion …</code></p>
+<p>The principal is the <strong>EC2 instance role</strong> (the session name is the instance ID). The agent uses the instance&#39;s role for everything it does. Go look at what that role is allowed to do.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 3 — the role</summary><div class="body">
+
+<p><img class="shot" src="images/lab3-r4-iam-ec2-role-before.png" alt="EC2 role before" loading="lazy" title="Click to zoom"></p>
+<p>Only <code>AmazonSSMManagedInstanceCore</code> is attached. Nothing about S3. The agent can be reached (Systems Manager) but cannot <em>fetch</em>.</p>
+<p>On the server itself, <code>/var/log/aws/codedeploy-agent/codedeploy-agent.log</code> says the same thing:</p>
+<pre><code>ERROR [codedeploy-agent]: InstanceAgent::Plugins::CodeDeployPlugin::CommandPoller: Error during perform:
+Aws::S3::Errors::AccessDenied - User: arn:aws:sts::…:assumed-role/cicd-lab3-participant-NN-ec2-role/i-… is not authorized to perform: s3:GetObjectVersion …
+</code></pre>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>IAM → Roles → <code>cicd-lab3-participant-NN-ec2-role</code> → <strong>Add permissions → Attach policies</strong> → search <strong><code>AmazonEC2RoleforAWSCodeDeploy</code></strong> → tick → <strong>Add permissions</strong>.</p>
+<p><img class="shot" src="images/lab3-r4-iam-attach-policy-search.png" alt="Attach policy" loading="lazy" title="Click to zoom"></p>
+<p>(<code>AmazonS3ReadOnlyAccess</code> also works. Challenge B below asks you to do better than either.)</p>
+<p>Wait ~30 seconds – the agent refreshes its credentials automatically; no reboot – then <strong>Retry</strong> the Deploy stage.</p>
+<p><strong>Bug 4 — the third robot.</strong> The service (CodeDeploy) had permission; the <em>agent</em> did not. Every &quot;download/fetch/pull&quot; step in a deployment runs with the <strong>target machine&#39;s</strong> identity. Prevention: a standard instance profile for &quot;CodeDeploy targets&quot;, and reading the principal in every AccessDenied before touching any policy.</p>
+</div></details>
+
+<hr>
+<h2 id="stop-5-deploy-red-this-time-it-is-your-script">Stop 5 · <strong>Deploy</strong> red — this time it is <em>your</em> script</h2>
+<p>The bundle downloaded, Apache got installed, files were copied… and then the deployment failed. Open <strong>What failed</strong>.</p>
+<p><img class="shot" src="images/lab3-r5-pipeline-deploy-failed.png" alt="Deploy failed again" loading="lazy" title="Click to zoom"></p>
+<p><strong>Investigate:</strong> Which hook, which script, which line of its output?</p>
+<details class="reveal hint"><summary>💡 Hint 1</summary><div class="body">
+
+<p><img class="shot" src="images/lab3-r5-codedeploy-scriptfailed.png" alt="ScriptFailed" loading="lazy" title="Click to zoom"></p>
+<p><code>ApplicationStart</code> · <code>ScriptFailed</code> · <code>scripts/start_server.sh … failed with exit code 5</code>. The log tail is right there on the page. Read the last line of it slowly.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2</summary><div class="body">
+
+<p><code>Failed to start htpd.service: Unit htpd.service not found.</code> – count the letters in the service name. Then open <code>scripts/start_server.sh</code> in your copy of the zip.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p><code>scripts/start_server.sh</code> says <code>systemctl start htpd</code>. It should say:</p>
+<pre><code class="language-bash">systemctl start httpd
+</code></pre>
+<p>Fix it, re-zip, upload <code>source/app.zip</code>. The pipeline runs by itself.</p>
+<p><strong>Bug 5 — syntax is not semantics.</strong> The build&#39;s <code>pre_build</code> phase proudly printed <em>&quot;Scripts look syntactically valid&quot;</em> – <code>bash -n</code> only checks that the script <em>parses</em>, not that it <em>works</em>. A typo in a service name is perfectly valid bash. Prevention: smoke-test the thing the script is supposed to achieve (see Challenge A), and test deployment scripts on a throw-away instance before they reach a pipeline.</p>
+<p>Note that your site has been <em>down</em> since Stop 4&#39;s fix: Apache was installed but never started. That is the Lab 2 lesson again, from the other side.</p>
+</div></details>
+
+<hr>
+<h2 id="stop-6-all-green-open-the-website">Stop 6 · All green! …open the website</h2>
+<p><img class="shot" src="images/lab3-r6-pipeline-all-green.png" alt="All green" loading="lazy" title="Click to zoom"></p>
+<p>Open <code>http://&lt;your instance public IP&gt;/</code>.</p>
+<p><img class="shot" src="images/lab3-r6-webpage-apache-default.png" alt="Apache's default page" loading="lazy" title="Click to zoom"></p>
+<p>That is Apache&#39;s <em>test page</em>. Every stage of your pipeline is green and the result is wrong. <strong>This is the most important stop in the lab.</strong></p>
+<p><strong>Investigate:</strong> The pipeline did exactly what it was told. So what was it told? What files did the deployment actually put on the server?</p>
+<details class="reveal hint"><summary>💡 Hint 1 — look at the server</summary><div class="body">
+
+<p>Session Manager → <code>ls -la /var/www/html/</code>:</p>
+<pre><code>appspec.yml
+scripts/
+</code></pre>
+<p>No <code>index.html</code>. Apache shows its test page when there is nothing to serve. CodeDeploy copied everything that was in the artifact. So what was in the artifact?</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — look at the build log</summary><div class="body">
+
+<p><img class="shot" src="images/lab3-r6-codebuild-log-artifacts.png" alt="Artifact assembly in the build log" loading="lazy" title="Click to zoom"></p>
+<pre><code>Expanding appspec.yml
+Expanding scripts/**/*
+Found 4 file(s)
+</code></pre>
+<p>Four files: <code>appspec.yml</code> and three scripts. The file the whole build exists to produce – the freshly stamped <code>index.html</code> – was never packed. Where is the list of files that get packed?</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>In <code>buildspec.yml</code>, the <code>artifacts</code> section forgot the page:</p>
+<pre><code class="language-yaml">artifacts:
+  files:
+    - appspec.yml
+    - index.html
+    - scripts/**/*
+</code></pre>
+<p>Re-zip, upload, wait. Then refresh the page:</p>
+<p><img class="shot" src="images/lab3-victory-webpage.png" alt="You fixed the pipeline" loading="lazy" title="Click to zoom"></p>
+<p><strong>Bug 6 — green is not correct.</strong> Each stage verified <em>its own</em> contract: the build ran without error, the deployment copied every file it was given. Nobody verified the <em>outcome</em>. Prevention: make the pipeline check the outcome – a <code>ValidateService</code> hook that fetches the page and looks for a sentence, a build step that fails if the artifact lacks a required file, or a synthetic monitor. Challenge A makes you add one.</p>
+</div></details>
+
+<h3>🏁 Victory lap</h3>
+<p><img class="shot" src="images/lab3-victory-pipeline.png" alt="Pipeline green" loading="lazy" title="Click to zoom"></p>
+<ul>
+<li><p><strong>Execution history</strong> tells the story of your afternoon: every run, its trigger (<em>PollForSourceChanges</em> when you uploaded, <em>Retry</em> when you retried) and how far it got.</p>
+<p><img class="shot" src="images/lab3-victory-execution-history.png" alt="Execution history" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p><strong>CodeDeploy → Deployments</strong> shows the same story from the server&#39;s point of view.</p>
+<p><img class="shot" src="images/lab3-victory-codedeploy-deployments.png" alt="Deployments" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p>Your bucket now holds the pristine source, your fixed uploads (as versions of the same key) and every intermediate artifact the pipeline produced. Nothing was overwritten; everything is traceable.</p>
+<p><img class="shot" src="images/lab3-victory-s3-bucket.png" alt="The bucket at the end" loading="lazy" title="Click to zoom"></p>
+</li>
+<li><p>Upload the zip once more without changing anything. The build number on the page goes up by one. <em>Every run re-stamps the artifact; the artifact tells you where it came from.</em></p>
+</li>
+</ul>
+<hr>
+<h2 id="debrief-fill-in-the-tracker-then-answer-these">Debrief · fill in the tracker, then answer these</h2>
+<details class="reveal solution"><summary>Answer key for the tracker (open only when you are done)</summary><div class="body">
+
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Symptom</th>
+<th>Robot / file</th>
+<th>Root cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Build red · <code>BUILD</code> phase · <code>grep -q &quot;Build</code> unexpected EOF</td>
+<td><code>buildspec.yml</code></td>
+<td><code> #</code> starts a YAML comment; command truncated</td>
+<td>quote the command</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Build red · <code>UPLOAD_ARTIFACTS</code> · AccessDenied <code>s3:PutObject</code></td>
+<td>CodeBuild role</td>
+<td>role can read but not write the bucket</td>
+<td>add <code>s3:PutObject</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Deploy red in seconds · &quot;no instances were found&quot;</td>
+<td>deployment group</td>
+<td>tag filter <code>…-server</code>, instance is <code>…-web</code></td>
+<td>fix the filter value</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Deploy red · <code>DownloadBundle</code> · AccessDenied <code>s3:GetObjectVersion</code></td>
+<td>EC2 instance role</td>
+<td>no S3 read permission for the agent</td>
+<td>attach <code>AmazonEC2RoleforAWSCodeDeploy</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Deploy red · <code>ApplicationStart</code> · <code>Unit htpd.service not found</code></td>
+<td><code>scripts/start_server.sh</code></td>
+<td>typo <code>htpd</code></td>
+<td><code>httpd</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>All green · Apache test page</td>
+<td><code>buildspec.yml</code> <code>artifacts.files</code></td>
+<td><code>index.html</code> not in the artifact</td>
+<td>add it</td>
+</tr>
+</tbody></table>
+</div></details>
+
+<ol>
+<li><strong>Order.</strong> The bugs revealed themselves in a fixed order (build → build permissions → find servers → fetch → run → verify). Why could you <em>not</em> have found bug 5 before bug 4?</li>
+<li><strong>Cost of each.</strong> Which bug would have been cheapest to catch before the pipeline existed, and with what tool? (Think: a YAML linter, an IAM policy simulator, Terraform producing both the tag and the filter, a test instance, a smoke test.)</li>
+<li><strong>Blast radius.</strong> Which bug left the website <em>down</em> while being green somewhere else? Which left it <em>up but wrong</em>? Which is worse for a real business?</li>
+<li><strong>Three robots.</strong> Two bugs were AccessDenied. Without looking, which robot was each? How did you tell them apart in the message?</li>
+<li><strong>The sentence.</strong> Write the general shape of every AWS permission error in one line.</li>
+</ol>
+<hr>
+<h2 id="challenges">Challenges</h2>
+<h3>Challenge A · Make the pipeline catch bug 6 by itself</h3>
+<p>Add a <code>ValidateService</code> hook that fails the deployment unless the live page contains the words <code>Pipeline Repair Shop</code>. Then prove it works by removing <code>index.html</code> from the artifact again and watching <strong>Deploy</strong> go red <em>instead of</em> silently shipping the wrong page.</p>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>Lab 2, Challenge C. Script: <code>curl -sf http://localhost/ | grep -q &quot;Pipeline Repair Shop&quot;</code>. Register it under <code>hooks: ValidateService:</code> in <code>appspec.yml</code>. Give Apache a second to start. The script must be in the artifact (it is: <code>scripts/**/*</code>).</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p><code>scripts/validate_service.sh</code>:</p>
+<pre><code class="language-bash">#!/bin/bash
+set -e
+sleep 2
+curl -sf http://localhost/ | grep -q &quot;Pipeline Repair Shop&quot;
+echo &quot;Smoke test passed&quot;
+</code></pre>
+<p><code>appspec.yml</code>, under <code>hooks:</code>:</p>
+<pre><code class="language-yaml">  ValidateService:
+    - location: scripts/validate_service.sh
+      timeout: 60
+      runas: root
+</code></pre>
+<p>Make it executable before zipping (<code>chmod +x scripts/*.sh</code>). Deploy once (green, ValidateService takes ~2 s). Then remove <code>- index.html</code> from <code>artifacts.files</code>, upload, and watch Deploy fail at <code>ValidateService</code> with your script&#39;s exit code. Put the line back.</p>
+<p>With this hook in place, bug 6 would have been <em>impossible</em> to miss.</p>
+</div></details>
+
+<h3>Challenge B · Least privilege for the agent</h3>
+<p>In Stop 4 you attached an AWS-managed policy that lets the instance read <strong>every</strong> bucket in the account. Replace it with an inline policy that allows <strong>only</strong> <code>s3:GetObject</code> and <code>s3:GetObjectVersion</code> on objects in <strong>your</strong> bucket, remove the managed policy, and prove deployments still work.</p>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>IAM → the ec2 role → <strong>Add permissions → Create inline policy → JSON</strong>. Resource ARNs for <em>objects</em> end in <code>/*</code>. The agent also needs <code>s3:GetBucketLocation</code> on the bucket itself for some regions; include it on the bucket ARN. Then remove <code>AmazonEC2RoleforAWSCodeDeploy</code> and <strong>Release change</strong>.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [&quot;s3:GetObject&quot;, &quot;s3:GetObjectVersion&quot;],
+      &quot;Resource&quot;: &quot;arn:aws:s3:::cicd-lab3-participant-NN-962804699607/*&quot;
+    },
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [&quot;s3:GetBucketLocation&quot;, &quot;s3:ListBucket&quot;],
+      &quot;Resource&quot;: &quot;arn:aws:s3:::cicd-lab3-participant-NN-962804699607&quot;
+    }
+  ]
+}
+</code></pre>
+<p>The deployment still succeeds, and this instance can no longer read anyone else&#39;s bucket. (Students in this account cannot <em>detach</em> managed policies themselves – ask the instructor to detach it, or simply confirm the inline policy alone would suffice by reading both.)</p>
+<p><strong>Why it matters:</strong> a compromised web server with <code>AmazonS3ReadOnlyAccess</code> can read every backup, every log, every other student&#39;s artifacts. Least privilege turns a breach into a nuisance.</p>
+</div></details>
+
+<h3>Challenge C · Sabotage a friend (pair exercise)</h3>
+<p>Pick <strong>one</strong> of the six bugs and re-plant it in <em>your own</em> environment (for example, put the <code>htpd</code> typo back and upload, or change your tag filter). Swap seats with a neighbour. Diagnose each other&#39;s pipeline using only the triage playbook, no hints. Time yourselves. Then put everything back.</p>
+<details class="reveal solution"><summary>💡 Facilitator note</summary><div class="body">
+
+<p>Good sabotage candidates: the tag filter (fast feedback), the script typo, removing <code>index.html</code> from the artifact (the sneaky one). Avoid IAM changes unless you are confident you can revert them – students cannot detach policies in this account.</p>
+</div></details>
+
+<h3>Challenge D (stretch) · Two servers, one deployment, and a gate that was missing</h3>
+<p>You did a two-server, one-at-a-time rollout in Lab 2 (Part 10). Do it again here, on the pipeline you just repaired, and add the piece this pipeline never had:</p>
+<ol>
+<li>Launch a second EC2 instance exactly like the first (same AMI, same IAM instance profile <code>cicd-lab3-participant-NN-ec2-profile</code>, same user-data script from Lab 2, <strong>same Name tag</strong>). Release a change: the deployment&#39;s instance list now shows <strong>two</strong> instances.</li>
+<li>Switch the deployment group to <code>CodeDeployDefault.OneAtATime</code> and release again. Watch the order and timing.</li>
+<li>Now the new part: this pipeline&#39;s Build stage only stamps the page. Borrow the two checks from Lab 2&#39;s <code>buildspec.yml</code> (syntax-check every script with <code>bash -n</code>; fail if <code>appspec.yml</code> names a script that is not in the bundle) and add them to <em>this</em> buildspec. Re-plant bug 5 (<code>htpd</code>): does the gate catch it? Re-plant a wrong script <em>name</em> in <code>appspec.yml</code>: does it catch that? Explain the difference in one sentence.</li>
+</ol>
+<p>Terminate the extra instance when you are done.</p>
+<hr>
+<h2 id="clean-up">Clean up</h2>
+<p><strong>Nothing to delete.</strong> The instructor tears all fifteen environments down with one Terraform command. Please do not delete your resources yourself; it confuses the teardown.</p>
+<hr>
+<h2 id="what-you-learned">What you learned</h2>
+<ul>
+<li><strong>A triage order:</strong> where is it red → which robot was acting → what does the message say (principal, action, resource) → which file/setting owns that.</li>
+<li><strong>Six families of failure:</strong> config-file syntax (YAML), build permissions, target selection (tags), target permissions, deployment scripts, and artifact contents.</li>
+<li><strong>Green ≠ correct.</strong> Pipelines verify contracts between stages, not outcomes. Outcomes need explicit checks (<code>ValidateService</code>, smoke tests, monitors).</li>
+<li><strong>Fix one thing at a time</strong> and let the pipeline tell you what is next. It always does.</li>
+<li><strong>Least privilege is a habit:</strong> fix the missing verb, not &quot;give it everything&quot;.</li>
+</ul>
+<p><strong>Next:</strong> <a href="lab4.html">Lab 4 – Ship a container: ECR, CodeBuild and ECS</a></p>
+
+<div class="pager">
+  <a href="lab2.html"><small>Previous</small>← Lab 2 · CodePipeline + CodeDeploy</a>
+  <a href="lab4.html" style="text-align:right"><small>Next</small>Lab 4 · Containers on ECS →</a>
+</div>
+</main>
+<footer><span>Pipeline Academy · hands-on AWS CI/CD labs</span><span>Built from <code>labs/*.md</code> · screenshots taken in a real account, then torn down.</span></footer>
+<script src="assets/site.js"></script>
+</body>
+</html>

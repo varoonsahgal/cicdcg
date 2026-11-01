@@ -1,0 +1,27 @@
+version: 0.2
+# Builds the Mission Control image and pushes it to YOUR ECR repository.
+# The CodeBuild project must have:  Privileged mode ON  and an env var  REPO_NAME=participant-NN-mission-control
+phases:
+  pre_build:
+    commands:
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGISTRY=${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+      - REPO_URI=${REGISTRY}/${REPO_NAME}
+      - IMAGE_TAG=v${CODEBUILD_BUILD_NUMBER}
+      - echo "Logging in to the public gallery (base image) and to ${REGISTRY}"
+      - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || echo "public gallery login skipped"
+      - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REGISTRY}
+  build:
+    commands:
+      - echo "Building ${REPO_URI}:${IMAGE_TAG}"
+      - docker build --build-arg APP_VERSION=${IMAGE_TAG} -t ${REPO_URI}:${IMAGE_TAG} -t ${REPO_URI}:latest .
+  post_build:
+    commands:
+      - echo "Pushing to ECR"
+      - docker push ${REPO_URI}:${IMAGE_TAG}
+      - docker push ${REPO_URI}:latest
+      - echo "Pushed ${REPO_URI}:${IMAGE_TAG}  (copy this into your task definition)"
+      - printf '{"image":"%s:%s"}\n' "${REPO_URI}" "${IMAGE_TAG}" > image.json
+artifacts:
+  files:
+    - image.json

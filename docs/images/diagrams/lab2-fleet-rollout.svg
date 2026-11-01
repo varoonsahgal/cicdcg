@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <rect width="960" height="420" rx="18" fill="#0B1220"/>
+  <text x="32" y="42" fill="#E2E8F0" font-size="20" font-weight="700">Lab 2 · Part 10 — two servers, two deployment configurations</text>
+  <text x="32" y="64" fill="#94A3B8" font-size="13">The deployment group finds every instance tagged Name = participant-NN-webserver. The deployment configuration decides how many at a time.</text>
+  <!-- AllAtOnce -->
+  <g transform="translate(32,92)">
+    <rect width="430" height="300" rx="14" fill="#1E293B" stroke="#334155"/>
+    <text x="20" y="30" fill="#E2E8F0" font-size="14" font-weight="700">CodeDeployDefault.AllAtOnce</text>
+    <text x="20" y="50" fill="#94A3B8" font-size="11.5">fast · every server gets the new version in the same minute</text>
+    <g font-size="11.5">
+      <text x="20" y="92" fill="#CBD5E1">server 1</text><rect x="90" y="78" width="150" height="22" rx="6" fill="#0EA5E9"/><text x="165" y="94" fill="#0F172A" text-anchor="middle" font-weight="700">v4 → v5</text>
+      <text x="20" y="126" fill="#CBD5E1">server 2</text><rect x="90" y="112" width="150" height="22" rx="6" fill="#0EA5E9"/><text x="165" y="128" fill="#0F172A" text-anchor="middle" font-weight="700">v4 → v5</text>
+      <line x1="90" y1="150" x2="410" y2="150" stroke="#475569"/><text x="90" y="166" fill="#64748B">t = 0</text><text x="240" y="166" fill="#64748B">≈ 40 s</text>
+    </g>
+    <rect x="20" y="190" width="390" height="90" rx="10" fill="#3B0F0F" stroke="#EF4444"/>
+    <text x="36" y="214" fill="#FCA5A5" font-size="12" font-weight="700">If the start script is broken…</text>
+    <text x="36" y="234" fill="#FECACA" font-size="11.5">ApplicationStop ran on both servers before ApplicationStart failed on both.</text>
+    <text x="36" y="252" fill="#FECACA" font-size="11.5">Blast radius: 100 %. The whole site is down until the rollback finishes.</text>
+    <text x="36" y="270" fill="#FECACA" font-size="11.5">(Exactly what happened in Exercise A, times two.)</text>
+  </g>
+  <!-- OneAtATime -->
+  <g transform="translate(498,92)">
+    <rect width="430" height="300" rx="14" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
+    <text x="20" y="30" fill="#E2E8F0" font-size="14" font-weight="700">CodeDeployDefault.OneAtATime</text>
+    <text x="20" y="50" fill="#94A3B8" font-size="11.5">slower · one server at a time · the rest keep serving the old version</text>
+    <g font-size="11.5">
+      <text x="20" y="92" fill="#CBD5E1">server 1</text><rect x="90" y="78" width="150" height="22" rx="6" fill="#0EA5E9"/><text x="165" y="94" fill="#0F172A" text-anchor="middle" font-weight="700">v4 → v5</text><rect x="240" y="78" width="150" height="22" rx="6" fill="#065F46"/><text x="315" y="94" fill="#D1FAE5" text-anchor="middle">serving v5</text>
+      <text x="20" y="126" fill="#CBD5E1">server 2</text><rect x="90" y="112" width="150" height="22" rx="6" fill="#334155"/><text x="165" y="128" fill="#CBD5E1" text-anchor="middle">still serving v4</text><rect x="240" y="112" width="150" height="22" rx="6" fill="#0EA5E9"/><text x="315" y="128" fill="#0F172A" text-anchor="middle" font-weight="700">v4 → v5</text>
+      <line x1="90" y1="150" x2="410" y2="150" stroke="#475569"/><text x="90" y="166" fill="#64748B">t = 0</text><text x="240" y="166" fill="#64748B">≈ 40 s</text><text x="390" y="166" fill="#64748B">≈ 80 s</text>
+    </g>
+    <rect x="20" y="190" width="390" height="90" rx="10" fill="#0C2418" stroke="#22C55E"/>
+    <text x="36" y="214" fill="#86EFAC" font-size="12" font-weight="700">If the start script is broken…</text>
+    <text x="36" y="234" fill="#BBF7D0" font-size="11.5">Server 1 fails. CodeDeploy stops; server 2 is marked Skipped and never touched.</text>
+    <text x="36" y="252" fill="#BBF7D0" font-size="11.5">Blast radius: 50 %. Half the fleet kept serving v4 the whole time.</text>
+    <text x="36" y="270" fill="#BBF7D0" font-size="11.5">With rollback on, server 1 gets v4 back and you are exactly where you started.</text>
+  </g>
+</svg>

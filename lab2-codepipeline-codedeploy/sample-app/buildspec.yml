@@ -1,0 +1,17 @@
+version: 0.2
+# Used only once your pipeline has a Build stage (Lab 2, Part 9).
+# CodeDeploy ignores this file; CodeBuild follows it.
+phases:
+  build:
+    commands:
+      - echo "1/3  Syntax-check every hook script"
+      - for f in scripts/*.sh; do bash -n "$f" && echo "     ok  $f"; done
+      - echo "2/3  Every script named in appspec.yml must exist in the bundle"
+      - for s in $(grep -oE 'scripts/[A-Za-z0-9_]+\.sh' appspec.yml); do test -f "$s" || { echo "     MISSING $s"; exit 1; }; done
+      - echo "3/3  Stamp the build number into the page"
+      # Quoted as one YAML string: a bare " #" would start a YAML comment and truncate the command (Lab 3 shows what that looks like).
+      - 'sed -i "s|</body>|<p class=\"stamp\">Build #$CODEBUILD_BUILD_NUMBER · built $(date -u +%Y-%m-%dT%H:%M:%SZ)</p></body>|" index.html'
+      - "grep -o 'Build #[0-9]*[^<]*' index.html"
+artifacts:
+  files:
+    - '**/*'

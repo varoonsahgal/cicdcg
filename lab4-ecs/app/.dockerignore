@@ -1,0 +1,3 @@
+buildspec.yml
+*.zip
+__pycache__/

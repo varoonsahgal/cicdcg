@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#64748B"/></marker>
+    <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#0EA5E9"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+  </defs>
+  <rect width="960" height="300" rx="18" fill="#0B1220"/>
+  <text x="32" y="44" fill="#E2E8F0" font-size="20" font-weight="700">The CI loop · every change, the same five steps, by a machine</text>
+  <g font-size="14" fill="#E2E8F0" text-anchor="middle">
+    <g transform="translate(40,90)"><rect width="150" height="100" rx="14" fill="#1E293B" stroke="#334155"/><text x="75" y="42" font-size="28">✍️</text><text x="75" y="72" font-weight="700">1 · Change</text><text x="75" y="90" fill="#94A3B8" font-size="12">a developer edits code</text></g>
+    <g transform="translate(228,90)"><rect width="150" height="100" rx="14" fill="#1E293B" stroke="#334155"/><text x="75" y="42" font-size="28">📦</text><text x="75" y="72" font-weight="700">2 · Commit / upload</text><text x="75" y="90" fill="#94A3B8" font-size="12">git push · S3 upload</text></g>
+    <g transform="translate(416,90)"><rect width="150" height="100" rx="14" fill="url(#g1)"/><text x="75" y="42" font-size="28">🤖</text><text x="75" y="72" font-weight="700">3 · Build + test</text><text x="75" y="90" fill="#DBEAFE" font-size="12">fresh container, no humans</text></g>
+    <g transform="translate(604,90)"><rect width="150" height="100" rx="14" fill="#1E293B" stroke="#334155"/><text x="75" y="42" font-size="28">🚦</text><text x="75" y="72" font-weight="700">4 · Verdict</text><text x="75" y="90" fill="#94A3B8" font-size="12">green or red, in minutes</text></g>
+    <g transform="translate(792,90)"><rect width="150" height="100" rx="14" fill="#1E293B" stroke="#334155"/><text x="75" y="42" font-size="28">🏷️</text><text x="75" y="72" font-weight="700">5 · Artifact</text><text x="75" y="90" fill="#94A3B8" font-size="12">versioned, ready to deploy</text></g>
+  </g>
+  <g stroke="#64748B" stroke-width="2.5" fill="none" marker-end="url(#arr)">
+    <path d="M190 140H226"/><path d="M378 140H414"/><path d="M566 140H602"/><path d="M754 140H790"/>
+  </g>
+  <path d="M867 192 C867 250 115 250 115 192" stroke="#F59E0B" stroke-width="2.5" fill="none" stroke-dasharray="7 6" marker-end="url(#arr)"/>
+  <text x="480" y="262" fill="#FCD34D" font-size="13" text-anchor="middle">red? fix it and go around again · the loop is minutes, not weeks</text>
+</svg>

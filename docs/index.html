@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en" data-page="index">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Start here · Pipeline Academy</title>
+<meta name="description" content="Hands-on AWS CI/CD and container labs for a shared account: CodeBuild, CodePipeline, CodeDeploy, a broken pipeline to repair, ECS/ECR and EKS. Concepts, security, consistency, and why green is not the same as correct.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0B1220">
+<script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1220'/%3E%3Ccircle cx='8' cy='16' r='4' fill='%2322C55E'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2338BDF8'/%3E%3Ccircle cx='24' cy='16' r='4' fill='%23F59E0B'/%3E%3C/svg%3E">
+<style>
+  .hero-strip { margin-top: 34px; }
+  .promise { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 1.4em 0; }
+  .promise div { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); padding: 18px 20px; }
+  .promise b { display: block; font-family: var(--sans); font-size: 17px; color: var(--head); margin-bottom: 4px; }
+  .promise span { font-size: 15px; color: var(--muted); }
+  .promise .ico { font-size: 26px; margin-bottom: 8px; display: block; }
+  .vocab { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 1.2em 0; }
+  .vocab div { background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--hue); border-radius: var(--r-sm); padding: 12px 14px; font-size: 15px; }
+  .vocab b { font-family: var(--sans); color: var(--head); }
+  .score { list-style: none; padding: 0; margin: 1em 0; display: grid; gap: 8px; }
+  .score li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 10px 14px; font-size: 15.5px; }
+  .score input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--green); }
+  .map { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; margin: 1.2em 0; font-size: 15px; }
+  .map > div { padding: 12px 14px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); background: var(--surface); }
+  .map > div:nth-child(3n) { border-right: 0; }
+  .map .h { background: var(--surface-2); font: 600 13px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  @media (max-width: 720px) { .map { grid-template-columns: 1fr; } .map > div { border-right: 0; } }
+  .story { background: var(--navy); color: #CBD5E1; border-radius: var(--r); padding: 26px 28px; margin: 1.4em 0; font-size: 16.5px; line-height: 1.7; }
+  .story b { color: #fff; } .story .when { color: var(--amber); font: 600 12px var(--sans); letter-spacing: .14em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+</style>
+</head>
+<body data-page="index">
+<a class="skip" href="#main">Skip to content</a>
+<div id="readbar" aria-hidden="true"></div>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"/><circle cx="8" cy="16" r="4" fill="#22C55E"/><circle cx="16" cy="16" r="4" fill="#38BDF8"/><circle cx="24" cy="16" r="4" fill="#F59E0B"/></svg>Pipeline Academy <span>· AWS CI/CD labs</span></a>
+  <nav class="nav" aria-label="Labs">
+      <a href="index.html" aria-current="page">Start here</a>
+      <a href="lab1.html" data-lab="lab1" style="--d:#38BDF8"><span class="dot"></span>Lab 1<span class="lbl-long"> · Build it</span><span class="done">★</span></a>
+      <a href="lab2.html" data-lab="lab2" style="--d:#22C55E"><span class="dot"></span>Lab 2<span class="lbl-long"> · Ship it</span><span class="done">★</span></a>
+      <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
+      <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
+      <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+  </nav>
+  <div class="tools">
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+    <button class="iconbtn menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div></header>
+
+<section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
+  <div>
+    <p class="eyebrow" style="color:#22C55E">A hands-on day with AWS · CodeBuild · CodePipeline · CodeDeploy · ECR · ECS · EKS</p>
+    <h1>From a zip file to a running container, <em style="font-style:normal;color:#22C55E">by machine</em>.</h1>
+    <p class="lede">Five labs in one shared AWS account. You will make a robot build your code, make a second robot put it on a server, repair a pipeline somebody else broke, and then do it all again with containers. <b>No prior CI/CD experience assumed.</b> Plenty of hints. Answers hidden until you want them.</p>
+    <div class="mast-meta">
+      <span class="chip"><b>5</b> labs · ~8 hours with every mission</span>
+      <span class="chip"><b>1</b> shared account · you are <code style="background:none;color:#fff;padding:0">participant-NN</code></span>
+      <span class="chip"><b>us-west-2</b> · always</span>
+      <span class="chip"><b>0</b> Docker installs on your laptop</span>
+    </div>
+    <div class="btns"><a class="btn" href="#labs">Jump to the labs</a><a class="btn ghost" href="#why">Why CI/CD, in 4 minutes</a></div>
+  </div>
+  <div class="mast-art">
+    <div class="strip hero-strip" data-demo>
+      <div class="stage"><span class="led"></span>Source<small>S3 · zip · version</small></div><div class="link"></div>
+      <div class="stage"><span class="led"></span>Build<small>CodeBuild · tests</small></div><div class="link"></div>
+      <div class="stage"><span class="led"></span>Deploy<small>CodeDeploy · EC2</small></div><div class="link"></div>
+      <div class="stage"><span class="led"></span>Verify<small>smoke test</small></div>
+    </div>
+    <p style="color:#94A3B8;font-size:13px;margin-top:14px">▲ A pipeline is just this: stages in a row, each with a light. The whole course is about what makes a light go red and what you do next.</p>
+  </div>
+</div></section>
+
+<main id="main">
+
+<section class="part" id="rules">
+  <p class="eyebrow">Before you click anything</p>
+  <h2>Three rules for a shared account</h2>
+  <div class="vocab">
+    <div><b>1 · Your number.</b> You are signed in as <code>participant-NN</code>. Every name you create contains your two digits: <code>cicd-lab1-participant-07</code>, <code>participant-07-webserver</code>. Fifteen people are doing this at once; names must not collide.</div>
+    <div><b>2 · Your region.</b> <strong>US West (Oregon) · us-west-2</strong>, top-right corner, every time. "I can't find the thing I just made" is a region problem nine times out of ten.</div>
+    <div><b>3 · Your stuff only.</b> You will see other students' pipelines and servers. Looking is fine; clicking Edit is not. In Lab 3 editing a neighbour's deployment group breaks <em>their</em> lab and teaches you nothing about yours.</div>
+  </div>
+  <div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">The loop you will use all day</span><p><b>Change something → upload it → watch the pipeline → read what went red → fix one thing → go again.</b> Resist changing two things at once. The pipeline will always tell you what is next; your job is to read it carefully.</p></div></div>
+</section>
+
+<section class="part" id="why">
+  <p class="eyebrow">Why</p>
+  <h2>Why CI/CD? A short story about Friday</h2>
+  <div class="story">
+    <span class="when">Friday, 16:40 · a team without a pipeline</span>
+    The release is "ready". Priya builds it on her laptop (Java 17, because she upgraded last month). Tom tested a <em>different</em> build on his (Java 11). Someone copies the jar to the server over SSH, restarts the service by hand, and watches the logs. It fails. Was it the jar, the Java version, the config file Tom edited directly on the server in March, or the step everyone forgot? Nobody knows, because nobody can reproduce what just happened. <b>The weekend is gone.</b>
+  </div>
+  <div class="story" style="background:#0C2418">
+    <span class="when" style="color:#86EFAC">Friday, 16:40 · the same team with a pipeline</span>
+    Priya pushes a change. A clean container that nobody has ever logged into downloads the code, installs exactly Java 17 because the recipe says so, compiles, runs 212 tests, and produces a versioned artifact. A second robot copies that exact artifact to the server, runs the start script, checks the page answers, and marks the deployment green. It took six minutes and Priya watched it from the kitchen. If it had gone red, the previous version would still be serving customers. <b>She goes home.</b>
+  </div>
+  <h3>The four things a pipeline buys you</h3>
+  <div class="promise">
+    <div><span class="ico">🧊</span><b>Consistency</b><span>Same steps, same tools, same versions, every time. "Works on my machine" stops being an argument because there is no "my machine".</span></div>
+    <div><span class="ico">⚡</span><b>Speed with feedback</b><span>Minutes from change to verdict. Problems are found while the change is still small and fresh in someone's head.</span></div>
+    <div><span class="ico">🛟</span><b>Safety</b><span>Versioned, immutable artifacts make rollback a forward deployment of yesterday's known-good build, not an archaeology project.</span></div>
+    <div><span class="ico">🔭</span><b>Visibility</b><span>Every run has a log, a trigger, a version and a timestamp. "Who deployed what, when, and did the tests pass?" is a click, not a meeting.</span></div>
+  </div>
+  <div class="stat">
+    <div><b>CI</b><span><strong>Continuous Integration</strong>: every change is built and tested automatically. Lab 1.</span></div>
+    <div><b>CD</b><span><strong>Continuous Delivery</strong>: every good build is deployable at the push of a button. Lab 2 + the approval challenge.</span></div>
+    <div><b>CD</b><span><strong>Continuous Deployment</strong>: …and the button is pressed by a machine. Lab 2's auto-trigger.</span></div>
+  </div>
+</section>
+
+<section class="part" id="vocab">
+  <p class="eyebrow">Vocabulary, once</p>
+  <h2>Nine words you will hear all day</h2>
+  <div class="vocab">
+    <div><b>Source</b> — the files humans wrote, stored somewhere the pipeline can fetch them (a Git repo, or in these labs a versioned zip in S3).</div>
+    <div><b>Build</b> — turning source into something runnable: install tools, compile, test, package. Happens in a throw-away container.</div>
+    <div><b>Artifact</b> — the output of a build. A jar, a zip, a container image. Versioned and never edited afterwards.</div>
+    <div><b>Pipeline</b> — an ordered set of <b>stages</b> (Source → Build → Deploy), each containing <b>actions</b>. A new run is an <b>execution</b>.</div>
+    <div><b>Trigger</b> — what starts an execution: a push, an upload, a schedule, a human clicking <em>Release change</em>.</div>
+    <div><b>Deploy</b> — putting an artifact onto compute and starting it in the right order. CodeDeploy for servers; ECS/EKS for containers.</div>
+    <div><b>Environment</b> — a complete copy of where the app runs: dev, test, prod. Good teams make them from code so they are identical.</div>
+    <div><b>Rollback</b> — deploying the previous good artifact again. Only possible if you kept it.</div>
+    <div><b>Service role</b> — the IAM identity a robot (CodeBuild, CodeDeploy, an EC2 agent, an ECS task) uses while working for you. Scoped to the job.</div>
+  </div>
+</section>
+
+<section class="part wide" id="labs">
+  <p class="eyebrow">The day</p>
+  <h2>Five labs, one storyline</h2>
+  <p class="lead">Each lab is mostly guided, with numbered steps and screenshots from a real run. Each one also plants a failure for you to diagnose, and ends with challenges that have progressive hints and a hidden solution. Later labs assume the earlier ones.</p>
+  <div class="labs">
+    <a class="lab hue-lab1" href="lab1.html"><span class="num">LAB 1 · 45 MIN CORE + MISSIONS</span><h3>Your first automated build</h3><p>Hand a tiny Java app to CodeBuild. Watch it fail on a Java version mismatch, read the log, fix the recipe, get a jar and a test report out. Then eight missions: a test somebody switched off, a secret the robot is refused, a cache you can time, an e-mail when it goes red, a query across every build.</p><div class="meta"><span>CodeBuild</span><span>S3</span><span>IAM</span><span>Secrets Manager</span><span>EventBridge + SNS</span><span>Logs Insights</span></div><span class="go">Build it →</span></a>
+    <a class="lab hue-lab2" href="lab2.html"><span class="num">LAB 2 · 70 MIN CORE + LEVEL-UPS</span><h3>From a zip to a live web page</h3><p>EC2 + CodeDeploy + CodePipeline. Upload a zip, get a website. Break a start script, watch the site go down, teach CodeDeploy to roll back. Then level up: a Build stage that catches bad bundles before any server sees them, a second server with one-at-a-time rollouts, and deployment alerts by e-mail.</p><div class="meta"><span>CodePipeline</span><span>CodeDeploy</span><span>EC2</span><span>CodeBuild</span><span>SNS</span><span>4 roles</span></div><span class="go">Ship it →</span></a>
+    <a class="lab hue-lab3" href="lab3.html"><span class="num">LAB 3 · 75–100 MIN</span><h3>The Pipeline Repair Shop</h3><p>You inherit a red pipeline with six hidden bugs: YAML, permissions, tags, permissions again, a script typo, and one that is green but wrong. Hints escalate; answers are hidden.</p><div class="meta"><span>Troubleshooting</span><span>IAM</span><span>logs</span><span>Session Manager</span></div><span class="go">Fix it →</span></a>
+    <a class="lab hue-lab4" href="lab4.html"><span class="num">LAB 4 · 90–110 MIN</span><h3>Ship a container: ECR + ECS</h3><p>Build a container image with CodeBuild (no Docker on your laptop), push it to ECR, run it on Fargate, update it with a rolling deployment, and read why your task would not start.</p><div class="meta"><span>ECR</span><span>ECS Fargate</span><span>task definitions</span><span>image scanning</span></div><span class="go">Contain it →</span></a>
+    <a class="lab hue-lab5" href="lab5.html"><span class="num">LAB 5 · 80–100 MIN</span><h3>Kubernetes on EKS</h3><p>A shared cluster, your own namespace, kubectl from CloudShell. Deployments, Services, rolling updates, rollbacks, self-healing, quotas, and what RBAC says when you peek at a neighbour.</p><div class="meta"><span>EKS</span><span>kubectl</span><span>namespaces</span><span>RBAC</span></div><span class="go">Orchestrate it →</span></a>
+  </div>
+</section>
+
+<section class="part" id="build">
+  <p class="eyebrow">Concept · Lab 1</p>
+  <h2>Anatomy of a build</h2>
+  <p>A build has a <b>recipe</b> (<code>buildspec.yml</code>), an <b>environment</b> (a container image with tools in it), an <b>input</b> and an <b>output</b>. The recipe is a list of shell commands grouped into phases that always run in the same order.</p>
+  <figure class="figure plain"><img src="images/diagrams/lab1-codebuild-flow.svg" alt="Diagram: S3 input, CodeBuild container running phases, S3 output and CloudWatch Logs, with the service role underneath" loading="lazy"><figcaption>Everything inside the blue box is destroyed when the build ends. Only the artifact and the log survive.</figcaption></figure>
+  <div class="two">
+    <div class="vs bad"><h4>🧯 Builds that bite</h4><ul><li>Tool versions "whatever is installed" (Java 11 vs 17 – Lab 1's planted bug)</li><li>Secrets pasted into the recipe</li><li>Output that nobody can trace to a source version</li><li>A green build that never ran the tests</li></ul></div>
+    <div class="vs good"><h4>✅ Builds that behave</h4><ul><li>Pinned runtime versions in the recipe</li><li>Secrets injected from Secrets Manager / Parameter Store at run time</li><li>Build number and commit stamped into the artifact</li><li>Tests as a gate: red test = red build = nothing ships</li></ul></div>
+  </div>
+  <div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Reading a red build</span><p>Open <b>Phase details</b>: the first red phase is the culprit. Open <b>Build logs</b>: the tool's own error is a few lines <em>above</em> CodeBuild's final "exit status" line. Then ask: is this my command, my environment, or a permission? Lab 3 turns that into a reflex.</p></div></div>
+</section>
+
+<section class="part" id="deploy">
+  <p class="eyebrow">Concept · Lab 2</p>
+  <h2>Delivery versus deployment, and how CodeDeploy thinks</h2>
+  <p>A pipeline is a sequence of stages. The difference between <em>Continuous Delivery</em> and <em>Continuous Deployment</em> is exactly one stage: a human approval before Deploy. Everything upstream is identical, which is why teams can move from one to the other without rebuilding anything.</p>
+  <figure class="figure plain"><img src="images/diagrams/lab2-pipeline-flow.svg" alt="Diagram: upload a zip to S3, CodePipeline runs Source then Deploy, CodeDeploy agent on EC2 installs Apache and the page; EventBridge makes it automatic" loading="lazy"></figure>
+  <p>CodeDeploy does not know what your app is. You tell it in <code>appspec.yml</code>: which files go where, and which scripts to run at which <b>lifecycle hook</b>. Hooks are the part people underestimate.</p>
+  <figure class="figure plain"><img src="images/diagrams/codedeploy-hooks.svg" alt="Diagram: ApplicationStop, DownloadBundle, BeforeInstall, Install, AfterInstall, ApplicationStart, ValidateService in order, with notes on where failures land" loading="lazy"><figcaption>Note the order: the old version is <em>stopped</em> before the new one is <em>started</em>. A failure in between leaves the site down unless rollback is on.</figcaption></figure>
+  <div class="callout warning"><div class="ico">⚠️</div><div><span class="box-lbl">The lesson students remember</span><p>In Lab 2 you misspell one service name, the deployment fails, and your site is <b>down</b> – not "still on the old version", down. Then you turn on automatic rollback, break it again, and the site stays up on the previous version while the pipeline is red. Both lights are telling the truth.</p></div></div>
+</section>
+
+<section class="part" id="roles">
+  <p class="eyebrow">Concept · Labs 2 and 3</p>
+  <h2>Three robots, three identities</h2>
+  <p>Most "the deployment failed" tickets are really "one robot lacked one permission". Three different services act on your behalf and each has its own IAM role, because each touches different things.</p>
+  <figure class="figure plain"><img src="images/diagrams/iam-roles-map.svg" alt="Diagram: CodePipeline role, CodeDeploy service role and EC2 instance role, each with its permissions" loading="lazy"></figure>
+  <div class="map">
+    <div class="h">Error says…</div><div class="h">Which robot</div><div class="h">Where to look</div>
+    <div><code>assumed-role/…codebuild-role…</code> not authorized: <code>s3:PutObject</code></div><div>CodeBuild</div><div>The build project's service role. It needs to <em>write</em> the artifact, not just read the source.</div>
+    <div><code>assumed-role/…ec2-role/i-0abc…</code> not authorized: <code>s3:GetObject</code></div><div>The EC2 instance (CodeDeploy agent)</div><div>The instance profile. Attach <code>AmazonEC2RoleforAWSCodeDeploy</code>.</div>
+    <div>"no instances were found for your deployment group"</div><div>CodeDeploy (the service)</div><div>Not a permission at all: the tag filter does not match any instance.</div>
+    <div>"The provided role does not have permissions to perform this action" on <b>Source</b></div><div>CodePipeline</div><div>The pipeline's own role, or something odd about the source object (versioning off; object tags).</div>
+  </div>
+  <div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Read permission errors like a sentence</span><p>Every AWS AccessDenied has the same grammar: <b>who</b> (the principal ARN) is not authorized to perform <b>what</b> (the action) on <b>which</b> (the resource). Those three words are the diagnosis. Fix the missing verb; do not hand out <code>*</code>.</p></div></div>
+</section>
+
+<section class="part" id="security">
+  <p class="eyebrow">Concept · all labs</p>
+  <h2>Security in CI/CD: the pipeline is production</h2>
+  <p>A pipeline holds the keys to everything it deploys. Treat it with at least the care you give the servers. The habits below are built into the labs; tick them off as you meet them.</p>
+  <ul class="score">
+    <li><input type="checkbox" id="s1"><label for="s1"><b>Roles, not keys.</b> No robot in these labs ever sees a password or access key. CodeBuild, CodeDeploy, EC2 and ECS tasks each assume a role with a trust policy that names the service. (Lab 1, Part 3)</label></li>
+    <li><input type="checkbox" id="s2"><label for="s2"><b>Least privilege, one verb at a time.</b> When a role lacks <code>secretsmanager:GetSecretValue</code> on one secret, grant exactly that – not <code>SecretsManagerReadWrite</code>. Lab 3's Challenge B replaces a broad managed policy with a two-statement inline one. (Lab 1 Mission E, Lab 3)</label></li>
+    <li><input type="checkbox" id="s3"><label for="s3"><b>No public buckets.</b> Older tutorials say "make the bucket public". Nothing here needs that: the robots read through their roles. (Lab 1, Part 2)</label></li>
+    <li><input type="checkbox" id="s4"><label for="s4"><b>Secrets stay out of the recipe.</b> Environment variables of type Plaintext are for names and flags. Secrets go in Secrets Manager or Parameter Store and are referenced, never pasted; the log masks them, and masking is not a safety net. (Lab 1, Mission E)</label></li>
+    <li><input type="checkbox" id="s5"><label for="s5"><b>Immutable, versioned artifacts.</b> S3 versioning is <em>required</em> for a pipeline source; container images get a tag per build (<code>v7</code>), never just <code>latest</code>. Rollback depends on it. (Labs 2, 4)</label></li>
+    <li><input type="checkbox" id="s6"><label for="s6"><b>Know your supply chain.</b> Base images come from the public ECR gallery, pinned by name and major version; dependencies are pinned in <code>requirements.txt</code> / <code>pom.xml</code>. ECR scans every pushed image for known vulnerabilities. (Lab 4)</label></li>
+    <li><input type="checkbox" id="s7"><label for="s7"><b>Containers run as a non-root user</b> and expose one port. A compromised web app should not own the box it runs on. (Lab 4's Dockerfile)</label></li>
+    <li><input type="checkbox" id="s8"><label for="s8"><b>Network by intention.</b> Security groups open exactly the port the app serves (80, 8080). SSH is not opened at all; Systems Manager Session Manager gives a shell through IAM instead. (Labs 2, 3)</label></li>
+    <li><input type="checkbox" id="s9"><label for="s9"><b>Blast radius is a design choice.</b> One namespace per student with quotas and RBAC on the shared Kubernetes cluster; one bucket, one role set per student everywhere else. (Lab 5)</label></li>
+    <li><input type="checkbox" id="s10"><label for="s10"><b>Audit trail for free.</b> Every execution records who triggered it, which exact artifact version ran, and what every step printed. Keep the logs longer than the servers, and query them (Lab 1 Mission H). (Everywhere)</label></li>
+    <li><input type="checkbox" id="s11"><label for="s11"><b>Humans get told, not asked to look.</b> A build or deployment that fails publishes an event; EventBridge rules and CodeDeploy triggers fan it out to e-mail through SNS. (Lab 1 Mission G, Lab 2 Part 11)</label></li>
+    <li><input type="checkbox" id="s12"><label for="s12"><b>Blast radius is a dial.</b> OneAtATime on a two-server fleet turns a broken deploy into a half outage that heals itself; a Build stage catches malformed bundles before any server is touched. (Lab 2 Parts 9–10)</label></li>
+  </ul>
+</section>
+
+<section class="part" id="consistency">
+  <p class="eyebrow">Concept · all labs</p>
+  <h2>Consistency: why pipelines beat people</h2>
+  <p>Humans are creative; deployments should be boring. Every planted bug in this course is a small inconsistency that a person would not notice and a pipeline refuses to tolerate:</p>
+  <ul class="timeline">
+    <li><b>A recipe that pins versions.</b> <code>runtime-versions: java: corretto17</code> means the build container is Java 17 on every run, forever, regardless of who triggered it. (Lab 1's bug is exactly this line being wrong.)</li>
+    <li><b>An artifact built once, deployed many times.</b> The jar/zip/image that passed the tests is the thing that ships. Rebuilding "the same code" on the server is not the same thing.</li>
+    <li><b>Idempotent scripts.</b> <code>dnf install -y httpd</code> and <code>systemctl enable httpd</code> can run ten times with the same result. Scripts that assume a clean machine fail on the second deployment.</li>
+    <li><b>Infrastructure from code.</b> Lab 3's fifteen environments were created by one Terraform file and can be reset to the exact same broken state in a minute. Fifteen hand-built environments would be fifteen different environments.</li>
+    <li><b>Tags and names generated, not typed.</b> The tag the deployment group searches for and the tag on the instance should come from the same variable. Lab 3's bug 3 is what happens when a human types one of them.</li>
+    <li><b>Verification in the pipeline, not in someone's head.</b> "I checked the page after deploying" does not scale to 40 deploys a day. A <code>ValidateService</code> hook does; so does a Build stage that refuses a bundle naming a script that is not there (Lab 2, Part 9).</li>
+  </ul>
+</section>
+
+<section class="part" id="green">
+  <p class="eyebrow">Concept · Lab 3</p>
+  <h2>Why green is not the same as correct</h2>
+  <p>Each stage of a pipeline verifies its <em>own</em> contract. CodeBuild asks "did every command exit 0?". CodeDeploy asks "did every hook exit 0 and every file copy succeed?". Nobody asks "is the website right?" unless you make them.</p>
+  <div class="two">
+    <div class="vs bad"><h4>🟢 Green, and wrong</h4><ul><li>The build packaged <code>appspec.yml</code> and the scripts but forgot <code>index.html</code>. Build green. Deploy green. Website: Apache's test page. (Lab 3, bug 6)</li><li>A deployment "succeeded" because the start script exited 0 – and the process crashed one second later.</li><li>The tests passed because there were no tests.</li></ul></div>
+    <div class="vs good"><h4>🧪 Make the pipeline check the outcome</h4><ul><li>A <b>ValidateService</b> hook that fetches the page and greps for a sentence (Lab 2 Challenge C, Lab 3 Challenge A).</li><li>Container <b>health checks</b> and Kubernetes <b>readiness probes</b>: traffic only reaches containers that answer (Labs 4, 5).</li><li>A build step that fails if the artifact lacks a required file.</li><li>Synthetic monitors after deploy; alarms wired to automatic rollback.</li></ul></div>
+  </div>
+</section>
+
+<section class="part wide" id="triage">
+  <p class="eyebrow">Playbook</p>
+  <h2>A triage playbook you can keep</h2>
+  <table>
+    <thead><tr><th>Where it is red</th><th>Open this</th><th>Look for</th><th>Usual cause</th></tr></thead>
+    <tbody>
+      <tr><td><b>Build</b> · a phase you wrote</td><td>CodeBuild → Phase details → Build logs</td><td>Your command's own error, above the "exit status" line</td><td>Wrong version, typo, YAML quirk (<code>#</code>, <code>:</code>), missing file</td></tr>
+      <tr><td><b>Build</b> · <code>UPLOAD_ARTIFACTS</code> / <code>DOWNLOAD_SOURCE</code></td><td>Same log, last lines</td><td><code>AccessDenied</code> with a role ARN</td><td>CodeBuild's role lacks an S3 verb</td></tr>
+      <tr><td><b>Deploy</b> · fails in seconds</td><td>CodeDeploy deployment → red banner</td><td>"no instances were found"</td><td>Tag filter ≠ instance tag; wrong region</td></tr>
+      <tr><td><b>Deploy</b> · <code>DownloadBundle</code></td><td>Deployment → What failed</td><td><code>…ec2-role/i-…</code> not authorized</td><td>Instance role cannot read S3</td></tr>
+      <tr><td><b>Deploy</b> · a hook</td><td>What failed → log tail; or the agent log on the box</td><td>Script name, exit code, stderr</td><td>Your script</td></tr>
+      <tr><td><b>Deploy</b> · stays <em>Pending</em></td><td>Session Manager → <code>systemctl status codedeploy-agent</code></td><td>Agent not running</td><td>User data missing or wrong</td></tr>
+      <tr><td><b>ECS task</b> stops immediately</td><td>Task → Stopped reason</td><td><code>CannotPullContainerError</code>, <code>ResourceInitializationError</code>, exit code</td><td>Bad image tag; execution role; no route to ECR; app crashed</td></tr>
+      <tr><td><b>Kubernetes pod</b> not Ready</td><td><code>kubectl describe pod</code> → Events; <code>kubectl logs</code></td><td><code>ErrImagePull</code>, probe failures, <code>OOMKilled</code>, quota exceeded</td><td>Image, probes, limits, quota</td></tr>
+      <tr><td><b>All green</b>, result wrong</td><td>The artifact; the server; the image</td><td>What shipped vs what you meant</td><td>Missing file in the artifact; wrong tag; config</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="part" id="containers">
+  <p class="eyebrow">Concept · Labs 4 and 5</p>
+  <h2>Containers: ECR, ECS and EKS in one picture</h2>
+  <p>Labs 1–3 deployed files onto a server you had to prepare (install Apache, install an agent). Containers flip that: the <b>image</b> carries its own operating system userland, runtime and app, built once in CI; the server only needs a container runtime. Where Lab 2 copied a page into Apache, Lab 4 ships the whole Apache.</p>
+  <figure class="figure plain"><img src="images/diagrams/containers-stack.svg" alt="Diagram: Dockerfile builds layers into an image, pushed to a registry (ECR), pulled by an orchestrator (ECS or EKS) that runs containers on compute (Fargate or EC2 nodes)" loading="lazy"></figure>
+  <div class="vocab">
+    <div><b>Image</b> — a read-only stack of layers produced by a <code>Dockerfile</code>. Identified by a name + tag (<code>…/mission-control:v7</code>) and, more precisely, a digest.</div>
+    <div><b>Container</b> — a running instance of an image with its own filesystem view, network and process tree. Ephemeral by design: nothing you write inside survives a restart.</div>
+    <div><b>Registry (ECR)</b> — where images live between build and run. Private per account; scans images for CVEs; the orchestrator pulls from it using a role.</div>
+    <div><b>Orchestrator (ECS / EKS)</b> — keeps the desired number of containers running, replaces failed ones, rolls out new versions, and wires in load balancers.</div>
+    <div><b>Compute (Fargate / EC2 nodes)</b> — where containers actually execute. Fargate: you never see a server. EC2 / managed node groups: you do, and you pay for the whole box.</div>
+    <div><b>Task definition / Pod spec</b> — the versioned recipe for one unit of work: image, CPU, memory, ports, environment, health check, logging, roles.</div>
+  </div>
+  <h3>ECS or EKS? The honest comparison</h3>
+  <figure class="figure plain"><img src="images/diagrams/ecs-vs-eks.svg" alt="Diagram comparing ECS and EKS vocabulary and trade-offs side by side" loading="lazy"></figure>
+  <table>
+    <thead><tr><th></th><th>Amazon ECS</th><th>Amazon EKS (Kubernetes)</th></tr></thead>
+    <tbody>
+      <tr><td>Unit of work</td><td>Task (from a task definition)</td><td>Pod (from a Deployment's template)</td></tr>
+      <tr><td>Keep N running</td><td>Service</td><td>Deployment + ReplicaSet</td></tr>
+      <tr><td>Stable address / load balancing</td><td>Service + ALB target group</td><td>Service (ClusterIP / LoadBalancer) + Ingress</td></tr>
+      <tr><td>Config & secrets</td><td>Environment, Secrets Manager / SSM references</td><td>ConfigMap, Secret</td></tr>
+      <tr><td>Multi-tenancy</td><td>Separate clusters or IAM conditions</td><td>Namespaces + RBAC + ResourceQuota (Lab 5)</td></tr>
+      <tr><td>Learning curve</td><td>Gentle; AWS-shaped</td><td>Steeper; portable skills and a huge ecosystem</td></tr>
+      <tr><td>Control plane cost</td><td>Free</td><td>Per cluster per hour</td></tr>
+      <tr><td>Best when</td><td>You are all-in on AWS and want the simplest thing that works</td><td>You need Kubernetes APIs, operators, Helm charts, or portability</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Same physics, different vocabulary</span><p>Both orchestrators do the same four things: <b>schedule</b> (find room), <b>supervise</b> (restart what dies), <b>roll out</b> (new version in, old version out, without downtime) and <b>expose</b> (give it an address). Lab 4 teaches those with ECS words; Lab 5 repeats them with Kubernetes words. If you can explain a rolling update in one, you understand it in the other.</p></div></div>
+</section>
+
+<section class="part wide" id="cheatsheet">
+  <p class="eyebrow">Reference</p>
+  <h2>Cheat sheet</h2>
+  <table class="cheat">
+    <thead><tr><th>Need</th><th>Console path or command</th></tr></thead>
+    <tbody>
+      <tr><td>Zip correctly (macOS/Linux)</td><td><code>zip -r MessageUtil.zip buildspec.yml pom.xml src/</code> · check with <code>unzip -l</code> – files at the top level, no folder</td></tr>
+      <tr><td>Where is my build log?</td><td>CodeBuild → project → build → <b>Build logs</b> (tail) · <b>View entire log</b> → CloudWatch Logs <code>/aws/codebuild/&lt;project&gt;</code></td></tr>
+      <tr><td>Why did the deployment fail?</td><td>CodeDeploy → Deployments → id → <b>What failed</b> → expand instance → event + log tail</td></tr>
+      <tr><td>Shell on the server, no SSH</td><td>EC2 → instance → Connect → <b>Session Manager</b></td></tr>
+      <tr><td>Agent diary on the server</td><td><code>sudo tail -n 40 /var/log/aws/codedeploy-agent/codedeploy-agent.log</code></td></tr>
+      <tr><td>Give a build a secret</td><td><code>env: secrets-manager: NAME: secret-id</code> in the buildspec · the service role needs <code>secretsmanager:GetSecretValue</code> on that secret's ARN</td></tr>
+      <tr><td>Speed up a build</td><td>Project → Edit → Artifacts → Additional configuration → <b>Cache</b> (S3) · <code>cache: paths:</code> in the buildspec · delete the cache object to reset</td></tr>
+      <tr><td>E-mail me when it fails</td><td>SNS topic + confirmed e-mail subscription · EventBridge rule on <em>CodeBuild Build State Change</em> = FAILED, or CodeDeploy deployment group → <b>Triggers</b></td></tr>
+      <tr><td>Query every build at once</td><td>CloudWatch → Logs Insights (or Log Analytics) → log group <code>/aws/codebuild/&lt;project&gt;</code> → <code>filter @message like /BUILD (SUCCESS|FAILURE)/ | stats count() by …</code></td></tr>
+      <tr><td>Re-run a pipeline</td><td>Pipeline → <b>Release change</b> (whole thing) · stage card ↻ → <b>Retry</b> (just the red stage)</td></tr>
+      <tr><td>Which version is live?</td><td>Pipeline card → "Source: Amazon S3 version id" · S3 bucket → <b>Show versions</b></td></tr>
+      <tr><td>ECR image URI</td><td>ECR → repository → image → <b>Copy URI</b> (<code>&lt;acct&gt;.dkr.ecr.us-west-2.amazonaws.com/&lt;repo&gt;:&lt;tag&gt;</code>)</td></tr>
+      <tr><td>Why did my ECS task stop?</td><td>ECS → cluster → Tasks → filter <em>Stopped</em> → task → <b>Stopped reason</b> · Logs tab</td></tr>
+      <tr><td>Point kubectl at the class cluster</td><td><code>aws eks update-kubeconfig --region us-west-2 --name cicd-lab5-eks</code> then <code>kubectl config set-context --current --namespace participant-NN</code></td></tr>
+      <tr><td>Why is my pod not Ready?</td><td><code>kubectl describe pod &lt;name&gt;</code> (Events at the bottom) · <code>kubectl logs &lt;name&gt;</code></td></tr>
+      <tr><td>Roll back on Kubernetes</td><td><code>kubectl rollout undo deployment/mission-control</code> · <code>kubectl rollout status deployment/mission-control</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="part" id="glossary">
+  <p class="eyebrow">Reference</p>
+  <h2>Glossary</h2>
+  <dl class="glossary">
+    <dt>appspec.yml</dt><dd>CodeDeploy's instruction file: <code>files</code> to copy and <code>hooks</code> scripts to run at lifecycle events.</dd>
+    <dt>Artifact store</dt><dd>The S3 bucket CodePipeline uses to pass files between stages. Created by the wizard; shared by every pipeline in the account.</dd>
+    <dt>Blue/green deployment</dt><dd>Start the new version on new capacity, switch traffic, retire the old. Avoids the "stopped old, failed to start new" gap of in-place deployments.</dd>
+    <dt>buildspec.yml</dt><dd>CodeBuild's recipe: <code>phases</code> of shell commands, <code>artifacts</code> to keep, optional <code>reports</code>, <code>env</code>, <code>cache</code>.</dd>
+    <dt>Circuit breaker (ECS)</dt><dd>Stops a rolling deployment that keeps failing and, optionally, rolls back to the last steady state.</dd>
+    <dt>CodeDeploy agent</dt><dd>Software on each EC2 instance that polls CodeDeploy, downloads bundles and runs hooks. No agent, no deployment.</dd>
+    <dt>Deployment configuration</dt><dd>How many instances CodeDeploy changes at once: <code>AllAtOnce</code>, <code>HalfAtATime</code>, <code>OneAtATime</code>, or a custom minimum-healthy-hosts rule. The blast-radius dial (Lab 2, Part 10).</dd>
+    <dt>Deployment group</dt><dd>Which instances (by tag or Auto Scaling group) and how (all at once, one at a time, with rollback, with triggers).</dd>
+    <dt>EventBridge</dt><dd>AWS's event bus. The pipeline wizard creates a rule that starts your pipeline when a new object version is written; Lab 1's Mission G writes a rule that e-mails you when a build fails.</dd>
+    <dt>Fargate</dt><dd>Serverless compute for containers: you specify CPU/memory per task and never manage an instance.</dd>
+    <dt>Idempotent</dt><dd>Safe to run repeatedly with the same result. Deployment scripts must be.</dd>
+    <dt>Instance profile</dt><dd>The wrapper that lets an EC2 instance assume an IAM role. Created automatically when you make an EC2 role in the console.</dd>
+    <dt>Lifecycle hook</dt><dd>A named moment in a deployment (<code>BeforeInstall</code>, <code>ApplicationStart</code>, <code>ValidateService</code>…) where your script runs. Non-zero exit = failed deployment.</dd>
+    <dt>Namespace (Kubernetes)</dt><dd>A virtual partition of a cluster with its own names, RBAC and quotas. Your sandbox in Lab 5.</dd>
+    <dt>Polling vs events</dt><dd>Two ways a pipeline notices a change: ask every minute (Lab 3) or be told immediately (Lab 2's EventBridge rule).</dd>
+    <dt>Readiness / liveness probe</dt><dd>Kubernetes health checks: readiness gates traffic, liveness triggers a restart.</dd>
+    <dt>Rolling update</dt><dd>Replace old copies with new ones gradually, keeping capacity up. ECS services and Kubernetes Deployments both do this by default.</dd>
+    <dt>Secrets Manager / Parameter Store</dt><dd>Where secrets and configuration live. A build references them by name in <code>env:</code>; the service role fetches the value at run time; the log masks it.</dd>
+    <dt>Service role</dt><dd>An IAM role an AWS service assumes to act for you; its trust policy names the service (<code>codebuild.amazonaws.com</code>).</dd>
+    <dt>SNS</dt><dd>Simple Notification Service: a topic that fans one message out to e-mail, SMS, chat webhooks or Lambda. Every alert in these labs ends in an SNS topic.</dd>
+    <dt>Task definition</dt><dd>ECS's versioned recipe for a task: image, resources, ports, env, logging, roles. Immutable per revision.</dd>
+    <dt>Versioning (S3)</dt><dd>Keeps every version of an object. Required for S3 pipeline sources; what makes rollback possible.</dd>
+  </dl>
+</section>
+
+</main>
+<footer><span>Pipeline Academy · hands-on AWS CI/CD labs</span><span>Every screenshot comes from a real run in the class account, which was then torn down.</span></footer>
+<script src="assets/site.js"></script>
+</body>
+</html>

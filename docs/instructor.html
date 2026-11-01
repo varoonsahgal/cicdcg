@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en" class="hue-lab2" data-page="instructor">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Instructor guide · Pipeline Academy (AWS CI/CD labs) · Pipeline Academy</title>
+<meta name="description" content="Everything the person running the class needs: what to create, what students can and cannot do in this account, the answer keys, the timings we measured, and the teardown.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0B1220">
+<script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1220'/%3E%3Ccircle cx='8' cy='16' r='4' fill='%2322C55E'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2338BDF8'/%3E%3Ccircle cx='24' cy='16' r='4' fill='%23F59E0B'/%3E%3C/svg%3E">
+</head>
+<body data-page="instructor">
+<a class="skip" href="#main">Skip to content</a>
+<div id="readbar" aria-hidden="true"></div>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"/><circle cx="8" cy="16" r="4" fill="#22C55E"/><circle cx="16" cy="16" r="4" fill="#38BDF8"/><circle cx="24" cy="16" r="4" fill="#F59E0B"/><path d="M12 16h0M20 16h0" stroke="#fff"/></svg>Pipeline Academy <span>· AWS CI/CD labs</span></a>
+  <nav class="nav" aria-label="Labs">
+      <a href="index.html">Start here</a>
+      <a href="lab1.html" data-lab="lab1" style="--d:#38BDF8"><span class="dot"></span>Lab 1<span class="lbl-long"> · Build it</span><span class="done">★</span></a>
+      <a href="lab2.html" data-lab="lab2" style="--d:#22C55E"><span class="dot"></span>Lab 2<span class="lbl-long"> · Ship it</span><span class="done">★</span></a>
+      <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
+      <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
+      <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+  </nav>
+  <div class="tools">
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+    <button class="iconbtn menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div></header>
+
+<section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
+  <div>
+    <p class="eyebrow">For the instructor</p>
+    <h1>Instructor guide · Pipeline Academy (AWS CI/CD labs)</h1>
+    <p class="lede">Everything the person running the class needs: what to create, what students can and cannot do in this account, the answer keys, the timings we measured, and the teardown.</p>
+    <div class="mast-meta"><span class="chip"><b>Audience</b> The instructor and TAs. Students should not see this page.</span><span class="chip"><b>Account</b> Shared training account, alias <code>dc-lab</code>, region <strong>us-west-2</strong>. Students sign in as IAM users <code>participant-01</code> … <code>participant-25</code>.</span><span class="chip"><b>Tested</b> Every lab below was run end to end in this account with the <code>instructor-01</code> profile (Labs 1–5 on 2026-10-31; Labs 1–2 again with the new missions and level-ups on 2026-11-01); the screenshots in the guides come from those runs. Lab 3 was deployed for 15 students simultaneously.</span><span class="chip"><b>Teardown</b> One Terraform destroy (Lab 3) + one script (Labs 1–2). Both are below.</span></div>
+  </div>
+</div></section>
+
+<main id="main" class="labwrap">
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#1-schedule-that-fits">1 · Schedule that fits</a></li><li><a href="#2-the-student-permission-model-read-this-first">2 · The student permission model (read this first)</a></li><li><a href="#3-pre-flight-checklist-15-minutes-the-day-before">3 · Pre-flight checklist (15 minutes, the day before)</a></li><li><a href="#4-lab-1-codebuild-facilitator-notes">4 · Lab 1 · CodeBuild — facilitator notes</a></li><li><a href="#5-lab-2-codepipeline-codedeploy-facilitator-notes">5 · Lab 2 · CodePipeline + CodeDeploy — facilitator notes</a></li><li><a href="#6-lab-3-the-broken-pipeline-setup-answer-key-operations">6 · Lab 3 · The broken pipeline — setup, answer key, operations</a></li><li><a href="#7-lab-4-ecr-codebuild-ecs-fargate-facilitator-notes">7 · Lab 4 · ECR + CodeBuild + ECS Fargate — facilitator notes</a></li><li><a href="#8-lab-5-eks-shared-cluster-per-student-namespaces">8 · Lab 5 · EKS — shared cluster, per-student namespaces</a></li><li><a href="#9-teardown-for-the-whole-course">9 · Teardown for the whole course</a></li><li><a href="#10-regenerating-screenshots-or-pages">10 · Regenerating screenshots or pages</a></li></ol></details><hr>
+<h2 id="1-schedule-that-fits">1 · Schedule that fits</h2>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Lab</th>
+<th>Core</th>
+<th>With challenges</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Morning 1</td>
+<td>Handout &quot;Why CI/CD&quot; walkthrough</td>
+<td>30 min</td>
+<td>–</td>
+<td>Use the index page; the animated pipeline strip is a good hook</td>
+</tr>
+<tr>
+<td>Morning 2</td>
+<td><strong>Lab 1 · CodeBuild</strong></td>
+<td>45 min</td>
+<td>95–135 min (8 missions)</td>
+<td>The planted failure (Java 11 vs 17) costs novices ~10 min. Missions A–H are 10–15 min each; D, E, G are the ones to insist on</td>
+</tr>
+<tr>
+<td>Afternoon 1</td>
+<td><strong>Lab 2 · CodePipeline + CodeDeploy</strong></td>
+<td>70 min</td>
+<td>110 min (exercises) · 160–175 min (+ level-ups + pager)</td>
+<td>Longest setup; the &quot;site goes down&quot; exercise is the emotional peak. Parts 9–11 fit a second block or a second day</td>
+</tr>
+<tr>
+<td>Afternoon 2</td>
+<td><strong>Lab 3 · Broken pipeline</strong></td>
+<td>75 min</td>
+<td>100 min</td>
+<td>Can be run the next morning as a warm-up instead</td>
+</tr>
+<tr>
+<td>Day 2</td>
+<td><strong>Lab 4 · ECS/ECR</strong></td>
+<td>65 min</td>
+<td>100 min</td>
+<td>Circuit-breaker exercise has a 10-minute wait; see §7</td>
+</tr>
+<tr>
+<td>Day 2</td>
+<td><strong>Lab 5 · EKS</strong></td>
+<td>55 min</td>
+<td>90 min</td>
+<td>Cluster must be applied ~20 min before; see §8</td>
+</tr>
+</tbody></table>
+<p>Measured machine time per pipeline round in Lab 3: <strong>~2 minutes</strong> (poll ≤ 60 s, build ≈ 30 s, deploy ≈ 35 s). Six rounds ≈ 12 minutes of waiting; the rest is reading.</p>
+<hr>
+<h2 id="2-the-student-permission-model-read-this-first">2 · The student permission model (read this first)</h2>
+<p>Students are in IAM group <strong><code>AWS_Cloud_Foundations</code></strong>, which carries the customer-managed <strong><code>dc-ec2-policy</code></strong> and <strong><code>dc-capital-training</code></strong> plus <code>IAMReadOnlyAccess</code>, <code>AWSCloudShellFullAccess</code>, <code>AWSCloudTrail_FullAccess</code>, <code>SecretsManagerReadWrite</code>, <code>AWSKeyManagementServicePowerUser</code>, <code>AWSStepFunctionsFullAccess</code>. Relevant facts, verified with the IAM policy simulator:</p>
+<table>
+<thead>
+<tr>
+<th>Students <strong>can</strong></th>
+<th>Students <strong>cannot</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Create S3 buckets, CodeBuild projects, CodeDeploy apps/groups, CodePipelines (us-west-2), EC2 instances + security groups</td>
+<td>Create resources in other regions (EC2 is limited to us-west-2/us-west-1/us-east-1/ap-south-1; CodePipeline/CodeDeploy to us-west-2)</td>
+</tr>
+<tr>
+<td>Create IAM roles, attach managed policies, add inline policies, create instance profiles, pass roles</td>
+<td><strong>Delete</strong> roles, <strong>detach</strong> policies, delete inline policies → cleanup is yours</td>
+</tr>
+<tr>
+<td>Read CloudWatch Logs, use Systems Manager Session Manager, use CloudShell</td>
+<td>Change their own group&#39;s policies</td>
+</tr>
+<tr>
+<td>Create CloudTrail trails / EventBridge rules (the pipeline wizard needs this); ECR, ECS, ELB, EKS API access (via <code>dc-capital-training</code>)</td>
+<td>Modify EKS access entries or the cluster itself (instructor-only)</td>
+</tr>
+</tbody></table>
+<p>The instructor user (<code>instructor-01</code>) has <code>AdministratorAccess</code> <strong>except</strong> an explicit deny on <code>iam:*</code> against the <code>AWS_Cloud_Foundations</code> group itself. You can attach policies to individual users, not to that group.</p>
+<div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p>Because students cannot delete IAM roles, every Lab 1/2 run leaves 4–6 roles per student (one more if they do Lab 2 Part 9). Run <code>tools/cleanup-student.sh</code> after class; the account is at ~560 of 1 000 roles.</p>
+</div></div>
+<hr>
+<h2 id="3-pre-flight-checklist-15-minutes-the-day-before">3 · Pre-flight checklist (15 minutes, the day before)</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Each student has a working console password for <code>participant-NN</code> and knows their number.</li>
+<li><input disabled="" type="checkbox"> Sign-in URL to share: <code>https://dc-lab.signin.aws.amazon.com/console</code> (account alias <code>dc-lab</code>).</li>
+<li><input disabled="" type="checkbox"> Everyone will work in <strong>us-west-2</strong>. Say it three times.</li>
+<li><input disabled="" type="checkbox"> S3 bucket count is under ~70 (hard limit 100 unless raised): <code>aws s3api list-buckets --query &#39;length(Buckets)&#39;</code>. Labs 1–3 add up to 3 buckets per student.</li>
+<li><input disabled="" type="checkbox"> Quotas are fine (checked: On-Demand vCPU quota 2 500; Fargate 4 000 vCPU).</li>
+<li><input disabled="" type="checkbox"> Students have a laptop/VM with a terminal that can <code>zip</code> (Finder/Explorer compression also works; the guides explain).</li>
+<li><input disabled="" type="checkbox"> Publish the handout site (the <code>docs/</code> folder on GitHub Pages) and the lab Markdown (wiki or repo).</li>
+<li><input disabled="" type="checkbox"> Lab 3 only: <code>terraform apply</code> the night before or 15 minutes before (§6).</li>
+</ul>
+<hr>
+<h2 id="4-lab-1-codebuild-facilitator-notes">4 · Lab 1 · CodeBuild — facilitator notes</h2>
+<p><strong>Student creates:</strong> bucket <code>cicd-lab1-participant-NN</code>, project <code>participant-NN-codebuild-demo</code> (+ its auto-created service role).</p>
+<p><strong>Planted failure:</strong> <code>buildspec.yml</code> asks for <code>corretto11</code>; <code>pom.xml</code> targets Java 17 → <code>invalid target release: 17</code>. Fix: <code>java: corretto17</code> in the buildspec, re-zip, re-upload, rebuild.</p>
+<p><strong>Where students get stuck</strong></p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Say this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>YAML_FILE_ERROR: … buildspec.yml not found</code></td>
+<td>zip has a top-level folder</td>
+<td>&quot;Zip the three items, not the folder.&quot; Show <code>unzip -l</code></td>
+</tr>
+<tr>
+<td>Build still fails after the fix</td>
+<td>they rebuilt without re-uploading</td>
+<td>&quot;CodeBuild builds what is in S3, not what is on your disk.&quot;</td>
+</tr>
+<tr>
+<td><code>Access denied</code> reading S3</td>
+<td>bucket in another region, or wrong key path <code>input/MessageUtil.zip</code></td>
+<td>Check region + key</td>
+</tr>
+<tr>
+<td>Can&#39;t find the test report</td>
+<td>they look at the failed build</td>
+<td>Reports only exist once Maven ran the tests (green build, or Challenge A)</td>
+</tr>
+</tbody></table>
+<p><strong>The missions (Part 6).</strong> Eight self-contained missions; answers are in the student guide&#39;s hidden sections. What each one creates and what we measured on 2026-11-01 with the <code>amazonlinux-x86_64-standard:6.0</code> image:</p>
+<table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Student creates / changes</th>
+<th>Measured behaviour</th>
+<th>Watch for</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A · failing test</td>
+<td>edits the test</td>
+<td><code>BUILD</code> red, report shows 1 failed</td>
+<td>they look at the failed build&#39;s missing report instead of the new one</td>
+</tr>
+<tr>
+<td>B · env var</td>
+<td>project env var <code>GREETING</code></td>
+<td>greeting + <code>CODEBUILD_BUILD_NUMBER</code> in the log</td>
+<td>typing the variable into the buildspec instead of the project</td>
+</tr>
+<tr>
+<td>C · extra artifact</td>
+<td><code>build-info.txt</code></td>
+<td>two files in the output zip</td>
+<td>forgetting to add the file to <code>artifacts.files</code></td>
+</tr>
+<tr>
+<td>D · disabled test</td>
+<td>removes <code>@Ignore</code></td>
+<td><code>expected:&lt;Hi![]Robert&gt; but was:&lt;Hi![Hi!]Robert&gt;</code>; fix is in <code>MessageUtil.salutationMessage()</code></td>
+<td>students &quot;fix&quot; the test instead of the code; push back</td>
+</tr>
+<tr>
+<td>E · Secrets Manager</td>
+<td>secret <code>participant-NN/lab1/deploy-token</code>, inline policy <code>read-lab1-secret</code> on the service role</td>
+<td>build 1 fails in <strong>DOWNLOAD_SOURCE</strong> with <code>secretsmanager:GetSecretValue</code> AccessDenied; after the policy the log prints <code>Deploy token is ***</code> (masked)</td>
+<td>the secret ARN ends in six random characters; copy it from the secret page. Policy JSON typos. Students granting <code>SecretsManagerReadWrite</code>: make them narrow it</td>
+</tr>
+<tr>
+<td>F · S3 cache</td>
+<td>project cache <code>s3://cicd-lab1-participant-NN/cache</code>, <code>cache.paths</code> in buildspec</td>
+<td><code>Downloading from central:</code> lines 242 → <strong>0</strong>; BUILD phase 16 s → <strong>10 s</strong>; one 18 MB object under <code>cache/</code></td>
+<td>the first cached build logs <code>Unable to download cache: AccessDenied … s3:ListBucket</code> (role lacks ListBucket; harmless; guide explains). Edit page is one long form: Artifacts → <em>Additional configuration</em></td>
+</tr>
+<tr>
+<td>G · EventBridge → SNS</td>
+<td>topic <code>participant-NN-alerts</code> + e-mail subscription, rule <code>participant-NN-build-failed</code></td>
+<td>rule <em>TriggeredRules</em> = 1 and SNS <em>NumberOfMessagesPublished</em> = 1 within the minute of a failed build</td>
+<td>unconfirmed subscription (spam folder); pattern on <code>SUCCEEDED</code>; project name typo; the console adds the topic policy, the CLI does not</td>
+</tr>
+<tr>
+<td>H · Logs Insights</td>
+<td>nothing</td>
+<td><code>FAILURE 3 · SUCCESS 5</code>; <code>[ERROR]</code> lines with their <code>@logStream</code></td>
+<td>the console now redirects to <strong>Log Analytics</strong>; the query goes after the generated `SOURCE …</td>
+</tr>
+</tbody></table>
+<p><strong>Cleanup:</strong> students delete the project and bucket; roles, the secret (7-day recovery window unless forced), the topic and the rule are removed by <code>tools/cleanup-student.sh</code>.</p>
+<hr>
+<h2 id="5-lab-2-codepipeline-codedeploy-facilitator-notes">5 · Lab 2 · CodePipeline + CodeDeploy — facilitator notes</h2>
+<p><strong>Student creates:</strong> 2 IAM roles, 1 EC2 instance (+ SG), bucket <code>cicd-lab2-participant-NN</code> (versioned), CodeDeploy app + group, pipeline (+ wizard-created role, artifact bucket, CloudTrail trail, EventBridge rule).</p>
+<p><strong>Pre-brief (5 min, before they click):</strong> the &quot;three robots, three roles&quot; picture from the handout. Half of the help requests in this lab are one of the three roles being wrong.</p>
+<p><strong>Where students get stuck</strong></p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Deployment group: <em>0 unique matched instances</em></td>
+<td>tag typo / instance in another region / not yet running</td>
+<td>Fix tag; wait for <em>2/2 checks passed</em></td>
+</tr>
+<tr>
+<td>Wizard demands a load balancer</td>
+<td>&quot;Enable load balancing&quot; left ticked</td>
+<td>Untick it</td>
+</tr>
+<tr>
+<td>Deploy fails <code>DownloadBundle</code></td>
+<td>EC2 role missing <code>AmazonEC2RoleforAWSCodeDeploy</code></td>
+<td>Attach, retry</td>
+</tr>
+<tr>
+<td>Deploy stays <em>Pending</em> for minutes then fails</td>
+<td>agent not running (user data missing/garbled)</td>
+<td>Session Manager → <code>systemctl status codedeploy-agent</code>; relaunch with user data if absent</td>
+</tr>
+<tr>
+<td>Pipeline wizard: S3 source rejected</td>
+<td>bucket versioning off</td>
+<td>Enable versioning</td>
+</tr>
+<tr>
+<td>Upload does not trigger the pipeline</td>
+<td>EventBridge box unticked, or they uploaded to a different key</td>
+<td>Release change manually; check the key is exactly <code>SampleApp.zip</code></td>
+</tr>
+<tr>
+<td>Site down after a failed deploy</td>
+<td>expected (Exercise A)</td>
+<td>Discuss, then fix and redeploy</td>
+</tr>
+</tbody></table>
+<p><strong>Shared side effects to know about:</strong> the wizard creates <strong>one</strong> CloudTrail trail <code>codepipeline-source-trail</code> and <strong>one</strong> <code>codepipeline-us-west-2-…</code> artifact bucket for the whole account; all students share them. They are harmless; delete them once no pipelines remain.</p>
+<p><strong>Verified in this run:</strong> EventBridge trigger within ~12 s of upload; failed <code>ApplicationStart</code> leaves Apache stopped (site down); automatic rollback redeploys the previous revision; a <code>ValidateService</code> smoke test fails a deployment and triggers rollback; manual approval stage pauses the pipeline.</p>
+<p><strong>Level-ups (Parts 9–11), verified 2026-11-01:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Student creates / changes</th>
+<th>Measured</th>
+<th>Watch for</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>9 · Build stage</td>
+<td>CodeBuild project <code>participant-NN-pipeline-build</code> (+ role, created from inside the pipeline editor); Deploy input → <code>BuildArtifact</code></td>
+<td>Build ≈ 30 s; whole execution ≈ 70 s; page shows <code>Build #N · built …</code></td>
+<td><strong>Deploy input left on SourceArtifact</strong> → green pipeline, unstamped page (the guide warns; it is the best &quot;green ≠ correct&quot; moment of the day). Zip without <code>buildspec.yml</code> → <code>YAML_FILE_ERROR</code>. If they edit the buildspec: a bare <code> #</code> starts a YAML comment (we hit it; the shipped file quotes that line)</td>
+</tr>
+<tr>
+<td>9 · Exercise E (gate)</td>
+<td><code>start_servr.sh</code> typo in appspec</td>
+<td>Build red in ≈ 30 s, <code>MISSING scripts/start_servr.sh</code>, Deploy never runs, site untouched</td>
+<td>they expect the site to go down as in Exercise A; let the surprise land</td>
+</tr>
+<tr>
+<td>10 · second server</td>
+<td>second instance with the same Name tag and the existing SG; deployment config <code>OneAtATime</code>; <code>AfterInstall</code> stamp hook; <code>ValidateService</code> with <code>sleep 20</code></td>
+<td>group shows <em>2 unique matched instances</em> with no edit; rollout ≈ 2 min; pages show different <code>ip-172-31-…</code> hostnames and the same deployment id</td>
+<td>choosing <em>Create security group</em> again (a second SG with the same name fails); forgetting to raise the sleep, so the mid-flight window is too short to see</td>
+</tr>
+<tr>
+<td>10 · Exercise F (blast radius)</td>
+<td><code>htpd</code> typo, rollback on</td>
+<td>deployment fails with <code>HEALTH_CONSTRAINTS</code>; server 1 <em>Failed</em> at ApplicationStart, server 2 <strong>Skipped</strong>; rollback (also OneAtATime) restores Version 4 on server 1; server 2 never left Version 4</td>
+<td>&quot;why is server 2 Skipped and not Succeeded?&quot; → minimum-healthy-hosts rule; good discussion</td>
+</tr>
+<tr>
+<td>11 · triggers</td>
+<td>deployment-group trigger <code>participant-NN-deploy-alerts</code> → topic <code>participant-NN-alerts</code> on <em>fails</em> and <em>rolls back</em></td>
+<td>SNS publishes two messages per broken deploy (failure + rollback)</td>
+<td>topic in another region; unconfirmed subscription. CodeDeploy&#39;s role already has <code>sns:Publish</code></td>
+</tr>
+</tbody></table>
+<p>Both instances share the Name tag, so <code>tools/cleanup-student.sh</code> terminates them together; it also deletes the <code>participant-NN-pipeline-build</code> project, its role and log group.</p>
+<hr>
+<h2 id="6-lab-3-the-broken-pipeline-setup-answer-key-operations">6 · Lab 3 · The broken pipeline — setup, answer key, operations</h2>
+<p>Everything is Terraform: <a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab3-broken-pipeline/terraform/"><code>lab3-broken-pipeline/terraform/</code></a> (its own README has the file map).</p>
+<pre><code class="language-bash">cd lab3-broken-pipeline/terraform
+cp terraform.tfvars.example terraform.tfvars   # student_count = 15
+terraform init &amp;&amp; terraform apply              # measured: ~6 min for 15 students (≈300 resources)
+terraform output -raw handout_table            # paste into chat: pipeline link, web URL, bucket per student
+</code></pre>
+<p>Each student&#39;s pipeline runs once automatically and stops at <strong>Build</strong> (bug 1). Verify with:</p>
+<pre><code class="language-bash">for i in $(seq -w 1 15); do aws codepipeline get-pipeline-state --name cicd-lab3-participant-$i-pipeline \
+  --query &#39;stageStates[].[stageName,latestExecution.status]&#39; --output text | tr &#39;\n&#39; &#39; &#39;; echo; done
+</code></pre>
+<h3>Answer key</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Symptom students see</th>
+<th>Root cause</th>
+<th>Fix</th>
+<th>Concept</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Build red · <code>BUILD</code> phase · <code>grep -q &quot;Build</code> + <em>unexpected EOF</em></td>
+<td><code> #</code> starts a YAML comment; command truncated</td>
+<td>quote the command in <code>buildspec.yml</code></td>
+<td>YAML vs shell</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Build red · <code>UPLOAD_ARTIFACTS</code> · AccessDenied <code>s3:PutObject</code></td>
+<td>CodeBuild role can read but not write</td>
+<td>add <code>s3:PutObject</code> to the inline policy</td>
+<td>read the principal/action/resource</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Deploy red in seconds · <em>no instances were found</em></td>
+<td>tag filter <code>…-server</code> vs instance <code>…-web</code></td>
+<td>edit deployment group tag value (or re-tag)</td>
+<td>tags as contracts</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Deploy red · <code>DownloadBundle</code> · AccessDenied <code>s3:GetObjectVersion</code></td>
+<td>EC2 role has only SSM</td>
+<td>attach <code>AmazonEC2RoleforAWSCodeDeploy</code></td>
+<td>third robot&#39;s identity</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Deploy red · <code>ApplicationStart</code> · <em>Unit htpd.service not found</em></td>
+<td>typo in <code>start_server.sh</code></td>
+<td><code>httpd</code></td>
+<td>syntax ≠ semantics</td>
+</tr>
+<tr>
+<td>6</td>
+<td>All green · Apache test page</td>
+<td><code>index.html</code> not in <code>artifacts.files</code></td>
+<td>add it</td>
+<td>green ≠ correct</td>
+</tr>
+</tbody></table>
+<p>Note for Stop 1: a pristine environment&#39;s first build shows <strong>two</strong> red phases (BUILD and UPLOAD_ARTIFACTS). Students must learn to fix the first one first; the guide says so.</p>
+<h3>Operating the lab</h3>
+<ul>
+<li><strong>Reset one student:</strong> <code>./reset-student.sh 07</code> (re-plants all six bugs; their pipeline re-runs within a minute).</li>
+<li><strong>Never run a bare <code>terraform apply</code> mid-class</strong> — it resets everyone.</li>
+<li><strong>A student deleted something?</strong> <code>reset-student.sh</code> recreates it (it targets the pipeline, which pulls in its dependencies).</li>
+<li><strong>Kick a pipeline</strong> (for example after an IAM change that did not create a new S3 version): <code>aws codepipeline start-pipeline-execution --name cicd-lab3-participant-NN-pipeline</code>.</li>
+<li><strong>Peek at a student&#39;s server:</strong> Systems Manager → Session Manager works on every instance (role has <code>AmazonSSMManagedInstanceCore</code>).</li>
+</ul>
+<h3>Gotcha we hit while building this (already fixed in the Terraform)</h3>
+<p>CodePipeline&#39;s S3 source action fails with <em>&quot;The provided role does not have permissions to perform this action&quot;</em> when the <strong>source object carries S3 object tags</strong>. Terraform&#39;s provider <code>default_tags</code> tag every object, so <code>source/app.zip</code> is uploaded through a second provider alias with no default tags. If you ever see Source red on a fresh environment, check <code>aws s3api get-object-tagging</code> on <code>source/app.zip</code>.</p>
+<h3>Teardown</h3>
+<pre><code class="language-bash">terraform destroy          # ~4 min; buckets are force_destroy
+</code></pre>
+<hr>
+<h2 id="7-lab-4-ecr-codebuild-ecs-fargate-facilitator-notes">7 · Lab 4 · ECR + CodeBuild + ECS Fargate — facilitator notes</h2>
+<p><strong>Permissions:</strong> verified with the IAM policy simulator that <code>participant-NN</code> users already have everything Lab 4 and Lab 5 need (<code>ecr:*</code>, <code>ecs:*</code>, <code>elasticloadbalancing:*</code>, <code>eks:*</code> reads + <code>eks:AccessKubernetesApi</code>, <code>cloudshell:*</code>, <code>logs:*</code>) through the group&#39;s <code>dc-capital-training</code> and <code>AWSCloudShellFullAccess</code> policies. The optional Terraform in <code>shared/terraform/student-access/</code> creates an equivalent customer-managed policy for accounts where that is not the case (<code>terraform apply -var attach_to_users=true</code> attaches it per user).</p>
+<p><strong>Student creates:</strong> ECR repo <code>participant-NN-mission-control</code> · bucket <code>cicd-lab4-participant-NN</code> · CodeBuild <code>participant-NN-image-build</code> (+ role) · ECS cluster <code>participant-NN-cluster</code>, task definition family <code>participant-NN-mission-control</code>, service <code>participant-NN-svc</code>, security group <code>participant-NN-mission-sg</code> · log groups <code>/aws/codebuild/…</code> and <code>/ecs/…</code> · optionally ALB <code>participant-NN-mission-alb</code>, target group, SG.</p>
+<p><strong>Task execution role:</strong> <code>ecsTaskExecutionRole</code> already exists in the account (console default). Students can pass it (<code>iam:PassRole</code> on <code>role/*</code>).</p>
+<p><strong>Planted failures and measured behaviour (participant-01 run, 2026-10-31):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What happens</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>First build</td>
+<td><code>PRE_BUILD</code> fails: <code>ecr:GetAuthorizationToken</code> AccessDenied for the new CodeBuild role</td>
+<td>~30 s</td>
+</tr>
+<tr>
+<td>Fix: attach <code>AmazonEC2ContainerRegistryPowerUser</code></td>
+<td>Build 2 pushes <code>v2</code> + <code>latest</code> (49 MB)</td>
+<td>35 s</td>
+</tr>
+<tr>
+<td>Service create (2 × Fargate 0.25 vCPU)</td>
+<td>both tasks Running + healthy</td>
+<td>~75 s</td>
+</tr>
+<tr>
+<td>Rolling update to <code>:v3</code></td>
+<td>2 new tasks up, 2 old drained, never below 2 healthy</td>
+<td>~2 min</td>
+</tr>
+<tr>
+<td>Deploy <code>:v99</code></td>
+<td>tasks stop with <code>CannotPullContainerError … not found</code>; circuit breaker opens after ~10 launches and rolls back to the previous revision</td>
+<td>8–12 min (tell students to go on with Exercise B meanwhile)</td>
+</tr>
+<tr>
+<td><code>/crash</code></td>
+<td>task stops (exit 1, <em>Essential container exited</em>), service launches a replacement</td>
+<td>&lt;1 min</td>
+</tr>
+<tr>
+<td>ALB challenge</td>
+<td>3 healthy IP targets; hostname rotates per request</td>
+<td>~3 min</td>
+</tr>
+</tbody></table>
+<p><strong>Where students get stuck</strong></p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Build fails at <code>docker build</code>: <em>Cannot connect to the Docker daemon</em></td>
+<td><strong>Privileged</strong> flag not ticked</td>
+<td>Edit project → Environment → Additional configuration → Privileged</td>
+</tr>
+<tr>
+<td>Build fails: <code>REPO_NAME</code> empty / <code>docker push</code> to a wrong URI</td>
+<td>env var missing or typo</td>
+<td>Project → Environment → Environment variables</td>
+</tr>
+<tr>
+<td>Task definition save fails on the health-check command</td>
+<td>commas inside the quoted Python</td>
+<td>Paste exactly: <code>CMD-SHELL, python -c &quot;…&quot;</code>; the console splits on the first comma only</td>
+</tr>
+<tr>
+<td>Tasks stop at once with <code>ResourceInitializationError … unable to pull secrets or registry auth</code></td>
+<td>execution role missing, or public IP turned off (no route to ECR from the default VPC without a public IP)</td>
+<td>Select <code>ecsTaskExecutionRole</code>; <strong>Public IP: Turned on</strong></td>
+</tr>
+<tr>
+<td>Page does not load, tasks healthy</td>
+<td>security group rule missing 8080, or they used the private IP</td>
+<td>Check SG; use the task&#39;s <em>Public IP</em></td>
+</tr>
+<tr>
+<td>&quot;Our tags are v2/v3 but the guide says…&quot;</td>
+<td>first build failed → numbering starts at 2</td>
+<td>Expected; the guide says so</td>
+</tr>
+</tbody></table>
+<p><strong>Cost:</strong> 2 Fargate tasks ≈ US$0.02/hour per student; 15 students ≈ US$0.30/hour. An ALB adds US$0.02/hour each. ECR storage is negligible. Make sure services are deleted at the end of the day.</p>
+<p><strong>Cleanup students cannot do:</strong> the CodeBuild service role (and anything they forget). <code>tools/cleanup-student.sh NN</code> removes every Lab 1, 2 and 4 resource for a student, in dependency order, including the ECS service/cluster, task definitions, ALB/target group, security groups, ECR repository, CodeBuild projects, log groups, buckets and roles.</p>
+<hr>
+<h2 id="8-lab-5-eks-shared-cluster-per-student-namespaces">8 · Lab 5 · EKS — shared cluster, per-student namespaces</h2>
+<p>Two Terraform modules, applied in order:</p>
+<pre><code class="language-bash">cd lab5-eks/terraform/cluster  &amp;&amp; terraform init &amp;&amp; terraform apply     # ~14 min: cluster, 2 × t3.large node group, add-ons, 15 access entries
+cd ../students                  &amp;&amp; terraform init &amp;&amp; terraform apply     # ~1 min: namespaces, Role/RoleBinding, ClusterRole, ResourceQuota, LimitRange
+</code></pre>
+<p>What students get (RBAC and quotas verified by impersonation with <code>kubectl --as=participant-01 --as-group=participant-01</code>, plus a full run of the guide against the participant-01 namespace; the IAM-user → access-entry → group mapping was verified by inspecting the entries, <strong>not</strong> by logging in as a student, so have one participant run Part 1 before class):</p>
+<ul>
+<li><code>kubectl get nodes</code> works (read-only ClusterRole); <code>kubectl get pods -n participant-02</code> and <code>-n kube-system</code> are <strong>Forbidden</strong>.</li>
+<li>Full rights in their own namespace: Deployments, Services (LoadBalancer type works; the public subnets carry the <code>kubernetes.io/role/elb</code> tag), HPA (metrics-server add-on installed), logs, exec, port-forward.</li>
+<li>Quota: 12 pods, 2 load balancers, 2 CPU / 3 GiB requests. Scaling to 20 stops at 12 with <code>exceeded quota: lab-quota</code> events. LimitRange defaults 100m/128Mi requests, 250m/256Mi limits.</li>
+<li>Measured: Deployment ready in ~15 s; Classic LB answering in ~90 s; rolling update ~20 s; <code>ImagePullBackOff</code> visible within 30 s; <code>rollout undo</code> ~15 s; HPA 2 → 6 replicas within ~60 s of load.</li>
+</ul>
+<p><strong>Capacity:</strong> two <code>t3.large</code> nodes (2 vCPU / 8 GiB each) hold about 15 × 2 Pods comfortably (requests 100m each). If the whole class runs the HPA challenge at once (15 × 6 Pods × 100m = 9 vCPU requested) the scheduler will leave Pods <code>Pending</code>; raise <code>node_count</code> to 4 in <code>cluster/main.tf</code> for a large class, or run the challenge in two waves.</p>
+<p><strong>CloudShell:</strong> already allowed for students (<code>AWSCloudShellFullAccess</code> on the group). First launch takes ~60 s; <code>kubectl</code> (v1.36 at the time of writing) and the AWS CLI are pre-installed. If a student&#39;s CloudShell shows the wrong region, the region picker in the console controls it. Note for anyone verifying with a <em>federated</em> console session (GetFederationToken): such sessions have no access entry and get <code>You must be logged in to the server</code>; that is expected and does not affect IAM users.</p>
+<p><strong>Where students get stuck</strong></p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>error: You must be logged in to the server (Unauthorized)</code></td>
+<td>they ran <code>update-kubeconfig</code> before the instructor applied the cluster module (no access entry yet), or wrong region</td>
+<td>Re-run <code>aws eks update-kubeconfig --region us-west-2 --name cicd-lab5-eks</code></td>
+</tr>
+<tr>
+<td>Every command says Forbidden</td>
+<td>namespace not set, or a typo in it</td>
+<td><code>kubectl config set-context --current --namespace participant-NN</code></td>
+</tr>
+<tr>
+<td><code>EXTERNAL-IP &lt;pending&gt;</code> for minutes</td>
+<td>LB being created; or quota <code>services.loadbalancers</code> exhausted (2)</td>
+<td>Wait 2 min; <code>kubectl describe svc</code> → Events</td>
+</tr>
+<tr>
+<td>Pods <code>Pending</code> with <em>Insufficient cpu</em></td>
+<td>nodes full (see Capacity)</td>
+<td>Scale someone&#39;s HPA down; add nodes</td>
+</tr>
+<tr>
+<td><code>ImagePullBackOff</code> when it should work</td>
+<td>image URI typo; or they deleted their Lab 4 repository</td>
+<td>Use the shared <code>participant-01-mission-control:v2</code> image kept for this purpose</td>
+</tr>
+</tbody></table>
+<p><strong>Cost:</strong> the EKS control plane bills per hour, plus 2 × t3.large and one Classic LB per student namespace that creates a Service. Destroy the same day.</p>
+<p><strong>Teardown (order matters):</strong></p>
+<pre><code class="language-bash"># 1. students must delete their Services first (each one owns an AWS load balancer), or do it for them:
+for ns in $(kubectl get ns -l lab=cicd-lab5 -o name); do kubectl -n ${ns#namespace/} delete svc --all; done
+# 2. then
+terraform -chdir=lab5-eks/terraform/students destroy
+terraform -chdir=lab5-eks/terraform/cluster  destroy      # ~10 min
+</code></pre>
+<p>If a load balancer is left behind, the cluster destroy fails on the security group / ENI; delete the orphaned Classic LB in EC2 → Load balancers and re-run.</p>
+<hr>
+<h2 id="9-teardown-for-the-whole-course">9 · Teardown for the whole course</h2>
+<pre><code class="language-bash"># Lab 5 (students&#39; Services first, see §8), then the cluster
+terraform -chdir=lab5-eks/terraform/students destroy
+terraform -chdir=lab5-eks/terraform/cluster destroy
+# Lab 3
+terraform -chdir=lab3-broken-pipeline/terraform destroy
+
+# Everything students created by hand in Labs 1–2 (including missions and level-ups: secrets, SNS topics,
+# EventBridge rules, the pipeline-build project, both web servers) and Lab 4, for students 01..15
+tools/cleanup-student.sh $(seq -w 1 15)
+</code></pre>
+<p>Then, once no pipelines remain in the account: delete the shared <code>codepipeline-us-west-2-*</code> artifact bucket and the <code>codepipeline-source-trail</code> trail (both created by the Lab 2 wizard).</p>
+<hr>
+<h2 id="10-regenerating-screenshots-or-pages">10 · Regenerating screenshots or pages</h2>
+<ul>
+<li>Lab guides are Markdown in <code>labs/</code>; <code>cd tools &amp;&amp; npm install &amp;&amp; npm run build</code> renders them into <code>docs/labN.html</code> with the site shell (hints and solutions become collapsible, GitHub alerts become callouts, screenshots zoom on click).</li>
+<li>Screenshots were taken with Playwright against a federated console session (<code>sts get-federation-token</code> → sign-in URL). The harness is not part of the repo; any retake just needs to land in <code>docs/images/</code> under the same file name.</li>
+<li>Diagrams are hand-written SVG in <code>docs/images/diagrams/</code>.</li>
+</ul>
+
+<div class="pager">
+  <span></span>
+  <span></span>
+</div>
+</main>
+<footer><span>Pipeline Academy · hands-on AWS CI/CD labs</span><span>Built from <code>labs/*.md</code> · screenshots taken in a real account, then torn down.</span></footer>
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Challenge: scale on CPU. Needs the metrics-server add-on (installed by the instructor).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mission-control
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: mission-control }
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 50 } }

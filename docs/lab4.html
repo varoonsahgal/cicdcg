@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en" class="hue-lab4" data-page="lab4">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ship a container — ECR, CodeBuild and ECS on Fargate · Pipeline Academy</title>
+<meta name="description" content="In Lab 2 you copied one HTML file into an Apache you had installed by hand. Today you ship the whole thing: the operating system userland, the runtime, the app, in one immutable image that a robot builds, a registry stores and an orchestrator runs. Nothing gets installed on your laptop. Not even Docker.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0B1220">
+<script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1220'/%3E%3Ccircle cx='8' cy='16' r='4' fill='%2322C55E'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2338BDF8'/%3E%3Ccircle cx='24' cy='16' r='4' fill='%23F59E0B'/%3E%3C/svg%3E">
+</head>
+<body data-page="lab4">
+<a class="skip" href="#main">Skip to content</a>
+<div id="readbar" aria-hidden="true"></div>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"/><circle cx="8" cy="16" r="4" fill="#22C55E"/><circle cx="16" cy="16" r="4" fill="#38BDF8"/><circle cx="24" cy="16" r="4" fill="#F59E0B"/><path d="M12 16h0M20 16h0" stroke="#fff"/></svg>Pipeline Academy <span>· AWS CI/CD labs</span></a>
+  <nav class="nav" aria-label="Labs">
+      <a href="index.html">Start here</a>
+      <a href="lab1.html" data-lab="lab1" style="--d:#38BDF8"><span class="dot"></span>Lab 1<span class="lbl-long"> · Build it</span><span class="done">★</span></a>
+      <a href="lab2.html" data-lab="lab2" style="--d:#22C55E"><span class="dot"></span>Lab 2<span class="lbl-long"> · Ship it</span><span class="done">★</span></a>
+      <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
+      <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B" aria-current="page"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
+      <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+  </nav>
+  <div class="tools">
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+    <button class="iconbtn menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div></header>
+
+<section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
+  <div>
+    <p class="eyebrow">Lab 4 of 5 · Contain it</p>
+    <h1>Ship a container — ECR, CodeBuild and ECS on Fargate</h1>
+    <p class="lede">In Lab 2 you copied one HTML file into an Apache you had installed by hand. Today you ship the whole thing: the operating system userland, the runtime, the app, in one immutable image that a robot builds, a registry stores and an orchestrator runs. Nothing gets installed on your laptop. Not even Docker.</p>
+    <div class="mast-meta"><span class="chip"><b>Time</b> 90–110 minutes (core ≈ 65, exercises ≈ 35)</span><span class="chip"><b>Difficulty</b> Intermediate. Labs 1–3 first; container experience not required.</span><span class="chip"><b>AWS services</b> Amazon ECR, CodeBuild, Amazon ECS (Fargate), CloudWatch Logs, EC2 (security groups, optional load balancer), IAM</span><span class="chip"><b>You will build</b> A container image of a small web app, built by CodeBuild and pushed to your own ECR repository · an ECS cluster, task definition and service running two copies on Fargate · a rolling update to a new version</span><span class="chip"><b>You will break & fix</b> A build that cannot log in to ECR · a deployment of an image tag that does not exist · a container you crash on purpose</span></div>
+  </div>
+</div></section>
+
+<main id="main" class="labwrap">
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</a></li><li><a href="#part-1-get-the-app">Part 1 · Get the app</a></li><li><a href="#part-2-create-your-ecr-repository">Part 2 · Create your ECR repository</a></li><li><a href="#part-3-source-bucket">Part 3 · Source bucket</a></li><li><a href="#part-4-the-build-project-and-its-first-failure">Part 4 · The build project — and its first failure</a></li><li><a href="#part-5-ecs-cluster">Part 5 · ECS cluster</a></li><li><a href="#part-6-task-definition-the-recipe">Part 6 · Task definition (the recipe)</a></li><li><a href="#part-7-service-keep-two-running">Part 7 · Service (keep two running)</a></li><li><a href="#part-8-ship-v3-with-a-rolling-update">Part 8 · Ship v3 with a rolling update</a></li><li><a href="#part-9-exercises">Part 9 · Exercises</a></li><li><a href="#part-10-clean-up-please-do-this-fargate-bills-by-the-second">Part 10 · Clean up (please do this; Fargate bills by the second)</a></li><li><a href="#part-11-what-you-learned">Part 11 · What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your number.</strong> Everywhere you see <code>NN</code>, type your own two digits. Everything you name today contains it: <code>participant-NN-mission-control</code>, <code>participant-NN-cluster</code>, <code>cicd-lab4-participant-NN</code>.</p>
+<p><strong>Your region.</strong> US West (Oregon) · <code>us-west-2</code>.</p>
+</div></div>
+<hr>
+<h2 id="part-0-the-idea-in-five-minutes">Part 0 · The idea in five minutes</h2>
+<h3>Why containers?</h3>
+<p>A deployment in Lab 2 assumed a lot about the server: that Apache could be installed, that <code>systemctl</code> existed, that nothing else was listening on port 80. Containers remove the assumptions by shipping the environment <em>with</em> the app. A <strong>container image</strong> is a read-only stack of filesystem layers (an OS userland, a Python runtime, your code) plus a little metadata (which command to run, which port to expose). A <strong>container</strong> is a running copy of an image with its own isolated filesystem, network and process tree. Any machine with a container runtime can run it, identically.</p>
+<p><img class="diagram" src="images/diagrams/containers-stack.svg" alt="A container's life" loading="lazy"></p>
+<h3>The four places an image goes</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Service</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Build</strong></td>
+<td>CodeBuild</td>
+<td>Reads a <code>Dockerfile</code>, executes it line by line in a throw-away container, produces an image. Your laptop is not involved.</td>
+</tr>
+<tr>
+<td><strong>Store</strong></td>
+<td>Amazon ECR (Elastic Container Registry)</td>
+<td>A private, per-account registry. Images are pushed with a <strong>tag</strong> (<code>v3</code>) and identified precisely by a <strong>digest</strong> (<code>sha256:…</code>). Can scan images for known vulnerabilities.</td>
+</tr>
+<tr>
+<td><strong>Orchestrate</strong></td>
+<td>Amazon ECS (Elastic Container Service)</td>
+<td>You declare &quot;run 2 copies of this task definition&quot;; ECS finds room, starts them, replaces them when they die, rolls out new versions without downtime.</td>
+</tr>
+<tr>
+<td><strong>Run</strong></td>
+<td>AWS Fargate</td>
+<td>Serverless compute for containers: you specify CPU and memory per task and never see, patch or pay for an idle server.</td>
+</tr>
+</tbody></table>
+<h3>ECS vocabulary (there are only five words)</h3>
+<table>
+<thead>
+<tr>
+<th>Word</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Cluster</strong></td>
+<td>A logical group for tasks and services. With Fargate it holds no servers; it is a namespace with a bill.</td>
+</tr>
+<tr>
+<td><strong>Task definition</strong></td>
+<td>The versioned recipe for one unit of work: image, CPU/memory, ports, environment variables, health check, logging, IAM roles. Every edit creates a new <strong>revision</strong>; revisions are immutable.</td>
+</tr>
+<tr>
+<td><strong>Task</strong></td>
+<td>One running instance of a task definition (one or more containers). Ephemeral: when it stops, it is gone.</td>
+</tr>
+<tr>
+<td><strong>Service</strong></td>
+<td>&quot;Keep N tasks of revision R running, behind this load balancer, and replace them gracefully when I change R.&quot; Owns the rolling update and the <strong>circuit breaker</strong>.</td>
+</tr>
+<tr>
+<td><strong>Task execution role / task role</strong></td>
+<td>Two different robots. The <strong>execution role</strong> is what ECS uses to pull your image and ship logs <em>before</em> your code runs. The <strong>task role</strong> is what your code would use to call AWS APIs <em>while</em> it runs (this app needs none).</td>
+</tr>
+</tbody></table>
+<h3>The app: Mission Control</h3>
+<p>A tiny Python web app whose only job is to tell you <strong>where it is running</strong>: container hostname, image version, uptime, a per-container hit counter and, on ECS, the task ID and availability zone. That makes everything an orchestrator does <em>visible</em>: refresh the page and watch the hostname change as a load balancer spreads requests; ship a new version and watch the version badge flip while the old tasks drain.</p>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Students, read the Dockerfile.</strong> It is twelve lines and every line teaches something:</p>
+<pre><code class="language-dockerfile">FROM public.ecr.aws/docker/library/python:3.12-slim   # base layer from the public ECR gallery (no Docker Hub rate limits)
+ARG APP_VERSION=dev                                   # a value passed in at build time…
+ENV APP_VERSION=$APP_VERSION PORT=8080 PYTHONUNBUFFERED=1   # …baked into the image as an env var
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt    # dependencies first: this layer is cached until requirements change
+COPY app.py .                                          # code last: changes here rebuild only this thin layer
+RUN useradd --system --no-create-home mission &amp;&amp; chown -R mission /app
+USER mission                                           # never run a web app as root
+EXPOSE 8080
+HEALTHCHECK … CMD python -c &quot;…urlopen(&#39;http://127.0.0.1:8080/health&#39;)…&quot;
+CMD [&quot;python&quot;, &quot;app.py&quot;]
+</code></pre>
+</div></div>
+<hr>
+<h2 id="part-1-get-the-app">Part 1 · Get the app</h2>
+<p>Download <strong><a href="downloads/app.zip"><code>lab4-ecs/app.zip</code></a></strong> (or the folder <a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab4-ecs/app/"><code>lab4-ecs/app/</code></a>). Contents:</p>
+<pre><code>app/
+├── Dockerfile          ← how to build the image (above)
+├── app.py              ← the web app (Flask, ~120 lines, heavily commented)
+├── requirements.txt    ← flask, pinned
+├── buildspec.yml       ← the CodeBuild recipe: log in to ECR, docker build, docker push
+└── .dockerignore       ← keep the buildspec and zips out of the image
+</code></pre>
+<p>Read <code>buildspec.yml</code>:</p>
+<pre><code class="language-yaml">version: 0.2
+phases:
+  pre_build:
+    commands:
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGISTRY=${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+      - REPO_URI=${REGISTRY}/${REPO_NAME}            # REPO_NAME comes from a project environment variable
+      - IMAGE_TAG=v${CODEBUILD_BUILD_NUMBER}          # v1, v2, v3 … one immutable tag per build
+      - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REGISTRY}
+  build:
+    commands:
+      - docker build --build-arg APP_VERSION=${IMAGE_TAG} -t ${REPO_URI}:${IMAGE_TAG} -t ${REPO_URI}:latest .
+  post_build:
+    commands:
+      - docker push ${REPO_URI}:${IMAGE_TAG}
+      - docker push ${REPO_URI}:latest
+      - printf &#39;{&quot;image&quot;:&quot;%s:%s&quot;}\n&#39; &quot;${REPO_URI}&quot; &quot;${IMAGE_TAG}&quot; &gt; image.json
+artifacts:
+  files: [image.json]
+</code></pre>
+<p>Three things to notice: the build <em>logs in</em> to ECR with a short-lived token obtained through its IAM role (no password anywhere); the image gets <strong>two</strong> tags, a permanent <code>vN</code> and a moving <code>latest</code>; and the build number becomes the app&#39;s version string via <code>--build-arg</code>.</p>
+<hr>
+<h2 id="part-2-create-your-ecr-repository">Part 2 · Create your ECR repository</h2>
+<ol>
+<li>Console → <strong>Elastic Container Registry</strong> (search &quot;ECR&quot;) → <strong>Private registry → Repositories</strong> → <strong>Create repository</strong>.</li>
+<li>Repository name: <strong><code>participant-NN-mission-control</code></strong>.</li>
+<li>Image tag mutability: <strong>Mutable</strong> (we re-point <code>latest</code> on every build; <code>vN</code> tags are never reused anyway). Encryption: default.</li>
+<li>If an <strong>Image scanning settings</strong> section is shown, enable <strong>Scan on push</strong>. <em>(This account uses registry-level &quot;enhanced&quot; scanning through Amazon Inspector, so the repository-level switch may not appear; that is fine.)</em></li>
+<li><strong>Create repository</strong>. Open it: it is empty, and the <strong>View push commands</strong> button shows what a laptop would run. We will let CodeBuild run the equivalent.</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecr-create-repository.png" alt="Create repository" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-ecr-repo-empty.png" alt="Empty repository" loading="lazy" title="Click to zoom"></p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — The repository URI is <code>962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control</code>. You will paste that URI (plus a tag) into a task definition later.</p>
+</blockquote>
+<hr>
+<h2 id="part-3-source-bucket">Part 3 · Source bucket</h2>
+<ol>
+<li><strong>S3</strong> → <strong>Create bucket</strong> → <strong><code>cicd-lab4-participant-NN</code></strong>, Oregon, defaults. (Versioning is not needed: we start builds by hand in this lab.)</li>
+<li>Upload <strong><code>app.zip</code></strong> to the root of the bucket.</li>
+</ol>
+<hr>
+<h2 id="part-4-the-build-project-and-its-first-failure">Part 4 · The build project — and its first failure</h2>
+<ol>
+<li><strong>CodeBuild</strong> → <strong>Create build project</strong>.</li>
+<li>Project name <strong><code>participant-NN-image-build</code></strong>.</li>
+<li><strong>Source:</strong> Amazon S3 · bucket <code>cicd-lab4-participant-NN</code> · key <code>app.zip</code>.</li>
+<li><strong>Environment:</strong> Managed image · Amazon Linux · Standard · newest <code>aws/codebuild/amazonlinux-x86_64-standard:…</code> image · <strong>Service role: New service role</strong> (accept the name).<ul>
+<li>Expand <strong>Additional configuration</strong> and tick <strong>Privileged</strong> (&quot;Enable this flag if you want to build Docker images&quot;). <em>Building an image needs a Docker daemon inside the build container; this flag allows it.</em></li>
+<li>Still under Additional configuration → <strong>Environment variables</strong> → add <strong><code>REPO_NAME</code></strong> = <strong><code>participant-NN-mission-control</code></strong> (Plaintext).</li>
+</ul>
+</li>
+<li><strong>Buildspec:</strong> Use a buildspec file (default name).</li>
+<li><strong>Artifacts:</strong> No artifacts. <strong>Logs:</strong> CloudWatch on.</li>
+<li><strong>Create build project</strong> → <strong>Start build</strong>.</li>
+</ol>
+<p>The build fails in about 30 seconds.</p>
+<p><img class="shot" src="images/lab4-build1-failed.png" alt="Build 1 failed" loading="lazy" title="Click to zoom"></p>
+<h3>🔧 Troubleshooting exercise 1 — &quot;not authorized to perform: ecr:GetAuthorizationToken&quot;</h3>
+<p>Find out why and fix it without editing any file.</p>
+<details class="reveal hint"><summary>💡 Hint 1 — which phase, which command</summary><div class="body">
+
+<p><strong>Phase details:</strong> <code>PRE_BUILD</code> failed on the <code>aws ecr get-login-password … | docker login …</code> command. So the build could not <em>log in</em> to the registry. Who was trying to log in?</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — the sentence</summary><div class="body">
+
+<p><img class="shot" src="images/lab4-build1-failed-log.png" alt="The error" loading="lazy" title="Click to zoom"></p>
+<pre><code>AccessDeniedException … User: arn:aws:sts::…:assumed-role/codebuild-participant-NN-image-build-service-role/…
+is not authorized to perform: ecr:GetAuthorizationToken on resource: *
+</code></pre>
+<p>The principal is the build project&#39;s <strong>service role</strong> (robot #1 from Lab 2&#39;s map). The wizard gave it permission to read S3 and write logs, and nothing about ECR. Which robot, which verb, which resource: that is the whole diagnosis.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>IAM → Roles → <code>codebuild-participant-NN-image-build-service-role</code> → <strong>Add permissions → Attach policies</strong> → search <strong><code>AmazonEC2ContainerRegistryPowerUser</code></strong> → attach. (It grants login, pull and push to any repository in the account. Challenge D below asks you to scope it to <em>your</em> repository.)</p>
+<p><img class="shot" src="images/lab4-iam-codebuild-role-before.png" alt="Role before" loading="lazy" title="Click to zoom"></p>
+<p>Wait ~15 s, then <strong>Retry build</strong> (or Start build). This time:</p>
+<p><img class="shot" src="images/lab4-build2-succeeded.png" alt="Build 2 succeeded" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-build2-succeeded-log.png" alt="Pushed" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-build2-phases.png" alt="All phases green" loading="lazy" title="Click to zoom"></p>
+<p>The log ends with layer pushes and <code>Pushed …/participant-NN-mission-control:v2</code>. <strong>Your tag is <code>v&lt;build number&gt;</code></strong>, so if your first build failed your first image is <code>v2</code>. Write your tag down.</p>
+<p><strong>The lesson:</strong> CI that produces container images needs <em>registry</em> permissions in addition to source and log permissions. The error names the role; add the verb to the role.</p>
+</div></details>
+
+<h3>Look at what you built</h3>
+<p>ECR → your repository. One image, two tags (<code>latest</code>, <code>v2</code>), ~49 MB, a digest, and (after a minute) a vulnerability scan.</p>
+<p><img class="shot" src="images/lab4-ecr-images.png" alt="Images" loading="lazy" title="Click to zoom"></p>
+<p>Click the image → <strong>Vulnerabilities</strong>. Scanning runs in the background and can take several minutes to report; a freshly rebuilt <code>python:3.12-slim</code> base may show zero findings, an older one a handful of low/medium CVEs inherited from Debian packages. Either way the point stands: most of an image&#39;s vulnerabilities come from layers you did not write, which is why teams rebuild images on a schedule even when their own code has not changed.</p>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Build time.</strong> Build 2 took ~35 s. Most of it was pulling the base image and <code>pip install</code>. Because the Dockerfile copies <code>requirements.txt</code> <em>before</em> <code>app.py</code>, a change to the app alone reuses the cached dependency layer. Order in a Dockerfile is a performance decision.</p>
+</div></div>
+<hr>
+<h2 id="part-5-ecs-cluster">Part 5 · ECS cluster</h2>
+<ol>
+<li><strong>Elastic Container Service</strong> → <strong>Clusters</strong> → <strong>Create cluster</strong>.</li>
+<li>Cluster name <strong><code>participant-NN-cluster</code></strong>. Infrastructure: <strong>AWS Fargate (serverless)</strong> only. Leave monitoring off. <strong>Create</strong>.</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-cluster-create.png" alt="Create cluster" loading="lazy" title="Click to zoom"></p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Clusters list shows yours with 0 services, 0 tasks. You will also see fourteen other students&#39; clusters; leave them alone.</p>
+</blockquote>
+<p><img class="shot" src="images/lab4-ecs-clusters.png" alt="Clusters" loading="lazy" title="Click to zoom"></p>
+<hr>
+<h2 id="part-6-task-definition-the-recipe">Part 6 · Task definition (the recipe)</h2>
+<ol>
+<li>ECS → <strong>Task definitions</strong> → <strong>Create new task definition</strong> (not &quot;with JSON&quot;).</li>
+<li><strong>Task definition family:</strong> <code>participant-NN-mission-control</code>.</li>
+<li><strong>Infrastructure requirements:</strong> Launch type <strong>AWS Fargate</strong> · OS/Architecture <strong>Linux/X86_64</strong> · Network mode <strong>awsvpc</strong> · <strong>Task size: 0.25 vCPU, 0.5 GB</strong> · <strong>Task role: none</strong> · <strong>Task execution role: <code>ecsTaskExecutionRole</code></strong> (it already exists in this account; <code>cicd-lab4-task-execution-role</code> also works).</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-task-definition-create.png" alt="Task definition – infrastructure" loading="lazy" title="Click to zoom"></p>
+<ol start="4">
+<li><strong>Container 1:</strong><ul>
+<li>Name <strong><code>web</code></strong> · Image URI <strong><code>962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v2</code></strong> (your tag!) · Essential container: Yes</li>
+<li>Port mappings: container port <strong>8080</strong>, TCP, port name <code>web-8080</code>, app protocol HTTP</li>
+<li><strong>Environment variables:</strong> <code>MISSION_NAME</code> = <code>Artemis-NN</code> · <code>APP_COLOR</code> = <code>#22C55E</code></li>
+<li><strong>Logging:</strong> keep <strong>Use log collection</strong> ticked (Amazon CloudWatch; the default log group name <code>/ecs/participant-NN-mission-control</code> is fine)</li>
+<li>Expand <strong>HealthCheck</strong> → Command:<pre><code>CMD-SHELL, python -c &quot;import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(&#39;http://127.0.0.1:8080/health&#39;, timeout=2).status==200 else 1)&quot;
+</code></pre>
+Interval 15 · Timeout 5 · Start period 10 · Retries 3.</li>
+</ul>
+</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-task-definition-create-2.png" alt="Task definition – container" loading="lazy" title="Click to zoom"></p>
+<ol start="5">
+<li>Leave storage, monitoring and tags alone → <strong>Create</strong>.</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-task-definition.png" alt="Task definition created" loading="lazy" title="Click to zoom"></p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>participant-NN-mission-control:1</code> exists. The <code>:1</code> is the <strong>revision</strong>. You will never edit it; you will create <code>:2</code>.</p>
+</blockquote>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Why a health check in the recipe?</strong> Without it ECS considers a task healthy the moment the process starts. With it, a task is only <em>healthy</em> once <code>/health</code> answers 200, and a task whose health check fails three times is killed and replaced. The service&#39;s rolling update waits for <em>healthy</em>, not merely <em>running</em>. This is the Lab 3 &quot;green is not correct&quot; lesson built into the platform.</p>
+</div></div>
+<hr>
+<h2 id="part-7-service-keep-two-running">Part 7 · Service (keep two running)</h2>
+<ol>
+<li>Your cluster → <strong>Services</strong> tab → <strong>Create</strong>.</li>
+<li><strong>Environment:</strong> Compute options <strong>Launch type</strong> · Launch type <strong>FARGATE</strong> · Platform version LATEST.</li>
+<li><strong>Deployment configuration:</strong> Application type <strong>Service</strong> · Family <code>participant-NN-mission-control</code> · Revision <strong>1 (LATEST)</strong> · Service name <strong><code>participant-NN-svc</code></strong> · Desired tasks <strong>2</strong>.<ul>
+<li>Expand <strong>Deployment options</strong>: Rolling update · Min running 100 % · Max running 200 % · <strong>Deployment failure detection: use the Amazon ECS deployment circuit breaker, with Rollback on failures</strong> (both ticked).</li>
+</ul>
+</li>
+<li><strong>Networking:</strong> default VPC · all four default subnets · Security group <strong>Create a new security group</strong> named <strong><code>participant-NN-mission-sg</code></strong> · inbound rule <strong>Custom TCP, port 8080, Anywhere (0.0.0.0/0)</strong> · <strong>Public IP: Turned on</strong>.</li>
+<li>Leave Load balancing <strong>off</strong> for now (Challenge C adds one). → <strong>Create</strong>.</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-service-create.png" alt="Create service" loading="lazy" title="Click to zoom"></p>
+<p>ECS now provisions two tasks: each gets its own network interface and public IP (that is what <code>awsvpc</code> mode means), pulls the image, starts, and waits for the health check.</p>
+<p><img class="shot" src="images/lab4-ecs-service-tasks.png" alt="Service tasks" loading="lazy" title="Click to zoom"></p>
+<ol start="6">
+<li><strong>Find a task&#39;s public IP:</strong> Tasks tab → click a task → <strong>Configuration</strong> → <em>Public IP</em>. Open <strong><code>http://&lt;public IP&gt;:8080/</code></strong>.</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-task-details.png" alt="Task details" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-webpage-v2.png" alt="Mission Control v2" loading="lazy" title="Click to zoom"></p>
+<ol start="7">
+<li><p>Open the <strong>second</strong> task&#39;s IP too. Different hostname, different hit counter, different availability zone. Two containers from one image share nothing at runtime.</p>
+</li>
+<li><p><strong>Logs</strong> tab on a task: your app&#39;s request log, streamed to CloudWatch by the execution role. The <code>/health</code> lines every 15 s are the container health check.</p>
+</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-task-logs.png" alt="Task logs" loading="lazy" title="Click to zoom"></p>
+<p>The <strong>Health and metrics</strong> tab shows the service&#39;s view: desired vs running, and CPU/memory per task.</p>
+<p><img class="shot" src="images/lab4-ecs-service-health.png" alt="Service health" loading="lazy" title="Click to zoom"></p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Service shows <em>2 running / 2 desired</em>, Deployment status <em>Success</em>; both IPs serve the page with the badge <strong>v2</strong>.</p>
+</blockquote>
+<hr>
+<h2 id="part-8-ship-v3-with-a-rolling-update">Part 8 · Ship v3 with a rolling update</h2>
+<p>The whole point of the pipeline is that v3 is cheap. Three steps: rebuild, new revision, update service.</p>
+<ol>
+<li><strong>Change the app.</strong> In <code>app.py</code> change the rocket emoji in the <code>&lt;h1&gt;</code> to a satellite (<code>🛰️</code>) and add a line to the <code>FACTS</code> list, for example <code>&quot;v3 shipped by a rolling update: a new task started, passed its health check, then the old one was stopped.&quot;</code>. Re-zip (from inside <code>app/</code>: <code>zip -r app.zip Dockerfile app.py requirements.txt buildspec.yml .dockerignore</code>), upload to S3, <strong>Start build</strong>. Note the new tag (<code>v3</code>).</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecr-images-v3.png" alt="v3 in ECR" loading="lazy" title="Click to zoom"></p>
+<ol start="2">
+<li><strong>New task definition revision.</strong> Task definitions → your family → select revision 1 → <strong>Create new revision</strong>. Change the image tag to <strong><code>:v3</code></strong> and <code>APP_COLOR</code> to <strong><code>#F59E0B</code></strong> → <strong>Create</strong>. You now have <code>:2</code>.</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-task-definition-rev2.png" alt="Revision 2" loading="lazy" title="Click to zoom"></p>
+<ol start="3">
+<li><strong>Update the service.</strong> Cluster → service → <strong>Update service</strong> → Revision <strong>2 (LATEST)</strong> → <strong>Update</strong>. Go to the <strong>Deployments</strong> tab and watch.</li>
+</ol>
+<p><img class="shot" src="images/lab4-ecs-service-deployments-rolling.png" alt="Rolling deployment in progress" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-ecs-service-tasks-rolling.png" alt="Tasks during the rollout" loading="lazy" title="Click to zoom"></p>
+<p>What you are seeing: ECS starts <strong>two new tasks</strong> (max 200 %) with revision 2, waits for their health checks, then stops the two old ones (never below 100 %). At no moment were there fewer than two healthy tasks. The new tasks have <strong>new public IPs</strong>; find one and open it:</p>
+<p><img class="shot" src="images/lab4-webpage-v3.png" alt="Mission Control v3" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-ecs-service-deployments-done.png" alt="Deployment complete" loading="lazy" title="Click to zoom"></p>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Config vs code.</strong> Changing <code>APP_COLOR</code> did not need a rebuild: it lives in the task definition, not the image. Changing the HTML did. Teams push <em>configuration</em> into task definitions (or Parameter Store / Secrets Manager references) so that the same image can run in dev, test and prod.</p>
+</div></div>
+<hr>
+<h2 id="part-9-exercises">Part 9 · Exercises</h2>
+<h3>Exercise A · Deploy an image that does not exist</h3>
+<p>Create revision <strong>3</strong> of the task definition with the tag <strong><code>:v99</code></strong> and update the service to it. Then investigate.</p>
+<details class="reveal hint"><summary>💡 Hint 1 — where to look</summary><div class="body">
+
+<p>Service → <strong>Tasks</strong> → change the filter to <em>Desired status: Stopped</em>. Click a stopped task. The <strong>Stopped reason</strong> says why. The <strong>Deployments</strong> tab and <strong>Events</strong> tab show the service&#39;s side of the story.</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — read it</summary><div class="body">
+
+<p><img class="shot" src="images/lab4-ecs-task-stopped-reason.png" alt="Stopped reason" loading="lazy" title="Click to zoom"></p>
+<p><code>CannotPullContainerError: … participant-NN-mission-control:v99: not found</code>. The <strong>execution role</strong> could log in (unlike Part 4), the repository exists, but the <em>tag</em> does not. ECS keeps trying new tasks; each one fails the same way.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution & what the circuit breaker does</summary><div class="body">
+
+<p><img class="shot" src="images/lab4-ecs-service-deployments-failing.png" alt="Failing deployment" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-ecs-service-events.png" alt="Service events" loading="lazy" title="Click to zoom"></p>
+<p>Because you enabled the <strong>deployment circuit breaker with rollback</strong>, ECS counts consecutive failed task launches and, after the threshold (about ten launches, several minutes), marks the deployment <strong>Failed</strong> and <strong>rolls back to revision 2</strong> by itself. Your v3 tasks were never stopped: the rollout never reached the &quot;stop old tasks&quot; step because no new task ever became healthy.</p>
+<p><img class="shot" src="images/lab4-ecs-service-deployments-rolledback.png" alt="Rolled back" loading="lazy" title="Click to zoom"></p>
+<p>If you do not want to wait, fix it yourself: <strong>Update service</strong> → revision 2 → Update.</p>
+<p><strong>The lesson:</strong> a rolling update with health checks and a circuit breaker turns &quot;we deployed a broken image&quot; from an outage into a log entry. Compare Lab 2, where a failed in-place deploy took the site down.</p>
+</div></details>
+
+<h3>Exercise B · Healthy but unreachable</h3>
+<p>EC2 → Security Groups → <code>participant-NN-mission-sg</code> → remove the inbound 8080 rule. Refresh the page: it hangs. Now look at the service: still <em>2 running</em>, health <em>Healthy</em>, deployment <em>Success</em>.</p>
+<details class="reveal plain"><summary>✅ Explanation</summary><div class="body">
+
+<p>The container health check runs <em>inside</em> the task against <code>127.0.0.1</code>; it proves the process answers, not that the internet can reach it. Reachability is a network property (security groups, routing, load balancer health checks). Put the rule back. In Challenge C the load balancer&#39;s own health check adds the outside-in view.</p>
+</div></details>
+
+<h3>Exercise C · Crash a container and watch ECS replace it</h3>
+<p>Open <code>http://&lt;task IP&gt;:8080/crash</code>. The app calls <code>os._exit(1)</code>.</p>
+<details class="reveal plain"><summary>✅ What happens</summary><div class="body">
+
+<p>The browser gets no response (the process died). Within a minute or two the task shows <strong>Stopped</strong>, reason <em>Essential container in task exited</em>, exit code 1 (it sits in <em>Deprovisioning</em> a little longer if a load balancer has to deregister it first). The service notices <em>running &lt; desired</em> and launches a replacement with a <strong>new task ID and IP</strong>.</p>
+<p><img class="shot" src="images/lab4-ecs-task-crashed.png" alt="Crashed task" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-ecs-service-events-selfheal.png" alt="Service events after self-healing" loading="lazy" title="Click to zoom"></p>
+<p>Nobody paged anyone. That is the &quot;supervise&quot; job of an orchestrator; Kubernetes does the same with restarts and ReplicaSets (Lab 5).</p>
+</div></details>
+
+<h3>Challenge D · Put a load balancer in front and scale to three</h3>
+<p>Right now each task has its own IP and users would have to know them. Give the service one stable address.</p>
+<details class="reveal hint"><summary>💡 Hint 1 — the pieces</summary><div class="body">
+
+<p>An <strong>Application Load Balancer</strong> (internet-facing, its own security group allowing port 80) → a <strong>listener</strong> on port 80 → a <strong>target group</strong> of type <strong>IP</strong> on port 8080 with health check path <code>/health</code>. Then <strong>Update service</strong>: attach the target group to container <code>web</code> port 8080 and set desired tasks to 3. The ALB&#39;s security group must be allowed into the task security group on 8080 (your rule already allows anywhere).</p>
+</div></details>
+
+<details class="reveal hint"><summary>💡 Hint 2 — console path</summary><div class="body">
+
+<p>EC2 → Load balancers → Create → Application Load Balancer, name <code>participant-NN-mission-alb</code>, all four subnets, new SG <code>participant-NN-alb-sg</code> with HTTP 80 from anywhere; under Listeners → &quot;Create target group&quot; (target type <strong>IP addresses</strong>, protocol HTTP 8080, health check <code>/health</code>), do <strong>not</strong> register targets by hand (ECS will). Back in ECS: service → Update → Load balancing → Application Load Balancer → use existing → pick the listener and target group → Desired tasks 3.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<p>After the update settles, Target groups shows <strong>3 healthy</strong> IP targets, and the ALB DNS name serves the page. Refresh it a dozen times: the <strong>hostname rotates</strong> across three containers while the URL stays the same.</p>
+<p><img class="shot" src="images/lab4-alb-webpage.png" alt="Through the ALB" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-alb-target-groups.png" alt="Three healthy targets" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-ecs-service-3-tasks.png" alt="Three tasks" loading="lazy" title="Click to zoom"></p>
+<p><img class="shot" src="images/lab4-ecs-service-health-alb.png" alt="Health and metrics with the load balancer attached" loading="lazy" title="Click to zoom"></p>
+<p>Two health checks now guard the service: the container&#39;s own (<code>/health</code> from inside) and the target group&#39;s (<code>/health</code> from the ALB). A task failing the second is deregistered <em>and</em> replaced.</p>
+<p><strong>Cost note:</strong> an ALB costs about US$0.02 per hour plus traffic. Delete it in the clean-up.</p>
+</div></details>
+
+<h3>Challenge E · Least privilege for the build role</h3>
+<p>Replace <code>AmazonEC2ContainerRegistryPowerUser</code> on the CodeBuild role with an inline policy that allows <code>ecr:GetAuthorizationToken</code> on <code>*</code> and push/pull actions only on <strong>your</strong> repository ARN.</p>
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    { &quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: &quot;ecr:GetAuthorizationToken&quot;, &quot;Resource&quot;: &quot;*&quot; },
+    { &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [&quot;ecr:BatchCheckLayerAvailability&quot;, &quot;ecr:InitiateLayerUpload&quot;, &quot;ecr:UploadLayerPart&quot;,
+                 &quot;ecr:CompleteLayerUpload&quot;, &quot;ecr:PutImage&quot;, &quot;ecr:BatchGetImage&quot;, &quot;ecr:GetDownloadUrlForLayer&quot;],
+      &quot;Resource&quot;: &quot;arn:aws:ecr:us-west-2:962804699607:repository/participant-NN-mission-control&quot; }
+  ]
+}
+</code></pre>
+<p><code>GetAuthorizationToken</code> is registry-wide by nature (it issues the login token); everything else can be pinned to one repository. Students cannot detach the managed policy in this account; ask the instructor, or verify the inline policy alone is sufficient by reading both.</p>
+</div></details>
+
+<hr>
+<h2 id="part-10-clean-up-please-do-this-fargate-bills-by-the-second">Part 10 · Clean up (please do this; Fargate bills by the second)</h2>
+<p>In this order:</p>
+<ol>
+<li>ECS → cluster → service → <strong>Delete service</strong> (tick <em>Force delete</em>). Wait until it is gone.</li>
+<li>ECS → cluster → <strong>Delete cluster</strong>.</li>
+<li>If you did Challenge D: EC2 → Load balancers → delete <code>participant-NN-mission-alb</code>; Target groups → delete <code>participant-NN-mission-tg</code>; Security groups → delete <code>participant-NN-alb-sg</code>.</li>
+<li>EC2 → Security groups → delete <code>participant-NN-mission-sg</code> (after the tasks are gone).</li>
+<li>ECS → Task definitions → your family → select all revisions → <strong>Deregister</strong> (then <em>Delete</em> if offered).</li>
+<li>ECR → repository → select all images → <strong>Delete</strong>; then delete the repository.</li>
+<li>CodeBuild → delete <code>participant-NN-image-build</code>. CloudWatch → Log groups → delete <code>/aws/codebuild/participant-NN-image-build</code> and <code>/ecs/participant-NN-mission-control</code>.</li>
+<li>S3 → empty and delete <code>cicd-lab4-participant-NN</code>.</li>
+<li>IAM roles stay; the instructor removes them.</li>
+</ol>
+<hr>
+<h2 id="part-11-what-you-learned">Part 11 · What you learned</h2>
+<ul>
+<li>An <strong>image</strong> is built once, from a Dockerfile, by CI; it carries its runtime with it; it is tagged per build and identified by digest.</li>
+<li>A <strong>registry</strong> (ECR) stores images privately, scans them, and is accessed through IAM roles with short-lived tokens.</li>
+<li>ECS separates the <strong>recipe</strong> (task definition, immutable revisions) from the <strong>intent</strong> (service: how many, how to roll) from the <strong>runtime</strong> (tasks on Fargate).</li>
+<li><strong>Two roles:</strong> execution role (pull + logs, before your code) vs task role (your code&#39;s AWS access).</li>
+<li><strong>Rolling updates</strong> start new before stopping old; <strong>health checks</strong> decide what &quot;ready&quot; means; the <strong>circuit breaker</strong> turns a bad image into an automatic rollback.</li>
+<li><strong>Healthy ≠ reachable</strong> (Exercise B) and <strong>orchestrators self-heal</strong> (Exercise C).</li>
+<li><strong>Config lives in the task definition</strong>, code lives in the image.</li>
+</ul>
+<h3>Quiz yourself</h3>
+<details class="reveal quiz"><summary>1. A task stops with CannotPullContainerError. Name three different root causes and how you would tell them apart.</summary><div class="body">
+
+<p>(a) Tag does not exist – message says <code>not found</code>; (b) the execution role lacks ECR permissions – message says <code>AccessDenied</code>/<code>not authorized</code>; (c) the task has no route to ECR – message mentions a timeout / <code>ResourceInitializationError</code> (tasks in private subnets without NAT or VPC endpoints). The <em>text</em> of the stopped reason differs in each case.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>2. You changed an environment variable. Do you need a new image, a new task definition revision, or both?</summary><div class="body">
+
+<p>A new revision only. Images are for code; task definitions are for configuration. (Lab 4 Part 8 changed <code>APP_COLOR</code> this way.)</p>
+</div></details>
+
+<details class="reveal quiz"><summary>3. Why does the service never drop below two healthy tasks during an update?</summary><div class="body">
+
+<p>Min running 100 % and max 200 %: ECS may add tasks up to double the desired count but may not remove any until replacements are healthy. Health is defined by the task definition&#39;s health check (and the target group&#39;s, if attached).</p>
+</div></details>
+
+<details class="reveal quiz"><summary>4. Why is `latest` a bad tag to put in a task definition?</summary><div class="body">
+
+<p>It is a moving pointer: the revision would deploy whatever was pushed last, so two deployments of &quot;the same&quot; revision can run different code, and rollback becomes meaningless. Use <code>vN</code> (or a digest).</p>
+</div></details>
+
+<details class="reveal quiz"><summary>5. Which two IAM roles were involved in running your task, and what would break if each were missing?</summary><div class="body">
+
+<p>Execution role missing ECR/logs permissions: task never starts (pull or log-configuration error). Task role: nothing breaks for this app because it calls no AWS APIs; an app that reads S3 would get AccessDenied at run time.</p>
+</div></details>
+
+<p><strong>Next:</strong> <a href="lab5.html">Lab 5 – Kubernetes on EKS: the same ideas with different words</a></p>
+
+<div class="pager">
+  <a href="lab3.html"><small>Previous</small>← Lab 3 · The broken pipeline</a>
+  <a href="lab5.html" style="text-align:right"><small>Next</small>Lab 5 · Kubernetes on EKS →</a>
+</div>
+</main>
+<footer><span>Pipeline Academy · hands-on AWS CI/CD labs</span><span>Built from <code>labs/*.md</code> · screenshots taken in a real account, then torn down.</span></footer>
+<script src="assets/site.js"></script>
+</body>
+</html>

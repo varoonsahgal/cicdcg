@@ -1,0 +1,40 @@
+# Mission Control on Kubernetes · two replicas of your Lab 4 image (or the shared one).
+# Replace IMAGE below (the ECR URI from Lab 4, e.g. 962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mission-control
+  labels: { app: mission-control }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: mission-control }
+  template:
+    metadata:
+      labels: { app: mission-control }
+    spec:
+      containers:
+        - name: web
+          image: IMAGE
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MISSION_NAME
+              value: "Artemis-NN"
+            - name: APP_COLOR
+              value: "#A78BFA"
+            - name: NODE_NAME                      # the page shows which node served you
+              valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits:   { cpu: 250m, memory: 256Mi }
+          readinessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
