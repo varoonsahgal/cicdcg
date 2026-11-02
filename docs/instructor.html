@@ -25,6 +25,7 @@
       <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
       <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
       <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+      <a href="lab6.html" data-lab="lab6" style="--d:#F472B6"><span class="dot"></span>Lab 6<span class="lbl-long"> · Ship it safely</span><span class="done">★</span></a>
   </nav>
   <div class="tools">
     <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
@@ -42,7 +43,7 @@
 </div></section>
 
 <main id="main" class="labwrap">
-<details class="toc" open><summary>On this page</summary><ol><li><a href="#1-schedule-that-fits">1 · Schedule that fits</a></li><li><a href="#2-the-student-permission-model-read-this-first">2 · The student permission model (read this first)</a></li><li><a href="#3-pre-flight-checklist-15-minutes-the-day-before">3 · Pre-flight checklist (15 minutes, the day before)</a></li><li><a href="#4-lab-1-codebuild-facilitator-notes">4 · Lab 1 · CodeBuild — facilitator notes</a></li><li><a href="#5-lab-2-codepipeline-codedeploy-facilitator-notes">5 · Lab 2 · CodePipeline + CodeDeploy — facilitator notes</a></li><li><a href="#6-lab-3-the-broken-pipeline-setup-answer-key-operations">6 · Lab 3 · The broken pipeline — setup, answer key, operations</a></li><li><a href="#7-lab-4-ecr-codebuild-ecs-fargate-facilitator-notes">7 · Lab 4 · ECR + CodeBuild + ECS Fargate — facilitator notes</a></li><li><a href="#8-lab-5-eks-shared-cluster-per-student-namespaces">8 · Lab 5 · EKS — shared cluster, per-student namespaces</a></li><li><a href="#9-teardown-for-the-whole-course">9 · Teardown for the whole course</a></li><li><a href="#10-regenerating-screenshots-or-pages">10 · Regenerating screenshots or pages</a></li></ol></details><hr>
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#1-schedule-that-fits">1 · Schedule that fits</a></li><li><a href="#2-the-student-permission-model-read-this-first">2 · The student permission model (read this first)</a></li><li><a href="#3-pre-flight-checklist-15-minutes-the-day-before">3 · Pre-flight checklist (15 minutes, the day before)</a></li><li><a href="#4-lab-1-codebuild-facilitator-notes">4 · Lab 1 · CodeBuild — facilitator notes</a></li><li><a href="#5-lab-2-codepipeline-codedeploy-facilitator-notes">5 · Lab 2 · CodePipeline + CodeDeploy — facilitator notes</a></li><li><a href="#6-lab-3-the-broken-pipeline-setup-answer-key-operations">6 · Lab 3 · The broken pipeline — setup, answer key, operations</a></li><li><a href="#7-lab-4-ecr-codebuild-ecs-fargate-facilitator-notes">7 · Lab 4 · ECR + CodeBuild + ECS Fargate — facilitator notes</a></li><li><a href="#8-lab-5-eks-shared-cluster-per-student-namespaces">8 · Lab 5 · EKS — shared cluster, per-student namespaces</a></li><li><a href="#9-lab-6-release-strategies-on-ecs-facilitator-notes">9 · Lab 6 · Release strategies on ECS — facilitator notes</a></li><li><a href="#10-teardown-for-the-whole-course">10 · Teardown for the whole course</a></li><li><a href="#11-regenerating-screenshots-or-pages">11 · Regenerating screenshots or pages</a></li></ol></details><hr>
 <h2 id="1-schedule-that-fits">1 · Schedule that fits</h2>
 <table>
 <thead>
@@ -96,6 +97,13 @@
 <td>125 min with challenges A–D · ~175 min with all ten</td>
 <td>Cluster must be applied ~20 min before; the shared fallback image must be rebuilt from the new <code>app.zip</code>; see §8</td>
 </tr>
+<tr>
+<td>Day 3 (or an advanced track)</td>
+<td><strong>Lab 6 · Release strategies on ECS</strong></td>
+<td>2 h 15 (Parts 1–7)</td>
+<td>+10–20 min per challenge</td>
+<td>Push the shared images first (§9). About an hour of it is real deployments running: use the waits for discussion</td>
+</tr>
 </tbody></table>
 <p>Measured machine time per pipeline round in Lab 3: <strong>~2 minutes</strong> (poll ≤ 60 s, build ≈ 30 s, deploy ≈ 35 s). Six rounds ≈ 12 minutes of waiting; the rest is reading.</p>
 <hr>
@@ -140,6 +148,7 @@
 <li><input disabled="" type="checkbox"> Windows students edit <code>.sh</code> files in VS Code with <strong>LF</strong> line endings (Lab 2 warns them). A CRLF hook script fails on the server with <code>/bin/bash^M: bad interpreter</code>; the repo&#39;s <code>.gitattributes</code> keeps clones LF.</li>
 <li><input disabled="" type="checkbox"> Publish the handout site (the <code>docs/</code> folder on GitHub Pages) and the lab Markdown (wiki or repo).</li>
 <li><input disabled="" type="checkbox"> Lab 3 only: <code>terraform apply</code> the night before or 15 minutes before (§6).</li>
+<li><input disabled="" type="checkbox"> Lab 6 only: <code>tools/push-lab6-images.sh</code> once (§9), then check the four tags exist.</li>
 </ul>
 <hr>
 <h2 id="4-lab-1-codebuild-facilitator-notes">4 · Lab 1 · CodeBuild — facilitator notes</h2>
@@ -688,7 +697,94 @@ terraform -chdir=lab5-eks/terraform/cluster  destroy      # ~10 min
 </code></pre>
 <p>If a load balancer is left behind, the cluster destroy fails on the security group / ENI; delete the orphaned Classic LB in EC2 → Load balancers and re-run.</p>
 <hr>
-<h2 id="9-teardown-for-the-whole-course">9 · Teardown for the whole course</h2>
+<h2 id="9-lab-6-release-strategies-on-ecs-facilitator-notes">9 · Lab 6 · Release strategies on ECS — facilitator notes</h2>
+<p><strong>Before class (5 minutes, once per course):</strong> <code>tools/push-lab6-images.sh</code> builds the four Galactic Pizza releases for <code>linux/amd64</code> and pushes them to the shared, immutable ECR repository <code>pipeline-academy/galactic-pizza</code> (tags <code>1.0</code> … <code>1.3</code>). Every student&#39;s task definition pulls from there with the account&#39;s <code>ecsTaskExecutionRole</code>. Needs Docker with buildx on your laptop and the admin profile. Check: <code>aws ecr describe-images --repository-name pipeline-academy/galactic-pizza --query &#39;imageDetails[].imageTags[]&#39;</code>.</p>
+<p><strong>Permissions:</strong> checked with the IAM policy simulator for <code>participant-01</code>: <code>ecs:*</code> (including <code>ContinueServiceDeployment</code>, <code>StopServiceDeployment</code>, <code>ListServiceDeployments</code>), <code>elasticloadbalancing:*</code>, <code>lambda:CreateFunction</code>/<code>InvokeFunction</code>, <code>cloudwatch:PutMetricAlarm</code>, <code>application-autoscaling:*</code>, <code>iam:CreateRole</code>/<code>AttachRolePolicy</code>/<code>PutRolePolicy</code>/<code>PassRole</code>, EC2 security groups in us-west-2. All allowed. Each student creates two roles that only you can delete: <code>participant-NN-ecs-infra-role</code> and <code>participant-NN-menu-walker-role</code>.</p>
+<p><strong>Student creates:</strong> security groups <code>participant-NN-pizza-alb-sg</code> / <code>-task-sg</code>, target groups <code>participant-NN-pizza-blue</code> / <code>-green</code>, ALB <code>participant-NN-pizza-alb</code> (listeners 80 + 8080, one <code>/*</code> rule each), cluster <code>participant-NN-pizza</code>, log group <code>/ecs/participant-NN-pizza</code>, service <code>participant-NN-pizza-svc</code>, alarm <code>participant-NN-pizza-5xx</code>, Lambda <code>participant-NN-menu-walker</code>, the two roles above; optionally a scalable target and a header rule (challenges).</p>
+<p><strong>How it was verified (2026-11-01/02, <code>instructor-01</code> playing participant-01, every command in the guide run as written, with CLI v1 locally; CloudShell has v2):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Measured</th>
+<th>Watch for</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Part 2 plumbing</td>
+<td>commands ≈ 40 s; ALB active ≈ 2–3 min</td>
+<td><code>SUBNETS</code> uses the four default subnets; ALB names ≤ 32 characters (fine for <code>participant-NN-…</code>)</td>
+</tr>
+<tr>
+<td>Part 3 service on 1.0</td>
+<td>stable in 86 s</td>
+<td>page shows <em>PRODUCTION listener :80</em>; <code>:8080</code> returns 503 until the first blue/green (green TG empty)</td>
+</tr>
+<tr>
+<td>Part 3 rolling 1.0 → 1.1</td>
+<td>3½ min; both releases served for ≈ 90 s; 47 <em>not on menu</em> 404s (Saturn Rings ordered from a 1.0 task)</td>
+<td>students think the yellow is a bug in the board; it is the lesson (version skew)</td>
+</tr>
+<tr>
+<td>Part 4a strategy switch</td>
+<td>starts a blue/green deployment of the same revision: SCALE_UP 60 s → TEST 28 s → PRODUCTION 22 s → BAKE 3 min → CLEAN_UP 11 s; ≈ 5 min total</td>
+<td>afterwards the production rule points at the <strong>green</strong> TG; the colours alternate every deployment</td>
+</tr>
+<tr>
+<td>Part 4b pause</td>
+<td><code>POST_TEST_TRAFFIC_SHIFT</code> after ≈ 1½ min; <code>:8080</code> serves 1.2, <code>:80</code> still 1.1; console shows <em>Pause hooks · Awaiting action · Take action</em></td>
+<td><code>list-service-deployments</code> needs a few seconds before a brand-new deployment is listed first (<code>watch_deploy</code> sleeps 5 s)</td>
+</tr>
+<tr>
+<td>Part 4d/e 1.2 in production, manual rollback</td>
+<td>1.2 served 100 % for 98 s, <strong>255 pizzas burnt</strong> at 10 orders/s; after <code>stop-service-deployment --stop-type ROLLBACK</code> the board was back on 1.1 in ≈ 6 s; <code>ROLLBACK_SUCCESSFUL</code> ≈ 2½ min later</td>
+<td>students who ordered pineapple on <code>:8080</code> found the bug: celebrate, then let the manager overrule them</td>
+</tr>
+<tr>
+<td>Part 5a alarm</td>
+<td><strong>starts in ALARM</strong> right after Part 4 and stayed there 5 min (ALB metrics lag; last datapoint re-evaluated)</td>
+<td>they must wait for <code>OK</code> before 5c or the canary rolls back immediately</td>
+</tr>
+<tr>
+<td>Part 5c canary 10 % / 5 min</td>
+<td>prod shift 09:42:19 → alarm 09:45:31 → rollback start 09:46:03 → <code>ROLLBACK_SUCCESSFUL</code> 09:47:15; <strong>51 burnt</strong>; console: <em>Circuit breaker 0/3 failed tasks · Alarms Triggered 1/1</em></td>
+<td>detection takes &gt; 3 min: say so before they ask; the board needs to keep running (10/s) or the alarm never reaches 5/min</td>
+</tr>
+<tr>
+<td>Part 6 Lambda gate</td>
+<td>walker by hand vs prod: 15/15 ok; gated deploy: SCALE_UP 1½ min → TEST 30 s → hook FAILED → rollback; <code>ROLLBACK_SUCCESSFUL</code> ≈ 3 min after start; <strong>0 customer orders on 1.2</strong> (3 252 orders on the board, all 1.1)</td>
+<td><code>--cli-binary-format raw-in-base64-out</code> is required by CLI v2 (CloudShell) and unknown to v1; the role needs ≈ 10 s before <code>create-function</code> accepts it</td>
+</tr>
+<tr>
+<td>Part 7 linear 25 % / 1 min</td>
+<td>walker 15/15 on 1.3; production shift 4 min 43 s; whole deployment ≈ 9½ min; alarm stayed OK; three <code>sigterm</code> log lines from the retired tasks</td>
+<td>the longest wait of the day: a good moment for the strategy-design discussion (Challenge F)</td>
+</tr>
+<tr>
+<td>Challenge A Logs Insights</td>
+<td>per-release table returned in ≈ 10 s</td>
+<td><code>sum(status = 500)</code> works on auto-discovered JSON fields</td>
+</tr>
+<tr>
+<td>Challenge C Fargate Spot</td>
+<td><code>put-cluster-capacity-providers</code> + <code>update-service --capacity-provider-strategy … --force-new-deployment</code> worked from launch type FARGATE; 3 tasks landed <code>FARGATE, FARGATE, FARGATE_SPOT</code></td>
+<td>the change runs a full deployment with whatever strategy is set (LINEAR ≈ 10 min)</td>
+</tr>
+<tr>
+<td>Challenge D header dark launch</td>
+<td><strong>the deployment that changes <code>testListenerRule</code> still used the old <code>:8080</code> rule</strong>; from the next deployment the header rule routed testers to the new release (<code>plain 1.1 · header 1.3</code>) and <code>:8080</code> stopped being managed</td>
+<td>guide explains it; students who test too early think it is broken</td>
+</tr>
+<tr>
+<td>Challenge E auto scaling</td>
+<td><code>register-scalable-target</code> + target-tracking policy accepted, two alarms created</td>
+<td><strong>not load-tested</strong>: the app&#39;s oven mostly sleeps, so CPU never reaches 50 %; it is a design challenge</td>
+</tr>
+</tbody></table>
+<p><strong>Talking points that land well:</strong> the 255 → 51 → 0 table; &quot;the circuit breaker said 0/3 failed tasks while 21 % of orders burnt&quot;; gates catch the known, canaries catch the unknown; Google SRE&#39;s &quot;≈ 70 % of outages are changes&quot;.</p>
+<p><strong>Cost:</strong> per student ≈ US$0.07/hour (ALB + 3 × 0.25 vCPU tasks, 6 during deployments). Part 9 deletes everything but the two roles; <code>tools/cleanup-student.sh</code> also removes the Lab 6 resources and both roles.</p>
+<hr>
+<h2 id="10-teardown-for-the-whole-course">10 · Teardown for the whole course</h2>
 <pre><code class="language-bash"># Lab 5 (students&#39; Services first, see §8), then the cluster
 terraform -chdir=lab5-eks/terraform/students destroy
 terraform -chdir=lab5-eks/terraform/cluster destroy
@@ -696,12 +792,14 @@ terraform -chdir=lab5-eks/terraform/cluster destroy
 terraform -chdir=lab3-broken-pipeline/terraform destroy
 
 # Everything students created by hand in Labs 1–2 (including missions and level-ups: secrets, SNS topics,
-# EventBridge rules, the pipeline-build project, both web servers) and Lab 4, for students 01..15
+# EventBridge rules, the pipeline-build project, both web servers), Lab 4 and Lab 6, for students 01..15
 tools/cleanup-student.sh $(seq -w 1 15)
+# Lab 6&#39;s shared images
+aws ecr delete-repository --repository-name pipeline-academy/galactic-pizza --force
 </code></pre>
 <p>Then, once no pipelines remain in the account: delete the shared <code>codepipeline-us-west-2-*</code> artifact bucket and the <code>codepipeline-source-trail</code> trail (both created by the Lab 2 wizard).</p>
 <hr>
-<h2 id="10-regenerating-screenshots-or-pages">10 · Regenerating screenshots or pages</h2>
+<h2 id="11-regenerating-screenshots-or-pages">11 · Regenerating screenshots or pages</h2>
 <ul>
 <li>Lab guides are Markdown in <code>labs/</code>; <code>cd tools &amp;&amp; npm install &amp;&amp; npm run build</code> renders them into <code>docs/labN.html</code> with the site shell (hints and solutions become collapsible, GitHub alerts become callouts, screenshots zoom on click).</li>
 <li>Screenshots were taken with Playwright against a federated console session (<code>sts get-federation-token</code> → sign-in URL). The harness is not part of the repo; any retake just needs to land in <code>docs/images/</code> under the same file name.</li>

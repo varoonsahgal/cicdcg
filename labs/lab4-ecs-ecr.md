@@ -953,4 +953,4 @@ ECS fetches `ValueFrom` secrets with `ssm:GetParameters` (plural, batch) on the 
 The task was replaced (a deployment, a crash, a scaling event, an AZ rebalance) and a task's filesystem lives only as long as the task. Anything that must persist goes to S3, a database or an EFS volume declared in the task definition. The same is true of a Kubernetes Pod.
 </details>
 
-**Next:** [Lab 5 – Kubernetes on EKS: the same ideas with different words](lab5-eks.md)
+**Next:** [Lab 5 – Kubernetes on EKS: the same ideas with different words](lab5-eks.md) · **Advanced follow-up:** [Lab 6 – Ship it safely: blue/green, canary and linear on ECS](lab6-ecs-advanced.md)

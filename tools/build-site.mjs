@@ -20,6 +20,7 @@ const PAGES = [
   { id: 'lab3', md: 'lab3-broken-pipeline.md',         title: 'Lab 3 · The broken pipeline',     short: 'Fix it',      hue: 'hue-lab3', dot: '#EF4444' },
   { id: 'lab4', md: 'lab4-ecs-ecr.md',                 title: 'Lab 4 · Containers on ECS',       short: 'Contain it',  hue: 'hue-lab4', dot: '#F59E0B' },
   { id: 'lab5', md: 'lab5-eks.md',                     title: 'Lab 5 · Kubernetes on EKS',       short: 'Orchestrate it', hue: 'hue-lab5', dot: '#A78BFA' },
+  { id: 'lab6', md: 'lab6-ecs-advanced.md',            title: 'Lab 6 · Ship it safely on ECS',   short: 'Ship it safely', hue: 'hue-lab6', dot: '#F472B6' },
   { id: 'instructor', md: 'instructor-guide.md',       title: 'Instructor guide',                short: '',            hue: 'hue-lab2', dot: '#64748B', hidden: true },
 ];
 
@@ -29,6 +30,7 @@ const DOWNLOADS = [
   'lab2-codepipeline-codedeploy/SampleApp.zip',
   'lab4-ecs/app.zip',
   'lab5-eks/lab5-manifests.zip',
+  'lab6-ecs-advanced/lab6-kit.zip',
 ];
 
 fs.mkdirSync(DL, { recursive: true });

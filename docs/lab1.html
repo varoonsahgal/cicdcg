@@ -25,6 +25,7 @@
       <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
       <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
       <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+      <a href="lab6.html" data-lab="lab6" style="--d:#F472B6"><span class="dot"></span>Lab 6<span class="lbl-long"> · Ship it safely</span><span class="done">★</span></a>
   </nav>
   <div class="tools">
     <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
@@ -34,7 +35,7 @@
 
 <section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
   <div>
-    <p class="eyebrow">Lab 1 of 5 · Build it</p>
+    <p class="eyebrow">Lab 1 of 6 · Build it</p>
     <h1>Your first automated build with AWS CodeBuild</h1>
     <p class="lede">"It works on my machine" is not a release strategy. In this lab you hand your code to a robot, watch the robot fail, read its diary, and fix it. That is Continuous Integration.</p>
     <div class="mast-meta"><span class="chip"><b>Time</b> 45 min core path · then 50–90 min of missions (pick your own)</span><span class="chip"><b>Difficulty</b> Beginner · no prior build/CI experience assumed</span><span class="chip"><b>AWS services</b> CodeBuild, S3, IAM, CloudWatch Logs · then Secrets Manager, EventBridge, SNS and Logs Insights in the missions</span><span class="chip"><b>You will build</b> A CodeBuild project that compiles a tiny Java app, runs its unit tests and publishes a <code>.jar</code> to S3 · then a build that reads a secret, caches its downloads, emails you when it fails, and can be queried like a database</span><span class="chip"><b>You will break & fix</b> A Java version mismatch · a failing test · a test somebody switched off · a robot that is refused a secret</span></div>

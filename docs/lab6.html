@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en" class="hue-lab6" data-page="lab6">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ship it safely — blue/green, canary and linear deployments on ECS · Pipeline Academy</title>
+<meta name="description" content="It is Friday, 7 p.m., the busiest hour of the week at Galactic Pizza, and the kitchen team wants to ship release 1.2: &quot;Hyperdrive Dough, 2–3× faster, all smoke tests green&quot;. You will ship it four different ways. The first way burns hundreds of pizzas before a human notices. The last way burns none, and no human is involved at all. Same code every time. What changes is the release strategy.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0B1220">
+<script>try{var t=localStorage.getItem('pipeline-academy:theme');if(t)document.documentElement.setAttribute('data-theme',JSON.parse(t))}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1220'/%3E%3Ccircle cx='8' cy='16' r='4' fill='%2322C55E'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2338BDF8'/%3E%3Ccircle cx='24' cy='16' r='4' fill='%23F59E0B'/%3E%3C/svg%3E">
+</head>
+<body data-page="lab6">
+<a class="skip" href="#main">Skip to content</a>
+<div id="readbar" aria-hidden="true"></div>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B1220"/><circle cx="8" cy="16" r="4" fill="#22C55E"/><circle cx="16" cy="16" r="4" fill="#38BDF8"/><circle cx="24" cy="16" r="4" fill="#F59E0B"/><path d="M12 16h0M20 16h0" stroke="#fff"/></svg>Pipeline Academy <span>· AWS CI/CD labs</span></a>
+  <nav class="nav" aria-label="Labs">
+      <a href="index.html">Start here</a>
+      <a href="lab1.html" data-lab="lab1" style="--d:#38BDF8"><span class="dot"></span>Lab 1<span class="lbl-long"> · Build it</span><span class="done">★</span></a>
+      <a href="lab2.html" data-lab="lab2" style="--d:#22C55E"><span class="dot"></span>Lab 2<span class="lbl-long"> · Ship it</span><span class="done">★</span></a>
+      <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
+      <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
+      <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+      <a href="lab6.html" data-lab="lab6" style="--d:#F472B6" aria-current="page"><span class="dot"></span>Lab 6<span class="lbl-long"> · Ship it safely</span><span class="done">★</span></a>
+  </nav>
+  <div class="tools">
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+    <button class="iconbtn menu-btn" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div></header>
+
+<section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
+  <div>
+    <p class="eyebrow">Lab 6 of 6 · Ship it safely</p>
+    <h1>Ship it safely — blue/green, canary and linear deployments on ECS</h1>
+    <p class="lede">It is Friday, 7 p.m., the busiest hour of the week at Galactic Pizza, and the kitchen team wants to ship release 1.2: "Hyperdrive Dough, 2–3× faster, all smoke tests green". You will ship it four different ways. The first way burns hundreds of pizzas before a human notices. The last way burns none, and no human is involved at all. Same code every time. What changes is the release strategy.</p>
+    <div class="mast-meta"><span class="chip"><b>Time</b> Core path (Parts 1–7) ≈ 2 h 15 min, much of it watching real deployments · Challenges 10–20 min each</span><span class="chip"><b>Difficulty</b> Advanced. Do Lab 4 first: this lab assumes you know a task definition, a service and a target group.</span><span class="chip"><b>AWS services</b> Amazon ECS (Fargate, Fargate Spot), Elastic Load Balancing (ALB, two listeners, weighted rules), CloudWatch alarms and Logs Insights, AWS Lambda, IAM, Application Auto Scaling, CloudShell</span><span class="chip"><b>You will build</b> A two-listener load balancer with blue and green target groups · a service that you move from rolling to blue/green to canary to linear · a human approval gate · an alarm that rolls back on its own · a Lambda hook that tests every pizza before a customer can order one</span><span class="chip"><b>You will break & fix</b> A release whose bug no health check can see · a rolling update that serves two menus at once · a bad release in 100 % of production, rolled back by hand in seconds · the same release caught by an alarm at 10 % · and caught again by a test before any customer sees it</span></div>
+  </div>
+</div></section>
+
+<main id="main" class="labwrap">
+<details class="toc" open><summary>On this page</summary><ol><li><a href="#part-0-the-idea-in-ten-minutes">Part 0 · The idea in ten minutes</a></li><li><a href="#part-1-set-up-cloudshell">Part 1 · Set up CloudShell</a></li><li><a href="#part-2-lay-the-plumbing-once">Part 2 · Lay the plumbing (once)</a></li><li><a href="#part-3-baseline-a-rolling-update-and-what-is-wrong-with-it">Part 3 · Baseline: a rolling update, and what is wrong with it</a></li><li><a href="#part-4-blue-green-with-a-human-at-the-gate">Part 4 · Blue/green, with a human at the gate</a></li><li><a href="#part-5-canary-with-an-alarm-that-rolls-back-by-itself">Part 5 · Canary, with an alarm that rolls back by itself</a></li><li><a href="#part-6-an-automated-gate-a-lambda-hook-that-tests-every-pizza">Part 6 · An automated gate: a Lambda hook that tests every pizza</a></li><li><a href="#part-7-ship-the-fix-linearly-with-every-net-armed">Part 7 · Ship the fix, linearly, with every net armed</a></li><li><a href="#part-8-challenges">Part 8 · Challenges</a></li><li><a href="#part-9-clean-up-order-matters">Part 9 · Clean up (order matters)</a></li><li><a href="#part-10-what-you-learned">Part 10 · What you learned</a></li></ol></details><div class="callout important"><div class="ico">❗</div><div><span class="box-lbl">Important</span><p><strong>Your number.</strong> Everywhere you see <code>NN</code>, use your own two digits. Every resource in this lab starts with <code>participant-NN-pizza</code>.</p>
+<p><strong>Your region.</strong> US West (Oregon) · <code>us-west-2</code>.</p>
+<p><strong>Your workbench.</strong> This lab runs in <strong>CloudShell</strong> (the <code>&gt;_</code> icon in the console&#39;s top bar) plus two browser tabs. Every command was run in the class account while writing this guide, and the timings quoted are the ones measured there.</p>
+<p><strong>Your bill.</strong> One ALB plus three small Fargate tasks (six for a few minutes during each deployment) ≈ US$0.07 per hour. Part 9 deletes all of it; please do not skip Part 9.</p>
+</div></div>
+<hr>
+<h2 id="part-0-the-idea-in-ten-minutes">Part 0 · The idea in ten minutes</h2>
+<h3>Why release strategy is an engineering topic</h3>
+<p>Google&#39;s SRE book says that roughly <strong>70 % of outages are caused by changes to a live system</strong>. Not hardware failures, not traffic spikes: deployments and configuration pushes. Most of those changes passed code review and CI first. The bug that reaches production is, almost by definition, the one your tests did not think of.</p>
+<p>So the question is not <em>&quot;how do we never ship a bug?&quot;</em> (you will), it is:</p>
+<ol>
+<li><strong>How many customers does a bad release reach</strong> before something notices? (<em>blast radius</em>)</li>
+<li><strong>How long until something notices</strong>, and is that something a human or a machine? (<em>detection</em>)</li>
+<li><strong>How fast can you put the old version back?</strong> (<em>recovery</em>)</li>
+</ol>
+<p>A <strong>deployment strategy</strong> is the set of answers to those three questions. ECS now has four of them built in, and you will use all four today.</p>
+<p><img class="diagram" src="images/diagrams/lab6-strategies.svg" alt="Five ways to ship a release" loading="lazy"></p>
+<h3>When to use which (with real-life examples)</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Use it when…</th>
+<th>Real-life example</th>
+<th>Avoid it when…</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>All at once / recreate</strong></td>
+<td>Two versions must never run side by side, and a minute of downtime is acceptable</td>
+<td>A nightly batch worker; an internal tool during a maintenance window; a singleton that holds a database migration lock</td>
+<td>Customers are online</td>
+</tr>
+<tr>
+<td><strong>Rolling</strong> (ECS <code>ROLLING</code>)</td>
+<td>The change is backward compatible and stateless, and cost matters more than instant rollback</td>
+<td>Most everyday microservice releases; Lab 4</td>
+<td>Old and new versions disagree about data, URLs or APIs (you will see why in Part 3)</td>
+</tr>
+<tr>
+<td><strong>Blue/green</strong> (<code>BLUE_GREEN</code>)</td>
+<td>You want to test the complete new environment before customers see it, switch all traffic at once (no mixed versions), and roll back in seconds</td>
+<td>A payments API; a major framework or runtime upgrade; anything with a &quot;big switch&quot; moment</td>
+<td>You cannot afford 2× capacity during the deployment, or the app keeps state that two copies would fight over</td>
+</tr>
+<tr>
+<td><strong>Canary</strong> (<code>CANARY</code>)</td>
+<td>The risk is in what only real users do, you have enough traffic for 5–10 % to mean something, and you have a metric that turns red when it goes wrong</td>
+<td>A new checkout flow; a new recommendation model; a dependency upgrade with &quot;unknown unknowns&quot;</td>
+<td>Low traffic (1 request a minute at 5 % tells you nothing), or no reliable alarm</td>
+</tr>
+<tr>
+<td><strong>Linear</strong> (<code>LINEAR</code>)</td>
+<td>Load matters as much as correctness: caches need warming, connection pools need to grow, a downstream service needs time to scale</td>
+<td>A search service with a cold cache; a release that changes database query patterns</td>
+<td>You need it done in two minutes</td>
+</tr>
+</tbody></table>
+<p>Three more patterns you will hear about, not built into ECS but often combined with the above:</p>
+<ul>
+<li><strong>Feature flags</strong> separate <em>deploying</em> code from <em>releasing</em> a feature: ship the code dark, switch the feature on for 1 % of users in a config service, and switch it off without any deployment. The most common way large companies do canaries today.</li>
+<li><strong>Dark launch / shadow traffic</strong>: copy real requests to the new version and throw away its answers. Great for performance tests of read-only services; dangerous for anything that writes.</li>
+<li><strong>A/B tests</strong> look like canaries but answer a <em>business</em> question (&quot;does the purple button sell more?&quot;), not a <em>safety</em> question. They run for weeks, not minutes.</li>
+</ul>
+<h3>The words for today</h3>
+<table>
+<thead>
+<tr>
+<th>Word</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Service revision</strong></td>
+<td>An immutable snapshot of &quot;what the service should run&quot;: task definition, load balancer settings, network settings. Every deployment moves the service from a <strong>source</strong> revision (what runs now) to a <strong>target</strong> revision (what you asked for).</td>
+</tr>
+<tr>
+<td><strong>Blue / green</strong></td>
+<td>The two copies that run side by side during a deployment. Blue = source, green = target. They are just two <strong>target groups</strong>; after each deployment they swap roles.</td>
+</tr>
+<tr>
+<td><strong>Production listener rule</strong></td>
+<td>The ALB rule your customers hit (port 80). ECS changes its <strong>weights</strong>: blue 100/green 0 → 90/10 → 0/100.</td>
+</tr>
+<tr>
+<td><strong>Test listener rule</strong></td>
+<td>A second rule (port 8080 here) that points at the <em>green</em> copy only. Testers and automated checks use it before any customer does.</td>
+</tr>
+<tr>
+<td><strong>Bake time</strong></td>
+<td>Minutes after production traffic has moved during which ECS keeps the old copy running, so a rollback is a rule change, not a redeployment.</td>
+</tr>
+<tr>
+<td><strong>Lifecycle hook</strong></td>
+<td>Your code, or a pause, that ECS runs at a named stage. It can say &quot;carry on&quot;, &quot;roll back&quot;, or &quot;ask me again in 30 s&quot;.</td>
+</tr>
+<tr>
+<td><strong>Deployment alarm</strong></td>
+<td>A CloudWatch alarm ECS watches during the deployment. If it fires, ECS rolls back by itself.</td>
+</tr>
+<tr>
+<td><strong>Circuit breaker</strong></td>
+<td>Lab 4&#39;s safety net: rolls back if new tasks keep failing to <em>start</em>. It knows nothing about whether they work.</td>
+</tr>
+</tbody></table>
+<p><img class="diagram" src="images/diagrams/lab6-plumbing.svg" alt="The plumbing" loading="lazy"></p>
+<p><img class="diagram" src="images/diagrams/lab6-lifecycle.svg" alt="Lifecycle stages" loading="lazy"></p>
+<h3>The app: Galactic Pizza</h3>
+<p>One small Flask app, four releases, all pre-built by your instructor in the shared repository <code>pipeline-academy/galactic-pizza</code> (same account, so your tasks can pull them):</p>
+<table>
+<thead>
+<tr>
+<th>Release</th>
+<th>Name</th>
+<th>What the team&#39;s release notes say</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>1.0</code></td>
+<td>Grand Opening</td>
+<td>Four pizzas, one wood-fired oven. Orange.</td>
+</tr>
+<tr>
+<td><code>1.1</code></td>
+<td>Saturn Rings</td>
+<td><strong>New pizza</strong>: Saturn Rings. Ovens upgraded, ~40 % faster. Purple.</td>
+</tr>
+<tr>
+<td><code>1.2</code></td>
+<td>Hyperdrive Dough</td>
+<td>Bakes at 900 °C: orders 2–3× faster. <em>&quot;All smoke tests green.&quot;</em> Cyan.</td>
+</tr>
+</tbody></table>
+<p>Every response says <strong>which release, which container, which AZ and which listener</strong> baked it. Two pages make strategies visible:</p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>What it is for</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/</code></td>
+<td>The shop. Order pizzas by hand; see which container baked each one.</td>
+</tr>
+<tr>
+<td><code>/rush</code></td>
+<td><strong>The rush-hour board.</strong> Your browser orders ~10 pizzas a second through the load balancer and draws, live, which release answered, how many came back burnt (HTTP 500) or &quot;not on the menu&quot; (404), and the traffic share over the last six minutes. Keep it open in a tab for the whole lab.</td>
+</tr>
+<tr>
+<td><code>/api/order?pizza=…</code> · <code>/api/menu</code> · <code>/health</code></td>
+<td>JSON. <code>/health</code> answers 200 as long as the process runs. Remember that.</td>
+</tr>
+</tbody></table>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Read the code if you like</strong> (<a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab6-ecs-advanced/app/app.py"><code>lab6-ecs-advanced/app/app.py</code></a>). Like most real bugs, the one in 1.2 is not in a single wrong line. It is in how two reasonable-looking numbers meet. Whether you find it before the customers do is the point of the lab.</p>
+</div></div>
+<hr>
+<h2 id="part-1-set-up-cloudshell">Part 1 · Set up CloudShell</h2>
+<ol>
+<li><p>Open <strong>CloudShell</strong> (region Oregon). Download and unpack the lab kit, and tell your shell who you are (use your own number):</p>
+<pre><code class="language-bash">cd ~ &amp;&amp; curl -sLO https://varoonsahgal.github.io/cicdcg/downloads/lab6-kit.zip &amp;&amp; unzip -o lab6-kit.zip -d lab6
+echo &#39;export NN=07&#39; &gt;&gt; ~/.bashrc                 # ← YOUR number
+echo &#39;source ~/lab6/pizza.env&#39; &gt;&gt; ~/.bashrc
+source ~/.bashrc
+pizza_vars
+</code></pre>
+</li>
+<li><p>You now have four files in <code>~/lab6</code>:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pizza.env</code></td>
+<td>Looks up every resource of this lab <strong>by name</strong> and exports it (<code>$ALB_DNS</code>, <code>$BLUE_TG</code>, <code>$PROD_RULE</code>, …). Re-run <code>source ~/lab6/pizza.env</code> whenever you create something; new tabs load it automatically. Also defines three helpers: <code>register 1.1</code> (new task-definition revision for a release, prints its ARN), <code>watch_deploy</code> (prints every stage of the current deployment until it ends or pauses) and <code>pizza_vars</code>.</td>
+</tr>
+<tr>
+<td><code>taskdef.json</code></td>
+<td>The task definition template: 0.25 vCPU, 512 MiB, port 8080, logs to <code>/ecs/participant-NN-pizza</code>, <code>stopTimeout</code> 10 s.</td>
+</tr>
+<tr>
+<td><code>menu_walker.py</code></td>
+<td>The Lambda hook for Part 6.</td>
+</tr>
+<tr>
+<td><code>rush.py</code></td>
+<td>The rush-hour board for people who prefer a terminal (<code>python3 ~/lab6/rush.py</code>).</td>
+</tr>
+</tbody></table>
+</li>
+</ol>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>pizza_vars</code> prints <code>NN 07</code>, <code>P participant-07</code>, four subnets, and <code>None</code> for everything you have not built yet. That is correct.</p>
+</blockquote>
+<div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p>CloudShell disconnects after about 20 idle minutes and forgets your variables. Because <code>~/.bashrc</code> reloads <code>pizza.env</code>, a fresh tab is always ready; <code>pizza_vars</code> shows what it found.</p>
+</div></div>
+<hr>
+<h2 id="part-2-lay-the-plumbing-once">Part 2 · Lay the plumbing (once)</h2>
+<p>Blue/green, canary and linear all need the same plumbing: <strong>one load balancer, two listeners, two target groups, one rule per listener, and a role that lets ECS edit those rules.</strong> You build it once; ECS reuses it for every deployment.</p>
+<h3>2a · Two security groups</h3>
+<p>The load balancer accepts 80 (customers) and 8080 (testers) from the internet. The tasks accept 8080 <strong>only from the load balancer</strong>: nobody can bypass the ALB and hit a container directly. (Lab 4 opened tasks to the world; this is the grown-up version.)</p>
+<pre><code class="language-bash">aws ec2 create-security-group --group-name $P-pizza-alb-sg  --description &quot;Lab 6 ALB: 80 prod, 8080 test&quot; --vpc-id $VPC --query GroupId --output text
+aws ec2 create-security-group --group-name $P-pizza-task-sg --description &quot;Lab 6 tasks: 8080 from the ALB only&quot; --vpc-id $VPC --query GroupId --output text
+source ~/lab6/pizza.env
+aws ec2 authorize-security-group-ingress --group-id $ALB_SG --ip-permissions \
+  &#39;IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges=[{CidrIp=0.0.0.0/0}]&#39; &#39;IpProtocol=tcp,FromPort=8080,ToPort=8080,IpRanges=[{CidrIp=0.0.0.0/0}]&#39; --query Return
+aws ec2 authorize-security-group-ingress --group-id $TASK_SG --protocol tcp --port 8080 --source-group $ALB_SG --query Return
+</code></pre>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p>In a real company the test port would be reachable only from the office VPN or from the CI system. It is open here so your browser can reach it.</p>
+</div></div>
+<h3>2b · Two target groups: blue and green</h3>
+<p>Identical on purpose. Fast health checks (every 10 s, healthy after 2) and a 15-second deregistration delay keep deployments short enough for a lab; production values are usually 30 s and 300 s.</p>
+<pre><code class="language-bash">for c in blue green; do
+  aws elbv2 create-target-group --name $P-pizza-$c --protocol HTTP --port 8080 --vpc-id $VPC --target-type ip \
+    --health-check-path /health --health-check-interval-seconds 10 --healthy-threshold-count 2 --unhealthy-threshold-count 2 \
+    --query &#39;TargetGroups[0].TargetGroupArn&#39; --output text
+done
+source ~/lab6/pizza.env
+for tg in $BLUE_TG $GREEN_TG; do
+  aws elbv2 modify-target-group-attributes --target-group-arn $tg --attributes Key=deregistration_delay.timeout_seconds,Value=15 &gt;/dev/null
+done
+</code></pre>
+<h3>2c · The load balancer, two listeners, two rules</h3>
+<p>Each listener&#39;s <em>default</em> action is a plain 404. The real routing lives in <strong>one rule per listener</strong> (<code>/*</code>, priority 10), because rules are what ECS knows how to reweight. Production starts on blue; the test rule points at green.</p>
+<pre><code class="language-bash">aws elbv2 create-load-balancer --name $P-pizza-alb --type application --subnets ${SUBNETS//,/ } --security-groups $ALB_SG \
+  --query &#39;LoadBalancers[0].DNSName&#39; --output text
+source ~/lab6/pizza.env
+for port in 80 8080; do
+  L=$(aws elbv2 create-listener --load-balancer-arn $ALB_ARN --protocol HTTP --port $port \
+      --default-actions &#39;Type=fixed-response,FixedResponseConfig={StatusCode=404,ContentType=text/plain,MessageBody=no route}&#39; \
+      --query &#39;Listeners[0].ListenerArn&#39; --output text)
+  TG=$([ $port = 80 ] &amp;&amp; echo $BLUE_TG || echo $GREEN_TG)
+  aws elbv2 create-rule --listener-arn $L --priority 10 --conditions Field=path-pattern,Values=&#39;/*&#39; \
+      --actions Type=forward,TargetGroupArn=$TG --query &#39;Rules[0].RuleArn&#39; --output text
+done
+</code></pre>
+<h3>2d · Robot number three: the ECS infrastructure role</h3>
+<p>Lab 4 had two robots: the task execution role (pulls images, ships logs) and the task role (what your code may call). Moving traffic adds a third: <strong>ECS itself needs permission to edit your load balancer&#39;s rules.</strong></p>
+<pre><code class="language-bash">cat &gt; /tmp/ecs-trust.json &lt;&lt;&#39;J&#39;
+{ &quot;Version&quot;: &quot;2012-10-17&quot;, &quot;Statement&quot;: [ { &quot;Effect&quot;: &quot;Allow&quot;, &quot;Principal&quot;: { &quot;Service&quot;: &quot;ecs.amazonaws.com&quot; }, &quot;Action&quot;: &quot;sts:AssumeRole&quot; } ] }
+J
+aws iam create-role --role-name $P-ecs-infra-role --assume-role-policy-document file:///tmp/ecs-trust.json --query Role.Arn --output text
+aws iam attach-role-policy --role-name $P-ecs-infra-role --policy-arn arn:aws:iam::aws:policy/AmazonECSInfrastructureRolePolicyForLoadBalancers
+</code></pre>
+<h3>2e · Cluster, log group</h3>
+<pre><code class="language-bash">aws ecs create-cluster --cluster-name $CLUSTER --settings name=containerInsights,value=enabled --query cluster.status --output text
+aws logs create-log-group --log-group-name /ecs/$FAMILY
+aws logs put-retention-policy --log-group-name /ecs/$FAMILY --retention-in-days 7
+source ~/lab6/pizza.env &amp;&amp; pizza_vars
+</code></pre>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>pizza_vars</code> now shows an <code>ALB_DNS</code> ending in <code>.elb.amazonaws.com</code>, two security groups, two target-group ARNs (<code>…pizza-blue/…</code>, <code>…pizza-green/…</code>) and two <code>listener-rule/…</code> ARNs. The whole part takes under a minute of commands; the ALB itself needs 2–3 minutes to become <em>active</em>, which is fine: Part 3 starts with reading.</p>
+</blockquote>
+<hr>
+<h2 id="part-3-baseline-a-rolling-update-and-what-is-wrong-with-it">Part 3 · Baseline: a rolling update, and what is wrong with it</h2>
+<h3>3a · Open the shop on release 1.0</h3>
+<pre><code class="language-bash">aws ecs create-service --cluster $CLUSTER --service-name $SVC --task-definition $(register 1.0) \
+  --desired-count 3 --launch-type FARGATE \
+  --network-configuration &quot;awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$TASK_SG],assignPublicIp=ENABLED}&quot; \
+  --load-balancers &quot;targetGroupArn=$BLUE_TG,containerName=pizza,containerPort=8080&quot; \
+  --health-check-grace-period-seconds 15 \
+  --deployment-configuration &#39;{&quot;strategy&quot;:&quot;ROLLING&quot;,&quot;maximumPercent&quot;:200,&quot;minimumHealthyPercent&quot;:100,&quot;deploymentCircuitBreaker&quot;:{&quot;enable&quot;:true,&quot;rollback&quot;:true}}&#39; \
+  --query &#39;service.{name:serviceName,strategy:deploymentConfiguration.strategy}&#39; --output table
+aws ecs wait services-stable --cluster $CLUSTER --services $SVC &amp;&amp; echo &quot;open http://$ALB_DNS&quot;
+</code></pre>
+<p>Stable in about 90 s. Open <strong><code>http://&lt;ALB_DNS&gt;</code></strong> in a browser tab and order a few pizzas. Each order names the container that baked it; refresh, and the page itself comes from a different container.</p>
+<p><img class="shot" src="images/lab6-shop-v10.png" alt="Release 1.0" loading="lazy" title="Click to zoom"></p>
+<p>Now open a second tab on <strong><code>http://&lt;ALB_DNS&gt;/rush</code></strong> and press <strong>▶ Start rush</strong>. Leave this tab open for the rest of the lab: it is your monitoring dashboard, and screenshots of it are your proofs.</p>
+<h3>3b · Ship 1.1 with a rolling update</h3>
+<pre><code class="language-bash">aws ecs update-service --cluster $CLUSTER --service $SVC --task-definition $(register 1.1) --query service.taskDefinition --output text
+</code></pre>
+<p>Watch the board for three or four minutes. <strong>Before you read on:</strong> what do you see in the middle of the rollout, and why are some orders yellow?</p>
+<p><img class="shot" src="images/lab6-rolling-mixed.png" alt="Rolling update: two releases, two menus" loading="lazy" title="Click to zoom"></p>
+<details class="reveal solution"><summary>✅ What happened</summary><div class="body">
+
+<p>Measured in the class account: the rollout took <strong>3½ minutes</strong>, and for about <strong>90 seconds both releases served customers at the same time</strong>, in a ratio nobody chose. The yellow hatching is <strong>version skew</strong>: the board learned about Saturn Rings from a 1.1 menu, ordered one, and the load balancer sent the order to a 1.0 container that has never heard of it (<code>404 not on the 1.0 menu</code>). In the class run that was 47 failed orders, all on 1.0.</p>
+<p>This is exactly what happens in real life when a new front end calls a new API endpoint during a rolling deploy, or a new version writes a database field the old version cannot read.</p>
+<p>Three things about rolling that the rest of this lab fixes:</p>
+<ol>
+<li><strong>No control over who sees what.</strong> The mix of versions is a side effect of how fast tasks start.</li>
+<li><strong>No test before customers.</strong> The first request to 1.1 was a customer&#39;s.</li>
+<li><strong>Rollback = another rolling update</strong>, another 3½ minutes, with the bad version in the mix the whole time.</div></details></li>
+</ol>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — The board shows 100 % 1.1, purple, no yellow. <code>aws ecs describe-services --cluster $CLUSTER --services $SVC --query &#39;services[0].deployments[].[taskDefinition,rolloutState]&#39; --output text</code> shows a single COMPLETED deployment.</p>
+</blockquote>
+<hr>
+<h2 id="part-4-blue-green-with-a-human-at-the-gate">Part 4 · Blue/green, with a human at the gate</h2>
+<h3>4a · Re-plumb the service</h3>
+<p>Switching strategy is one <code>update-service</code>. The load-balancer block gains an <strong>advanced configuration</strong>: the alternate target group, the two rules ECS may edit, and the role it edits them with.</p>
+<pre><code class="language-bash">cat &gt; ~/lab6/bluegreen.json &lt;&lt;J
+{
+  &quot;cluster&quot;: &quot;$CLUSTER&quot;,
+  &quot;service&quot;: &quot;$SVC&quot;,
+  &quot;loadBalancers&quot;: [ {
+    &quot;targetGroupArn&quot;: &quot;$BLUE_TG&quot;,
+    &quot;containerName&quot;: &quot;pizza&quot;,
+    &quot;containerPort&quot;: 8080,
+    &quot;advancedConfiguration&quot;: {
+      &quot;alternateTargetGroupArn&quot;: &quot;$GREEN_TG&quot;,
+      &quot;productionListenerRule&quot;: &quot;$PROD_RULE&quot;,
+      &quot;testListenerRule&quot;: &quot;$TEST_RULE&quot;,
+      &quot;roleArn&quot;: &quot;$INFRA_ROLE&quot;
+    }
+  } ],
+  &quot;deploymentConfiguration&quot;: {
+    &quot;strategy&quot;: &quot;BLUE_GREEN&quot;,
+    &quot;bakeTimeInMinutes&quot;: 3,
+    &quot;maximumPercent&quot;: 200,
+    &quot;minimumHealthyPercent&quot;: 100,
+    &quot;deploymentCircuitBreaker&quot;: { &quot;enable&quot;: true, &quot;rollback&quot;: true }
+  }
+}
+J
+aws ecs update-service --cli-input-json file://$HOME/lab6/bluegreen.json \
+  --query &#39;service.{strategy:deploymentConfiguration.strategy,bake:deploymentConfiguration.bakeTimeInMinutes}&#39; --output table
+watch_deploy
+</code></pre>
+<p><strong>Surprise:</strong> changing the load-balancer configuration starts a deployment by itself, a blue/green deployment of the <em>same</em> release 1.1. Treat it as a free rehearsal and watch the stages scroll past:</p>
+<pre><code>20:57:28  IN_PROGRESS SCALE_UP None
+20:58:29  IN_PROGRESS TEST_TRAFFIC_SHIFT None
+20:58:57  IN_PROGRESS PRODUCTION_TRAFFIC_SHIFT None
+20:59:19  IN_PROGRESS POST_PRODUCTION_TRAFFIC_SHIFT None
+20:59:25  IN_PROGRESS BAKE_TIME None
+21:02:24  IN_PROGRESS CLEAN_UP None
+21:02:35  SUCCESSFUL None None
+</code></pre>
+<p>Five minutes, three of them bake time. The board stays 100 % purple throughout: same release, new containers. Now look at the production rule:</p>
+<pre><code class="language-bash">aws elbv2 describe-rules --rule-arns $PROD_RULE --query &#39;Rules[0].Actions[0].ForwardConfig.TargetGroups[].[TargetGroupArn,Weight]&#39; --output text
+</code></pre>
+<p><strong>Green 100, blue 0.</strong> The &quot;green&quot; target group is now production, and the next deployment will go to <em>blue</em>. The colours are just two buckets that take turns.</p>
+<h3>4b · Ship 1.2 with a pause before customers</h3>
+<p>Add a <strong>PAUSE hook</strong> at <code>POST_TEST_TRAFFIC_SHIFT</code>: after the new tasks are up and the test listener points at them, ECS stops and waits for a human.</p>
+<pre><code class="language-bash">aws ecs update-service --cluster $CLUSTER --service $SVC --task-definition $(register 1.2) \
+  --deployment-configuration &#39;{&quot;strategy&quot;:&quot;BLUE_GREEN&quot;,&quot;bakeTimeInMinutes&quot;:3,&quot;maximumPercent&quot;:200,&quot;minimumHealthyPercent&quot;:100,
+     &quot;deploymentCircuitBreaker&quot;:{&quot;enable&quot;:true,&quot;rollback&quot;:true},
+     &quot;lifecycleHooks&quot;:[{&quot;targetType&quot;:&quot;PAUSE&quot;,&quot;lifecycleStages&quot;:[&quot;POST_TEST_TRAFFIC_SHIFT&quot;]}]}&#39; \
+  --query &#39;service.deploymentConfiguration.lifecycleHooks&#39; --output json
+watch_deploy
+</code></pre>
+<p>About 1½ minutes later <code>watch_deploy</code> stops with <code>⏸ paused at a PAUSE hook</code>. The console shows the same thing: ECS → your service → <strong>Deployments</strong> tab.</p>
+<p><img class="shot" src="images/lab6-console-paused.png" alt="Paused, awaiting action" loading="lazy" title="Click to zoom"></p>
+<h3>4c · Be the release manager</h3>
+<p>Right now there are <strong>two shops</strong>:</p>
+<ul>
+<li><code>http://&lt;ALB_DNS&gt;</code> (production, port 80): still <strong>1.1</strong>, purple. Your rush board has not changed at all.</li>
+<li><code>http://&lt;ALB_DNS&gt;:8080</code> (test listener): <strong>1.2</strong>, cyan, and only you know it exists.</li>
+</ul>
+<p>Open the test listener in a third tab and do what the release manager does every Friday: order a <strong>Moon Margherita</strong> and a <strong>Meteor Pepperoni</strong>. Fast, hot, perfect.</p>
+<p><img class="shot" src="images/lab6-test-listener-v12.png" alt="The test listener serves 1.2" loading="lazy" title="Click to zoom"></p>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Ordered something else and saw a fire?</strong> Then you are a better tester than the release manager. Hold that thought; approve the release anyway (the shop&#39;s manager overrules you), and keep your observation for the postmortem. Part 6 turns exactly what you did into a robot.</p>
+</div></div>
+<h3>4d · Approve</h3>
+<p>The pause is a <em>hook</em> with an ID. Continuing it lets ECS move production traffic:</p>
+<pre><code class="language-bash">DEP=$(newest)
+HOOK=$(aws ecs describe-service-deployments --service-deployment-arns $DEP \
+        --query &#39;serviceDeployments[0].lifecycleHookDetails[?status==`AWAITING_ACTION`].hookId | [0]&#39; --output text)
+aws ecs continue-service-deployment --service-deployment-arn $DEP --hook-id $HOOK --action CONTINUE
+watch_deploy
+</code></pre>
+<p>(The console&#39;s <strong>Take action → Continue</strong> button does the same.) Within 30 seconds the board flips <strong>all at once</strong> from purple to cyan: no mixed versions, no version skew. Orders are visibly faster (~75 ms instead of ~155 ms)…</p>
+<p>…and then the red starts.</p>
+<p><img class="shot" src="images/lab6-bluegreen-fire.png" alt="Release 1.2 in production" loading="lazy" title="Click to zoom"></p>
+<h3>4e · Roll back, now</h3>
+<p>You are in <strong>bake time</strong>: the 1.1 tasks are still running, still registered, just weighted to 0. Roll back:</p>
+<pre><code class="language-bash">aws ecs stop-service-deployment --service-deployment-arn $(newest) --stop-type ROLLBACK
+</code></pre>
+<p>Watch the board.</p>
+<p><img class="shot" src="images/lab6-bluegreen-rollback.png" alt="Rollback during bake time" loading="lazy" title="Click to zoom"></p>
+<details class="reveal solution"><summary>✅ What happened, and the postmortem</summary><div class="body">
+
+<p>The board went from 100 % cyan to 100 % purple <strong>within about six seconds</strong>: a rollback during bake time is one rule-weight change, not a redeployment. ECS reports <code>ROLLBACK_SUCCESSFUL · Service deployment rolled back by user.</code> about two minutes later, when it has finished cleaning up the green tasks, but customers were safe long before that.</p>
+<p>The burnt pizzas are all <strong>Pineapple Pulsar</strong>: <code>OVEN FIRE: 14 g of sugar at 900 °C caramelised and ignited</code>. 900 °C × 14 g crosses the oven&#39;s scorch point; every other pizza has 6 g or less.</p>
+<p><strong>Postmortem, class run:</strong> 1.2 served 100 % of production for 98 seconds; <strong>255 pizzas burnt</strong> (21 % of orders: every pineapple order).</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Did the load-balancer health checks catch it?</td>
+<td>No. <code>/health</code> answered 200 the whole time.</td>
+</tr>
+<tr>
+<td>Did the circuit breaker catch it?</td>
+<td>No. Every task started and stayed up: 0 failed tasks.</td>
+</tr>
+<tr>
+<td>Did the test listener catch it?</td>
+<td>No, because the test was a margherita and a pepperoni. The <em>capability</em> to catch it was there; the test was not.</td>
+</tr>
+<tr>
+<td>Who noticed?</td>
+<td>A human, watching a dashboard. On a Friday night that human might be at dinner.</td>
+</tr>
+<tr>
+<td>What went right?</td>
+<td>Blue/green made the rollback take seconds, and nobody saw a mix of versions.</td>
+</tr>
+</tbody></table>
+<p><strong>Action items</strong> (this is how real postmortems end): (1) limit how many customers a new release can reach before it has proved itself; (2) let a machine watch the error rate and roll back without waiting for a human; (3) automate the test the release manager skipped. Parts 5, 6 and 7 are those three action items.</p>
+</div></details>
+
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — The board is 100 % 1.1 again. <code>aws ecs describe-service-deployments --service-deployment-arns $(newest) --query &#39;serviceDeployments[0].[status,statusReason]&#39; --output text</code> → <code>ROLLBACK_SUCCESSFUL  Service deployment rolled back by user.</code></p>
+</blockquote>
+<hr>
+<h2 id="part-5-canary-with-an-alarm-that-rolls-back-by-itself">Part 5 · Canary, with an alarm that rolls back by itself</h2>
+<p><strong>Action item 1 and 2.</strong> The team has not fixed 1.2 yet, but they want to prove the new safety net works. Deliberately deploying a known-bad release to test your defences is a real practice: a <strong>game day</strong>.</p>
+<h3>5a · An alarm that means &quot;pizzas are burning&quot;</h3>
+<p>The ALB counts every 5xx your containers return. Five or more in one minute = alarm.</p>
+<pre><code class="language-bash">LB_DIM=$(echo $ALB_ARN | cut -d/ -f2-)        # app/participant-NN-pizza-alb/1234abcd…
+aws cloudwatch put-metric-alarm --alarm-name $ALARM \
+  --alarm-description &quot;Galactic Pizza: 5 or more HTTP 5xx from the containers in one minute&quot; \
+  --namespace AWS/ApplicationELB --metric-name HTTPCode_Target_5XX_Count --dimensions Name=LoadBalancer,Value=$LB_DIM \
+  --statistic Sum --period 60 --evaluation-periods 1 --threshold 5 --comparison-operator GreaterThanOrEqualToThreshold \
+  --treat-missing-data notBreaching
+aws cloudwatch describe-alarms --alarm-names $ALARM --query &#39;MetricAlarms[0].StateValue&#39; --output text
+</code></pre>
+<div class="callout warning"><div class="ico">⚠️</div><div><span class="box-lbl">Warning</span><p><strong>Your new alarm will probably say <code>ALARM</code> at first.</strong> ALB metrics arrive a few minutes late, so the alarm is still looking at the burnt pizzas from Part 4. In the class run it stayed in ALARM for five minutes after the last fire. <strong>Wait until it says <code>OK</code></strong> before you deploy (re-run the last command every minute; read 5b meanwhile). Starting an alarm-guarded deployment while the alarm is already firing is a classic own goal.</p>
+</div></div>
+<h3>5b · Why these numbers?</h3>
+<p><code>canaryPercent: 10</code> sends one order in ten to 1.2. At the board&#39;s ~10 orders per second that is one per second, and 20 % of the mix is pineapple, so about <strong>12 fires a minute</strong>: comfortably over the threshold of 5. If your shop got one order a minute, a 10 % canary would need hours to see a single pineapple, and that is the real-life limit of canaries: <strong>they need traffic and a metric</strong>.</p>
+<p><code>canaryBakeTimeInMinutes: 5</code> is how long 1.2 must survive at 10 % before ECS sends it everyone. <code>bakeTimeInMinutes: 2</code> keeps 1.1 warm for two more minutes after that.</p>
+<h3>5c · Game day: ship 1.2 as a canary</h3>
+<pre><code class="language-bash">aws ecs update-service --cluster $CLUSTER --service $SVC --task-definition $(register 1.2) \
+  --deployment-configuration &#39;{&quot;strategy&quot;:&quot;CANARY&quot;,&quot;bakeTimeInMinutes&quot;:2,&quot;maximumPercent&quot;:200,&quot;minimumHealthyPercent&quot;:100,
+     &quot;canaryConfiguration&quot;:{&quot;canaryPercent&quot;:10,&quot;canaryBakeTimeInMinutes&quot;:5},
+     &quot;deploymentCircuitBreaker&quot;:{&quot;enable&quot;:true,&quot;rollback&quot;:true},
+     &quot;alarms&quot;:{&quot;alarmNames&quot;:[&quot;&#39;$ALARM&#39;&quot;],&quot;enable&quot;:true,&quot;rollback&quot;:true},
+     &quot;lifecycleHooks&quot;:[]}&#39; \
+  --query &#39;service.deploymentConfiguration.{strategy:strategy,canary:canaryConfiguration,alarms:alarms.alarmNames}&#39; --output json
+watch_deploy
+</code></pre>
+<p><code>&quot;lifecycleHooks&quot;:[]</code> removes the pause from Part 4: this time nobody approves anything. <strong>Do not touch anything until <code>watch_deploy</code> returns.</strong> Watch the board.</p>
+<p><img class="shot" src="images/lab6-canary-10pct.png" alt="The canary at 10 %" loading="lazy" title="Click to zoom"></p>
+<details class="reveal solution"><summary>✅ What happened</summary><div class="body">
+
+<p>Class run, timestamps from <code>watch_deploy</code> and the alarm history:</p>
+<pre><code>09:42:19  IN_PROGRESS PRODUCTION_TRAFFIC_SHIFT None                      ← 10 % to 1.2
+          (alarm: OK → ALARM at 09:45:31)
+09:46:03  ROLLBACK_IN_PROGRESS PRODUCTION_TRAFFIC_SHIFT Service deployment rolled back because of one or more active alarms.
+09:47:15  ROLLBACK_SUCCESSFUL None Service deployment rolled back because of one or more active alarms.
+</code></pre>
+<p><img class="shot" src="images/lab6-canary-rolledback.png" alt="Rolled back by the alarm" loading="lazy" title="Click to zoom"></p>
+<p>Nobody pressed anything. The console tells the whole story in two lines: <strong>Circuit breaker: 0/3 failed tasks</strong> (the containers were perfectly healthy) and <strong>Alarms: Triggered 1/1</strong>.</p>
+<p><img class="shot" src="images/lab6-console-canary-rollback.png" alt="The console: rolled back because of an active alarm" loading="lazy" title="Click to zoom"></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Part 4 · blue/green, human watching</th>
+<th>Part 5 · canary + alarm</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Share of customers on 1.2</td>
+<td>100 %</td>
+<td>10 %</td>
+</tr>
+<tr>
+<td>Who noticed</td>
+<td>a human</td>
+<td>CloudWatch</td>
+</tr>
+<tr>
+<td>Time until rollback started</td>
+<td>98 s (because you were watching)</td>
+<td>3 min 44 s</td>
+</tr>
+<tr>
+<td><strong>Burnt pizzas</strong></td>
+<td><strong>255</strong></td>
+<td><strong>51</strong></td>
+</tr>
+</tbody></table>
+<p>Notice the honest number: the alarm took <strong>over three minutes</strong>. ALB metrics are published per minute and arrive a minute or two late, and the alarm needs a full one-minute datapoint over threshold. A canary trades <em>speed of detection</em> for <em>size of blast radius</em>. With the human away at dinner, Part 4 would have burnt pizzas until someone came back. Part 5 burns ~13 a minute for three minutes, and then stops, every time, at 3 a.m. too.</p>
+</div></details>
+
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>The alarm counts every 5xx from every target behind the ALB, including test-listener traffic.</strong> That is fine here, but in production you would alarm on a ratio (5xx ÷ requests), and keep heavy automated testing off the production alarm&#39;s metric.</p>
+</div></div>
+<hr>
+<h2 id="part-6-an-automated-gate-a-lambda-hook-that-tests-every-pizza">Part 6 · An automated gate: a Lambda hook that tests every pizza</h2>
+<p><strong>Action item 3.</strong> In Part 4 the test listener could have caught 1.2 before any customer. It did not, because a human chose what to test. A <strong>Lambda lifecycle hook</strong> makes the test a robot that never skips a pizza.</p>
+<h3>6a · Read the robot</h3>
+<p><code>~/lab6/menu_walker.py</code> (abridged):</p>
+<pre><code class="language-python">def handler(event, context):
+    base = event[&quot;hookDetails&quot;][&quot;testUrl&quot;]                 # we pass  http://&lt;ALB_DNS&gt;:8080  in the service config
+    status, menu = get(f&quot;{base}/api/menu&quot;)                   # ask the NEW release what it sells
+    for _ in range(3):                                       # each pizza 3×: there are 3 green tasks
+        for pizza in menu[&quot;menu&quot;]:
+            code, body = get(f&quot;{base}/api/order?src=menu-walker&amp;pizza={pizza}&quot;)
+            ...
+    return {&quot;hookStatus&quot;: &quot;FAILED&quot; if failures else &quot;SUCCEEDED&quot;}
+</code></pre>
+<p>ECS calls it at <code>POST_TEST_TRAFFIC_SHIFT</code> (the same moment you were paused at in Part 4). It must answer <code>SUCCEEDED</code> (carry on), <code>FAILED</code> (roll back) or <code>IN_PROGRESS</code> (ask me again in 30 s, for long tests).</p>
+<h3>6b · Give it an identity, deploy it, and let ECS call it</h3>
+<p>Two identities: the Lambda&#39;s own (may write its logs, nothing else), and permission for ECS to invoke <strong>exactly this function</strong>, added to the infrastructure role ECS already uses.</p>
+<pre><code class="language-bash">cat &gt; /tmp/lambda-trust.json &lt;&lt;&#39;J&#39;
+{ &quot;Version&quot;: &quot;2012-10-17&quot;, &quot;Statement&quot;: [ { &quot;Effect&quot;: &quot;Allow&quot;, &quot;Principal&quot;: { &quot;Service&quot;: &quot;lambda.amazonaws.com&quot; }, &quot;Action&quot;: &quot;sts:AssumeRole&quot; } ] }
+J
+aws iam create-role --role-name $P-menu-walker-role --assume-role-policy-document file:///tmp/lambda-trust.json --query Role.Arn --output text
+aws iam attach-role-policy --role-name $P-menu-walker-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+sleep 10                                                   # a brand-new role takes a few seconds before Lambda accepts it
+cd ~/lab6 &amp;&amp; zip -q -FS menu_walker.zip menu_walker.py &amp;&amp; cd ~
+aws lambda create-function --function-name $P-menu-walker --runtime python3.12 --handler menu_walker.handler \
+  --role arn:aws:iam::$ACCT:role/$P-menu-walker-role --zip-file fileb://$HOME/lab6/menu_walker.zip --timeout 60 \
+  --query &#39;[FunctionName,State]&#39; --output text
+aws lambda wait function-active-v2 --function-name $P-menu-walker
+aws iam put-role-policy --role-name $P-ecs-infra-role --policy-name invoke-menu-walker --policy-document &#39;{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [ { &quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: &quot;lambda:InvokeFunction&quot;, &quot;Resource&quot;: &quot;&#39;$HOOK_FN&#39;&quot; } ] }&#39;
+</code></pre>
+<h3>6c · Try it by hand first</h3>
+<p>Point it at <strong>production</strong> (1.1, healthy). It should pass:</p>
+<pre><code class="language-bash">aws lambda invoke --function-name $P-menu-walker --cli-binary-format raw-in-base64-out \
+  --payload &#39;{&quot;lifecycleStage&quot;:&quot;MANUAL_TEST&quot;,&quot;hookDetails&quot;:{&quot;testUrl&quot;:&quot;http://&#39;$ALB_DNS&#39;&quot;}}&#39; /tmp/out.json &gt;/dev/null &amp;&amp; cat /tmp/out.json; echo
+aws logs tail /aws/lambda/$P-menu-walker --since 5m --format short | grep release
+</code></pre>
+<p>→ <code>{&quot;hookStatus&quot;: &quot;SUCCEEDED&quot;}</code> and <code>{&quot;release&quot;: &quot;1.1&quot;, &quot;ordered&quot;: 15, &quot;ok&quot;: 15, &quot;failures&quot;: []}</code>.</p>
+<h3>6d · Game day #2: canary + alarm + gate</h3>
+<p>The deployment configuration is getting long, so it lives in a file now. Same canary and alarm as Part 5, plus the hook (with a 5-minute timeout: a hook that never answers rolls back):</p>
+<pre><code class="language-bash">cat &gt; ~/lab6/canary-gated.json &lt;&lt;J
+{
+  &quot;strategy&quot;: &quot;CANARY&quot;,
+  &quot;canaryConfiguration&quot;: { &quot;canaryPercent&quot;: 10, &quot;canaryBakeTimeInMinutes&quot;: 5 },
+  &quot;bakeTimeInMinutes&quot;: 2,
+  &quot;maximumPercent&quot;: 200,
+  &quot;minimumHealthyPercent&quot;: 100,
+  &quot;deploymentCircuitBreaker&quot;: { &quot;enable&quot;: true, &quot;rollback&quot;: true },
+  &quot;alarms&quot;: { &quot;alarmNames&quot;: [&quot;$ALARM&quot;], &quot;enable&quot;: true, &quot;rollback&quot;: true },
+  &quot;lifecycleHooks&quot;: [ {
+    &quot;targetType&quot;: &quot;AWS_LAMBDA&quot;,
+    &quot;hookTargetArn&quot;: &quot;$HOOK_FN&quot;,
+    &quot;roleArn&quot;: &quot;$INFRA_ROLE&quot;,
+    &quot;lifecycleStages&quot;: [&quot;POST_TEST_TRAFFIC_SHIFT&quot;],
+    &quot;hookDetails&quot;: { &quot;testUrl&quot;: &quot;http://$ALB_DNS:8080&quot; },
+    &quot;timeoutConfiguration&quot;: { &quot;timeoutInMinutes&quot;: 5, &quot;action&quot;: &quot;ROLLBACK&quot; }
+  } ]
+}
+J
+aws cloudwatch describe-alarms --alarm-names $ALARM --query &#39;MetricAlarms[0].StateValue&#39; --output text   # must be OK
+aws ecs update-service --cluster $CLUSTER --service $SVC --task-definition $(register 1.2) \
+  --deployment-configuration file://$HOME/lab6/canary-gated.json --query &#39;service.deploymentConfiguration.strategy&#39; --output text
+watch_deploy
+</code></pre>
+<details class="reveal solution"><summary>✅ What happened</summary><div class="body">
+
+<pre><code>14:00:52  IN_PROGRESS SCALE_UP None
+14:02:18  IN_PROGRESS TEST_TRAFFIC_SHIFT None
+14:02:49  ROLLBACK_IN_PROGRESS PRODUCTION_TRAFFIC_SHIFT Service deployment rolled back because POST_TEST_TRAFFIC_SHIFT lifecycle hook(s) failed.
+          Lifecycle hook target arn:aws:lambda:us-west-2:…:function:participant-NN-menu-walker returned FAILED status.
+14:03:58  ROLLBACK_SUCCESSFUL …
+</code></pre>
+<p>The robot&#39;s own report (<code>aws logs tail /aws/lambda/$P-menu-walker --since 10m --format short | grep release</code>):</p>
+<pre><code>{&quot;release&quot;: &quot;1.2&quot;, &quot;ordered&quot;: 15, &quot;ok&quot;: 12, &quot;failures&quot;: [&quot;pineapple-pulsar: HTTP 500 OVEN FIRE: 14 g of sugar at 900 °C caramelised and ignited&quot;, …]}
+</code></pre>
+<p><img class="shot" src="images/lab6-console-hook-rollback.png" alt="Rolled back by the hook" loading="lazy" title="Click to zoom"></p>
+<p>And the board, which only ever sees production:</p>
+<p><img class="shot" src="images/lab6-hook-zero-customers.png" alt="Zero customers on 1.2" loading="lazy" title="Click to zoom"></p>
+<p><strong>3,252 orders, 100 % on 1.1, zero burnt.</strong> Not one customer was offered release 1.2. Compare the three runs of the same bad release: <strong>255 → 51 → 0</strong>.</p>
+<p><strong>But do not stop here.</strong> The walker caught 1.2 because pineapple is <em>on the menu</em>: it knew what to test. Tomorrow&#39;s bug will be one the walker does not know about, and that is why the canary and the alarm stay switched on behind it. Gates catch the known; canaries catch the unknown.</p>
+</div></details>
+
+<hr>
+<h2 id="part-7-ship-the-fix-linearly-with-every-net-armed">Part 7 · Ship the fix, linearly, with every net armed</h2>
+<p>The kitchen team finally ships <strong>1.3 &quot;Lower Rack&quot;</strong>: same 900 °C speed, sugary pizzas bake on a cooler rack. This time the team wants a slow, steady ramp so the new ovens warm up gradually: <strong>25 % every minute</strong>.</p>
+<pre><code class="language-bash">sed -e &#39;s/&quot;strategy&quot;: &quot;CANARY&quot;/&quot;strategy&quot;: &quot;LINEAR&quot;/&#39; \
+    -e &#39;s/&quot;canaryConfiguration&quot;: { &quot;canaryPercent&quot;: 10, &quot;canaryBakeTimeInMinutes&quot;: 5 }/&quot;linearConfiguration&quot;: { &quot;stepPercent&quot;: 25, &quot;stepBakeTimeInMinutes&quot;: 1 }/&#39; \
+    ~/lab6/canary-gated.json &gt; ~/lab6/linear-gated.json
+grep -E &#39;strategy|linear&#39; ~/lab6/linear-gated.json
+aws ecs update-service --cluster $CLUSTER --service $SVC --task-definition $(register 1.3) \
+  --deployment-configuration file://$HOME/lab6/linear-gated.json --query &#39;service.deploymentConfiguration.linearConfiguration&#39; --output json
+watch_deploy
+</code></pre>
+<p><img class="shot" src="images/lab6-linear-staircase.png" alt="Linear: the staircase" loading="lazy" title="Click to zoom"></p>
+<details class="reveal solution"><summary>✅ What happened</summary><div class="body">
+
+<p>Three safety nets, three green lights:</p>
+<ol>
+<li><strong>The gate:</strong> the walker ordered all 15 pizzas through the test listener → <code>{&quot;release&quot;: &quot;1.3&quot;, &quot;ordered&quot;: 15, &quot;ok&quot;: 15, &quot;failures&quot;: []}</code> → <code>SUCCEEDED</code>.</li>
+<li><strong>The ramp:</strong> production moved 25 → 50 → 75 → 100 % with a minute between steps (4 min 43 s in the class run). The bottom chart on the board draws the staircase.</li>
+<li><strong>The alarm</strong> watched every step and the two-minute bake, and stayed <code>OK</code>.</li>
+</ol>
+<p>Whole deployment: about 9½ minutes, against 5 for blue/green and 3½ for rolling. That is the price of linear: <strong>time</strong>. You pay it when the risk is load (cold caches, connection storms, a downstream database), not when it is correctness.</p>
+<p>Then look at what the old tasks said on their way out:</p>
+<pre><code class="language-bash">aws logs tail /ecs/$FAMILY --since 15m --format short --filter-pattern &#39;&quot;sigterm&quot;&#39;
+</code></pre>
+<p>Three lines like <code>{&quot;event&quot;: &quot;sigterm&quot;, &quot;release&quot;: &quot;1.1&quot;, &quot;orders&quot;: 6039, &quot;uptime_s&quot;: 62366, …}</code>: ECS deregistered each old task from the target group, waited the 15-s deregistration delay so in-flight orders could finish, then sent SIGTERM. The app logged it and exited cleanly within its 10-s <code>stopTimeout</code>.</p>
+</div></details>
+
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — The shop is green and says <strong>release 1.3 · Lower Rack</strong>; Pineapple Pulsar bakes in ~75 ms without a fire. <code>aws ecs describe-services --cluster $CLUSTER --services $SVC --query &#39;services[0].deploymentConfiguration.strategy&#39; --output text</code> → <code>LINEAR</code>.</p>
+</blockquote>
+<hr>
+<h2 id="part-8-challenges">Part 8 · Challenges</h2>
+<p>Pick any. Each one has a measured answer.</p>
+<h3>Challenge A · 📊 The release scorecard (Logs Insights)</h3>
+<p>Every order is one JSON log line (<code>event</code>, <code>release</code>, <code>pizza</code>, <code>status</code>, <code>bake_ms</code>, <code>listener</code>). Without opening a single log stream, produce one table: orders, burnt, not-on-menu and burn rate <strong>per release</strong>, for the whole lab.</p>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>CloudWatch → <strong>Logs Insights</strong> (or <strong>Log Analytics</strong>) → log group <code>/ecs/participant-NN-pizza</code> → last 3 hours. JSON fields are discovered automatically; <code>sum(status = 500)</code> counts the true cases.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<pre><code>filter event = &quot;order&quot;
+| stats count(*) as orders, sum(status = 500) as burnt, sum(status = 404) as not_on_menu,
+        round(100 * sum(status = 500) / count(*), 2) as burnt_pct by release
+| sort release
+</code></pre>
+<p>Class run (part of the afternoon): <code>1.1 · 9861 orders · 0 burnt</code> · <code>1.2 · 15 · 3 · 20 %</code> (the walker&#39;s 15 test orders) · <code>1.3 · 4392 · 0</code>. Add <code>listener</code> to the <code>by</code> clause to separate test-listener traffic from customers.</p>
+</div></details>
+
+<h3>Challenge B · 🛑 Graceful shutdown, second by second</h3>
+<p>When blue is retired, what happens to an order that is in the oven at that moment? Put the following in the right order and say which setting controls each wait: <em>SIGTERM sent</em> · <em>target marked draining, no new requests</em> · <em>SIGKILL if still alive</em> · <em>in-flight requests finish</em> · <em>container exits 0</em>.</p>
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<ol>
+<li>Target deregistered → <strong>draining</strong>, the ALB sends it no new requests.</li>
+<li>In-flight requests finish, up to the <strong>deregistration delay</strong> (15 s here; AWS&#39;s default is 300 s, far too long for most web apps).</li>
+<li>ECS sends <strong>SIGTERM</strong>. The app logs <code>&quot;event&quot;: &quot;sigterm&quot;</code> and exits 0 two seconds later (see <code>on_sigterm</code> in <code>app.py</code>).</li>
+<li>If the container were still alive after <strong><code>stopTimeout</code></strong> (10 s in our task definition, default 30 s, Fargate max 120 s), ECS would send <strong>SIGKILL</strong>.</li>
+</ol>
+<p>Why the Dockerfile uses <code>CMD [&quot;python&quot;, &quot;app.py&quot;]</code> and not <code>CMD python app.py</code>: the shell form puts <code>/bin/sh</code> in front as PID 1, and <code>sh</code> does not pass SIGTERM on. Your app would never hear it and would be SIGKILLed after <code>stopTimeout</code>, mid-order.</p>
+</div></details>
+
+<h3>Challenge C · 💸 Fargate Spot: cheaper capacity, with a floor</h3>
+<p>Fargate Spot runs the same tasks on spare capacity for up to ~70 % less, but AWS can take a task back with a two-minute warning. Make the service keep <strong>one task on regular Fargate no matter what</strong>, and put the rest mostly on Spot. Then check where each task landed.</p>
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<pre><code class="language-bash">aws ecs put-cluster-capacity-providers --cluster $CLUSTER --capacity-providers FARGATE FARGATE_SPOT \
+  --default-capacity-provider-strategy capacityProvider=FARGATE,weight=1
+aws ecs update-service --cluster $CLUSTER --service $SVC --force-new-deployment \
+  --capacity-provider-strategy capacityProvider=FARGATE,base=1,weight=1 capacityProvider=FARGATE_SPOT,weight=3
+watch_deploy        # a full deployment with your current strategy (LINEAR: ~10 min)
+aws ecs describe-tasks --cluster $CLUSTER --tasks $(aws ecs list-tasks --cluster $CLUSTER --service-name $SVC --query taskArns --output text) \
+  --query &#39;tasks[].[capacityProviderName,lastStatus]&#39; --output text
+</code></pre>
+<p><code>base=1</code> = the first task always goes to FARGATE; after that, tasks split 1 : 3. With three tasks the class run got <code>FARGATE, FARGATE, FARGATE_SPOT</code>: placement is &quot;roughly&quot; by weight, not exact for small counts. Switching from launch type to capacity providers requires <code>--force-new-deployment</code>, which runs through your deployment strategy like any other release.</p>
+<p>When is Spot a bad idea? When a two-minute warning is not enough to drain (long uploads, WebSockets), or when <em>all</em> tasks could be reclaimed at once and you have no base on regular Fargate.</p>
+</div></details>
+
+<h3>Challenge D · 🕶️ Dark launch to employees: test listener on port 80, by header</h3>
+<p>Real companies rarely publish a test <em>port</em>. They route staff to the new release on the normal URL with a header or cookie. Make requests with <code>X-Pizza-Tester: yes</code> on <strong>port 80</strong> reach the green copy during the test window, while everyone else stays on blue.</p>
+<details class="reveal hint"><summary>💡 Hint</summary><div class="body">
+
+<p>Create a second rule on the <strong>port-80</strong> listener with a higher priority (lower number) than the production rule and an <code>http-header</code> condition, then give its ARN to the service as <code>testListenerRule</code>. Then deploy something with a PAUSE hook and test with and without the header.</p>
+</div></details>
+
+<details class="reveal solution"><summary>✅ Solution &amp; a gotcha we hit</summary><div class="body">
+
+<pre><code class="language-bash">PROD_L=$(aws elbv2 describe-listeners --load-balancer-arn $ALB_ARN --query &#39;Listeners[?Port==`80`].ListenerArn&#39; --output text)
+HDR_RULE=$(aws elbv2 create-rule --listener-arn $PROD_L --priority 5 \
+  --conditions &#39;Field=http-header,HttpHeaderConfig={HttpHeaderName=X-Pizza-Tester,Values=[yes]}&#39; \
+  --actions Type=forward,TargetGroupArn=$GREEN_TG --query &#39;Rules[0].RuleArn&#39; --output text)
+aws ecs update-service --cluster $CLUSTER --service $SVC \
+  --load-balancers &quot;targetGroupArn=$BLUE_TG,containerName=pizza,containerPort=8080,advancedConfiguration={alternateTargetGroupArn=$GREEN_TG,productionListenerRule=$PROD_RULE,testListenerRule=$HDR_RULE,roleArn=$INFRA_ROLE}&quot; \
+  --deployment-configuration &#39;{&quot;strategy&quot;:&quot;BLUE_GREEN&quot;,&quot;bakeTimeInMinutes&quot;:1,&quot;maximumPercent&quot;:200,&quot;minimumHealthyPercent&quot;:100,&quot;lifecycleHooks&quot;:[{&quot;targetType&quot;:&quot;PAUSE&quot;,&quot;lifecycleStages&quot;:[&quot;POST_TEST_TRAFFIC_SHIFT&quot;]}]}&#39;
+watch_deploy        # pauses; this deployment still tests on :8080 (see the gotcha below). Continue it as in Part 4d.
+# then deploy a different release, e.g. 1.1, and test while it is paused:
+aws ecs update-service --cluster $CLUSTER --service $SVC --task-definition $(register 1.1) &gt;/dev/null; watch_deploy
+curl -s http://$ALB_DNS/api/order?pizza=margherita | python3 -c &#39;import sys,json;print(&quot;plain:      &quot;, json.load(sys.stdin)[&quot;release&quot;])&#39;
+curl -s -H &#39;X-Pizza-Tester: yes&#39; http://$ALB_DNS/api/order?pizza=margherita | python3 -c &#39;import sys,json;print(&quot;with header:&quot;, json.load(sys.stdin)[&quot;release&quot;])&#39;
+</code></pre>
+<p>During the second deployment&#39;s pause, plain requests get the <strong>current production</strong> release and requests with the header get the <strong>release being deployed</strong> (class run: <code>plain: 1.1 · with header: 1.3</code>). That is a dark launch: same URL, chosen people. Continue or roll back as in Part 4.</p>
+<p><strong>Gotcha, measured:</strong> the update that <em>changes</em> <code>testListenerRule</code> is itself a deployment, and it still uses the <strong>old</strong> test rule. The new header rule only takes over from the <strong>next</strong> deployment. Load-balancer settings belong to the service revision being deployed <em>to</em>, and ECS moves traffic with the rules of the revision it is deploying <em>from</em>. If your first test shows the header doing nothing, deploy once more.</p>
+</div></details>
+
+<h3>Challenge E · 📈 Auto scaling, and which metric to trust</h3>
+<p>Add target-tracking auto scaling (3 to 6 tasks). Then answer: why is <code>ALBRequestCountPerTarget</code> (the most natural metric for a web shop) awkward with blue/green?</p>
+<details class="reveal solution"><summary>✅ Solution</summary><div class="body">
+
+<pre><code class="language-bash">aws application-autoscaling register-scalable-target --service-namespace ecs --resource-id service/$CLUSTER/$SVC \
+  --scalable-dimension ecs:service:DesiredCount --min-capacity 3 --max-capacity 6
+aws application-autoscaling put-scaling-policy --service-namespace ecs --resource-id service/$CLUSTER/$SVC \
+  --scalable-dimension ecs:service:DesiredCount --policy-name $P-cpu50 --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration &#39;{&quot;TargetValue&quot;:50,&quot;PredefinedMetricSpecification&quot;:{&quot;PredefinedMetricType&quot;:&quot;ECSServiceAverageCPUUtilization&quot;},&quot;ScaleOutCooldown&quot;:60,&quot;ScaleInCooldown&quot;:120}&#39;
+</code></pre>
+<p>Application Auto Scaling creates two CloudWatch alarms for you (<code>…AlarmHigh…</code> and <code>…AlarmLow…</code>).</p>
+<p><code>ALBRequestCountPerTarget</code> is measured <strong>per target group</strong>, and you have to name one in the policy. With blue/green the live target group changes every deployment, so a policy pinned to &quot;blue&quot; goes blind half the time. Options: scale on CPU or memory (what we did; our pizza oven mostly <em>sleeps</em>, so CPU stays low and you will not see a scale-out from the rush board), scale on a custom metric that sums both target groups, or use step scaling on the load balancer&#39;s total <code>RequestCount</code>. Picking the metric is the real design work in auto scaling.</p>
+</div></details>
+
+<h3>Challenge F · 🧭 Pick the strategy (no AWS needed)</h3>
+<p>For each, choose a strategy and say what you would alarm on.</p>
+<ol>
+<li>A tax-calculation API used by 40 customers, each sending a few requests a day.</li>
+<li>The checkout page of a shop doing 2 000 orders a minute, new payment provider.</li>
+<li>A search service whose new version ships with an empty cache.</li>
+<li>A nightly report generator.</li>
+<li>A new database schema the old version cannot read.</li>
+</ol>
+<details class="reveal solution"><summary>✅ One good set of answers</summary><div class="body">
+
+<ol>
+<li><strong>Blue/green with a test gate</strong> (automated tests on the test listener, then a human approval). A canary is useless at this traffic: 10 % of a few requests a day tells you nothing.</li>
+<li><strong>Canary</strong> at 1–5 %, alarm on payment-error <em>ratio</em> and latency, short bake, automatic rollback. High traffic makes small percentages meaningful fast.</li>
+<li><strong>Linear</strong> in small steps (10 % every few minutes) so the cache fills under growing load; alarm on latency (p99), not just errors.</li>
+<li><strong>All at once.</strong> Nobody is waiting on it; keep it simple.</li>
+<li><strong>None of them alone.</strong> Mixed versions or a rollback would break. Use <em>expand and contract</em>: release A adds the new column and writes both; release B reads the new one; release C stops writing the old one. Each release is then backward compatible and any strategy works.</div></details></li>
+</ol>
+<h3>Challenge G · 🧰 ECS-native vs CodeDeploy-powered blue/green</h3>
+<p>Before 2025, blue/green on ECS meant handing the service to CodeDeploy (<code>deploymentController: CODE_DEPLOY</code>, an <code>appspec.yml</code> for ECS, <code>CodeDeployDefault.ECSCanary10Percent5Minutes</code>, …). Many companies still run it. Using the <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-type-blue-green.html">ECS documentation</a>, list three differences you would care about if you inherited such a service.</p>
+<details class="reveal solution"><summary>✅ Some differences</summary><div class="body">
+
+<ul>
+<li><strong>Where it is configured:</strong> native = one <code>deploymentConfiguration</code> on the ECS service; CodeDeploy = an application, a deployment group and an appspec, in a second service with its own role and console.</li>
+<li><strong>How you deploy:</strong> native = <code>update-service</code>, like any rolling deploy, so every tool that already updates ECS works; CodeDeploy = <code>create-deployment</code> with a revision, and plain <code>update-service --task-definition</code> is refused.</li>
+<li><strong>Hooks:</strong> both call Lambda functions, but CodeDeploy hooks report back with <code>PutLifecycleEventHookExecutionStatus</code>, while native hooks simply return <code>hookStatus</code>. Native also has PAUSE hooks and Service Connect support.</li>
+<li><strong>Linear/canary:</strong> both have them; CodeDeploy uses predefined or custom deployment configurations, native uses <code>canaryConfiguration</code> / <code>linearConfiguration</code> on the service.</div></details></li>
+</ul>
+<hr>
+<h2 id="part-9-clean-up-order-matters">Part 9 · Clean up (order matters)</h2>
+<p>Run this as one block. The service must go before the target groups, the load balancer before its security group, and Fargate&#39;s network interfaces take a minute to disappear.</p>
+<pre><code class="language-bash">aws application-autoscaling deregister-scalable-target --service-namespace ecs --resource-id service/$CLUSTER/$SVC \
+  --scalable-dimension ecs:service:DesiredCount 2&gt;/dev/null                                   # only if you did Challenge E
+aws ecs delete-service --cluster $CLUSTER --service $SVC --force --query service.status --output text
+aws ecs wait services-inactive --cluster $CLUSTER --services $SVC
+aws elbv2 delete-load-balancer --load-balancer-arn $ALB_ARN &amp;&amp; aws elbv2 wait load-balancers-deleted --load-balancer-arns $ALB_ARN
+aws cloudwatch delete-alarms --alarm-names $ALARM
+aws lambda delete-function --function-name $P-menu-walker
+aws logs delete-log-group --log-group-name /ecs/$FAMILY
+aws logs delete-log-group --log-group-name /aws/lambda/$P-menu-walker
+for td in $(aws ecs list-task-definitions --family-prefix $FAMILY --query taskDefinitionArns --output text); do aws ecs deregister-task-definition --task-definition $td &gt;/dev/null; done
+aws ecs delete-cluster --cluster $CLUSTER --query cluster.status --output text
+sleep 60   # the target groups and the tasks&#39; network interfaces take a minute to let go
+for tg in $BLUE_TG $GREEN_TG; do until aws elbv2 delete-target-group --target-group-arn $tg 2&gt;/dev/null; do echo &quot;target group still in use, retrying&quot;; sleep 15; done; done
+aws ec2 delete-security-group --group-id $TASK_SG &gt;/dev/null &amp;&amp; aws ec2 delete-security-group --group-id $ALB_SG &gt;/dev/null &amp;&amp; echo &quot;security groups deleted&quot;
+</code></pre>
+<p>If the last line says <em>DependencyViolation</em>, wait another minute and run it again. (Measured: the whole block takes about five minutes, most of it waiting for the service to drain and the load balancer to go.) The two IAM roles (<code>participant-NN-ecs-infra-role</code>, <code>participant-NN-menu-walker-role</code>) stay; students cannot delete roles in this account, and the instructor removes them.</p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — <code>source ~/lab6/pizza.env &amp;&amp; pizza_vars</code> shows <code>None</code> for the ALB, both target groups and both rules.</p>
+</blockquote>
+<hr>
+<h2 id="part-10-what-you-learned">Part 10 · What you learned</h2>
+<ul>
+<li>Most outages are <strong>changes</strong>. A deployment strategy decides <strong>blast radius</strong>, <strong>time to detect</strong> and <strong>time to recover</strong>, and you can measure all three.</li>
+<li><strong>Rolling</strong> is cheap and simple, but serves two versions in an unplanned mix (<strong>version skew</strong>) and rolls back slowly.</li>
+<li><strong>Blue/green</strong> tests the complete new copy behind a <strong>test listener</strong>, flips traffic atomically, and keeps the old copy warm during <strong>bake time</strong> so rollback takes seconds.</li>
+<li><strong>Canary</strong> limits who meets a new release; it only works with <strong>enough traffic and an alarm</strong> that means &quot;customers are hurting&quot;. Detection on ALB metrics takes minutes, not seconds.</li>
+<li><strong>Linear</strong> spends time to protect capacity: caches, pools, downstream services.</li>
+<li><strong>Health checks and circuit breakers</strong> see &quot;process up&quot; and &quot;task started&quot;. Business errors (burnt pizzas, failed payments) need <strong>alarms</strong> and <strong>tests</strong>.</li>
+<li><strong>Lifecycle hooks</strong> turn the manual test into a robot (<code>SUCCEEDED</code> / <code>FAILED</code>) or a deliberate pause for a human. Gates catch the known; canaries catch the unknown. Use both.</li>
+<li>ECS needs a <strong>third identity</strong>, the infrastructure role, to move your traffic; Lambda hooks need a fourth (the function&#39;s own).</li>
+<li>Graceful shutdown is a chain: <strong>deregistration delay → SIGTERM → stopTimeout → SIGKILL</strong>, and exec-form <code>CMD</code> is what lets your app hear it.</li>
+</ul>
+<h3>Quiz yourself</h3>
+<details class="reveal quiz"><summary>1. Release 1.2 passed every health check and the circuit breaker never tripped. Why not, and what would have to change for the circuit breaker to catch it?</summary><div class="body">
+
+<p>The circuit breaker counts tasks that fail to start or fail health checks. 1.2&#39;s tasks started fine and <code>/health</code> answered 200; only <code>/api/order?pizza=pineapple-pulsar</code> failed. For the breaker to catch it, the bug would have to break startup or <code>/health</code>. Making <code>/health</code> call the oven would be tempting but dangerous: a health check that depends on business logic can take the whole fleet out of service for one bad pizza. Use alarms and hooks for business errors.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>2. In Part 4 the rollback took six seconds; in Part 3 a rollback would have taken about 3½ minutes. Where does the difference come from?</summary><div class="body">
+
+<p>During blue/green bake time the old tasks are still running and registered in their target group; rollback is just setting the production rule&#39;s weights back to 100/0. A rolling deployment has already stopped the old tasks, so &quot;rollback&quot; means starting new ones from the old task definition and waiting for their health checks.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>3. Your canary alarm needed 3 minutes 12 seconds. Name two ways to make detection faster, and the price of each.</summary><div class="body">
+
+<p>(a) Alarm on a faster signal: the app&#39;s own metric or a log metric filter with 10-second high-resolution metrics, at the price of more noise and cost. (b) Run the Lambda hook at <code>PRODUCTION_TRAFFIC_SHIFT</code> (invoked at every canary/linear step) and have it query error counts directly, at the price of writing and owning that code. (c) A lower threshold catches sooner but pages you for every blip. Also a bigger canary percentage gives more signal per minute, at the price of a bigger blast radius.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>4. Why did changing the load-balancer configuration in Part 4a start a deployment, and why did the header rule in Challenge D only work one deployment later?</summary><div class="body">
+
+<p>Load-balancer settings are part of the <strong>service revision</strong>. Changing them creates a new target revision, and getting there is a deployment. During that deployment ECS routes traffic with the source revision&#39;s rules, so a new test rule only takes effect once its own revision is the source of the next deployment.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>5. The walker caught 1.2 with zero customers affected. Why keep the canary and the alarm?</summary><div class="body">
+
+<p>The walker only tests what it knows to test (every pizza, one at a time, empty shop). Real customers bring combinations, volumes, payloads and timing the walker never tries. The gate removes the known failures cheaply; the canary and the alarm limit the damage of the unknown ones. Defence in depth.</p>
+</div></details>
+
+<details class="reveal quiz"><summary>6. Blue/green needs twice the capacity during a deployment. When is that a real problem on Fargate, and when is it not?</summary><div class="body">
+
+<p>On Fargate you pay per task-second, so 2× for five minutes costs a few cents; it is rarely the problem. It becomes one with account quotas (vCPU limits for large services), very large services, or EC2-backed clusters that need spare instances. It is also a problem for anything that must not run twice at the same time (a singleton consumer, a scheduled job).</p>
+</div></details>
+
+<p><strong>Done.</strong> You have shipped one container with every strategy ECS offers. Back to the <a href="index.html">handout</a> for the wrap-up, or compare with Lab 5, where Kubernetes calls the same ideas a rolling update, readiness and a Service.</p>
+
+<div class="pager">
+  <a href="lab5.html"><small>Previous</small>← Lab 5 · Kubernetes on EKS</a>
+  <span></span>
+</div>
+</main>
+<footer><span>Pipeline Academy · hands-on AWS CI/CD labs</span><span>Built from <code>labs/*.md</code> · screenshots taken in a real account, then torn down.</span></footer>
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -19,6 +19,8 @@
   --sky-ink: #0369A1;
   --violet: #A78BFA;
   --violet-ink: #6D28D9;
+  --pink: #F472B6;
+  --pink-ink: #BE185D;
 
   --paper: #F6F7FB;
   --surface: #FFFFFF;
@@ -69,11 +71,13 @@
 .hue-lab3 { --hue: var(--red);    --hue-ink: var(--red-ink);    --hue-soft: #FDEAEA; }
 .hue-lab4 { --hue: var(--amber);  --hue-ink: var(--amber-ink);  --hue-soft: #FEF3DF; }
 .hue-lab5 { --hue: var(--violet); --hue-ink: var(--violet-ink); --hue-soft: #EFE9FE; }
+.hue-lab6 { --hue: var(--pink);   --hue-ink: var(--pink-ink);   --hue-soft: #FDE8F3; }
 [data-theme="dark"] .hue-lab1 { --hue-soft: #0C2A3A; }
 [data-theme="dark"] .hue-lab2 { --hue-soft: #0F2A1C; }
 [data-theme="dark"] .hue-lab3 { --hue-soft: #3A1414; }
 [data-theme="dark"] .hue-lab4 { --hue-soft: #3A2A0C; }
 [data-theme="dark"] .hue-lab5 { --hue-soft: #241A44; }
+[data-theme="dark"] .hue-lab6 { --hue-soft: #3A1229; }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }

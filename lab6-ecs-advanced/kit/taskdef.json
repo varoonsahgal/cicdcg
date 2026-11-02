@@ -1,0 +1,26 @@
+{
+  "family": "@P@-pizza",
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": { "cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX" },
+  "executionRoleArn": "arn:aws:iam::@ACCT@:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "pizza",
+      "image": "@IMAGE@",
+      "essential": true,
+      "portMappings": [ { "containerPort": 8080, "protocol": "tcp" } ],
+      "stopTimeout": 10,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/@P@-pizza",
+          "awslogs-region": "us-west-2",
+          "awslogs-stream-prefix": "pizza"
+        }
+      }
+    }
+  ]
+}

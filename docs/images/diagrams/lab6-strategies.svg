@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <rect width="960" height="600" rx="18" fill="#0B1220"/>
+  <text x="32" y="42" fill="#E2E8F0" font-size="20" font-weight="700">Five ways to ship a release: share of traffic on the NEW version over time</text>
+  <text x="32" y="64" fill="#94A3B8" font-size="13">Same release, same servers. What changes is who sees it, when, and how fast you can take it back.</text>
+  <g font-size="11" fill="#64748B">
+    <text x="300" y="92">time →</text>
+    <text x="610" y="92" font-weight="700">Extra capacity</text><text x="722" y="92" font-weight="700">Rollback</text><text x="834" y="92" font-weight="700">Mixed versions?</text>
+  </g>
+
+  <!-- row template: label 32..250, chart 270..590 (y top .. y+70), facts at 620/730/830 -->
+  <!-- 1 all at once -->
+  <rect x="32" y="102" width="896" height="88" rx="12" fill="#1E293B" stroke="#334155"/>
+  <text x="48" y="128" fill="#E2E8F0" font-size="14" font-weight="700">All at once / recreate</text>
+  <text x="48" y="146" fill="#94A3B8" font-size="11.5">stop everything, start the new one</text>
+  <text x="48" y="164" fill="#64748B" font-size="11">ECS: ROLLING with min 0 %</text>
+  <line x1="270" y1="176" x2="590" y2="176" stroke="#475569"/><line x1="270" y1="112" x2="270" y2="176" stroke="#475569"/>
+  <polyline points="270,176 360,176" stroke="#F59E0B" stroke-width="3" fill="none"/>
+  <rect x="360" y="112" width="40" height="64" fill="#EF4444" opacity=".25"/><text x="380" y="150" fill="#FCA5A5" font-size="10" text-anchor="middle">down</text>
+  <polyline points="400,116 590,116" stroke="#22C55E" stroke-width="3" fill="none"/>
+  <text x="610" y="150" fill="#86EFAC" font-size="11.5">none</text><text x="722" y="150" fill="#FCA5A5" font-size="11.5">redeploy old</text><text x="834" y="150" fill="#86EFAC" font-size="11.5">no · downtime</text>
+
+  <!-- 2 rolling -->
+  <rect x="32" y="198" width="896" height="88" rx="12" fill="#1E293B" stroke="#334155"/>
+  <text x="48" y="224" fill="#E2E8F0" font-size="14" font-weight="700">Rolling update</text>
+  <text x="48" y="242" fill="#94A3B8" font-size="11.5">replace tasks a few at a time</text>
+  <text x="48" y="260" fill="#64748B" font-size="11">ECS: ROLLING (Lab 4, Part 3 here)</text>
+  <line x1="270" y1="272" x2="590" y2="272" stroke="#475569"/><line x1="270" y1="208" x2="270" y2="272" stroke="#475569"/>
+  <polyline points="270,272 340,272 370,262 390,250 410,240 425,226 445,222 470,214 500,212 520,212 590,212" stroke="#22C55E" stroke-width="3" fill="none"/>
+  <rect x="340" y="208" width="180" height="64" fill="#FACC15" opacity=".10"/><text x="430" y="268" fill="#FDE047" font-size="10" text-anchor="middle">both versions serve: version skew</text>
+  <text x="610" y="246" fill="#FCD34D" font-size="11.5">a little (max %)</text><text x="722" y="246" fill="#FCA5A5" font-size="11.5">another rollout</text><text x="834" y="246" fill="#FCD34D" font-size="11.5">yes, unplanned</text>
+
+  <!-- 3 blue/green -->
+  <rect x="32" y="294" width="896" height="88" rx="12" fill="#1E293B" stroke="#334155"/>
+  <text x="48" y="320" fill="#E2E8F0" font-size="14" font-weight="700">Blue/green</text>
+  <text x="48" y="338" fill="#94A3B8" font-size="11.5">full copy, test it, flip all traffic</text>
+  <text x="48" y="356" fill="#64748B" font-size="11">ECS: BLUE_GREEN (Part 4)</text>
+  <line x1="270" y1="368" x2="590" y2="368" stroke="#475569"/><line x1="270" y1="304" x2="270" y2="368" stroke="#475569"/>
+  <rect x="330" y="304" width="80" height="64" fill="#FACC15" opacity=".12"/><text x="370" y="362" fill="#FDE047" font-size="10" text-anchor="middle">test listener</text>
+  <rect x="412" y="304" width="110" height="64" fill="#38BDF8" opacity=".10"/><text x="467" y="362" fill="#7DD3FC" font-size="10" text-anchor="middle">bake: old kept warm</text>
+  <polyline points="270,368 410,368 412,308 590,308" stroke="#22C55E" stroke-width="3" fill="none"/>
+  <text x="610" y="342" fill="#FCA5A5" font-size="11.5">2× during deploy</text><text x="722" y="342" fill="#86EFAC" font-size="11.5">seconds (bake)</text><text x="834" y="342" fill="#86EFAC" font-size="11.5">no · atomic flip</text>
+
+  <!-- 4 canary -->
+  <rect x="32" y="390" width="896" height="88" rx="12" fill="#1E293B" stroke="#334155"/>
+  <text x="48" y="416" fill="#E2E8F0" font-size="14" font-weight="700">Canary</text>
+  <text x="48" y="434" fill="#94A3B8" font-size="11.5">a small slice first, then the rest</text>
+  <text x="48" y="452" fill="#64748B" font-size="11">ECS: CANARY (Part 5)</text>
+  <line x1="270" y1="464" x2="590" y2="464" stroke="#475569"/><line x1="270" y1="400" x2="270" y2="464" stroke="#475569"/>
+  <rect x="340" y="400" width="130" height="64" fill="#EF4444" opacity=".08"/><text x="405" y="430" fill="#FCA5A5" font-size="10" text-anchor="middle">alarms watched: abort here</text>
+  <polyline points="270,464 340,464 341,457 470,457 472,404 590,404" stroke="#22C55E" stroke-width="3" fill="none"/>
+  <text x="352" y="452" fill="#86EFAC" font-size="10">10 %</text>
+  <text x="610" y="438" fill="#FCA5A5" font-size="11.5">2× during deploy</text><text x="722" y="438" fill="#86EFAC" font-size="11.5">automatic</text><text x="834" y="438" fill="#FCD34D" font-size="11.5">yes, on purpose</text>
+
+  <!-- 5 linear -->
+  <rect x="32" y="486" width="896" height="88" rx="12" fill="#1E293B" stroke="#334155"/>
+  <text x="48" y="512" fill="#E2E8F0" font-size="14" font-weight="700">Linear</text>
+  <text x="48" y="530" fill="#94A3B8" font-size="11.5">equal steps with a pause between</text>
+  <text x="48" y="548" fill="#64748B" font-size="11">ECS: LINEAR (Part 7)</text>
+  <line x1="270" y1="560" x2="590" y2="560" stroke="#475569"/><line x1="270" y1="496" x2="270" y2="560" stroke="#475569"/>
+  <polyline points="270,560 330,560 331,544 380,544 381,528 430,528 431,512 480,512 481,500 590,500" stroke="#22C55E" stroke-width="3" fill="none"/>
+  <g fill="#86EFAC" font-size="9.5"><text x="336" y="540">25</text><text x="386" y="524">50</text><text x="436" y="508">75</text><text x="486" y="496">100</text></g>
+  <text x="610" y="534" fill="#FCA5A5" font-size="11.5">2× during deploy</text><text x="722" y="534" fill="#86EFAC" font-size="11.5">automatic</text><text x="834" y="534" fill="#FCD34D" font-size="11.5">yes, growing</text>
+</svg>

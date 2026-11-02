@@ -25,6 +25,7 @@
       <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
       <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
       <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA" aria-current="page"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+      <a href="lab6.html" data-lab="lab6" style="--d:#F472B6"><span class="dot"></span>Lab 6<span class="lbl-long"> · Ship it safely</span><span class="done">★</span></a>
   </nav>
   <div class="tools">
     <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
@@ -34,7 +35,7 @@
 
 <section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
   <div>
-    <p class="eyebrow">Lab 5 of 5 · Orchestrate it</p>
+    <p class="eyebrow">Lab 5 of 6 · Orchestrate it</p>
     <h1>Kubernetes on EKS — the same ideas with different words</h1>
     <p class="lede">Yesterday's orchestrator was ECS. Today's is Kubernetes, the one the rest of the industry speaks. You will run the exact same Mission Control image, on a cluster the whole class shares, inside a namespace that is yours alone. Every concept from Lab 4 reappears under a new name, and a few new ones appear that ECS does not have words for: readiness versus liveness, configuration that changes under a running container, a Job that runs to completion. That is the point.</p>
     <div class="mast-meta"><span class="chip"><b>Time</b> Core path (Parts 1–7) ≈ 80 min · Challenges A–D ≈ 45 min · all ten challenges ≈ 95 min</span><span class="chip"><b>Difficulty</b> Intermediate, advanced in the challenges. Lab 4 first (you reuse its image). No Kubernetes experience assumed.</span><span class="chip"><b>AWS services</b> Amazon EKS (one cluster, created by the instructor), AWS CloudShell, Amazon ECR, Elastic Load Balancing, CloudWatch</span><span class="chip"><b>Tools</b> <code>kubectl</code> – already installed in CloudShell. Nothing on your laptop.</span><span class="chip"><b>You will build</b> A ConfigMap, a Deployment with two Pods of your image and a Service with an internet-facing load balancer · a rolling update you can prove had no downtime, a rollback, a stuck rollout you diagnose two different ways · configuration that changes without a restart · a shell inside a Pod · and, in the challenges, an autoscaler, a smoke-test Job, a Secret, a PodDisruptionBudget</span><span class="chip"><b>You will break & fix</b> A Pod that cannot pull its image · a Pod that runs but is never ready · a scale-up the namespace quota refuses · a Service whose selector matches nobody · a container that eats its memory limit · a peek at a neighbour&#39;s namespace that RBAC refuses</span></div>
@@ -851,11 +852,11 @@ kubectl get all,cm,secret,pdb,hpa,job        # only the kube-root-ca.crt ConfigM
 <p>ConfigMap (configuration), Deployment (<code>apply</code>, then <code>rollout status</code> with a progress deadline), Service (once; it rarely changes), then a Job as the smoke test (<code>apply</code>, <code>wait --for=condition=complete</code>), and <code>rollout undo</code> if either the status or the wait fails. Secrets come from a secret store, not from the repository.</p>
 </div></details>
 
-<p><strong>Done.</strong> Back to the <a href="index.html">handout</a> for the wrap-up and the triage playbook you can take with you.</p>
+<p><strong>Next:</strong> <a href="lab6.html">Lab 6 – Ship it safely: blue/green, canary and linear deployments on ECS</a> (advanced). Or back to the <a href="index.html">handout</a> for the wrap-up and the triage playbook you can take with you.</p>
 
 <div class="pager">
   <a href="lab4.html"><small>Previous</small>← Lab 4 · Containers on ECS</a>
-  <span></span>
+  <a href="lab6.html" style="text-align:right"><small>Next</small>Lab 6 · Ship it safely on ECS →</a>
 </div>
 </main>
 <footer><span>Pipeline Academy · hands-on AWS CI/CD labs</span><span>Built from <code>labs/*.md</code> · screenshots taken in a real account, then torn down.</span></footer>

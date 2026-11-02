@@ -46,6 +46,7 @@
       <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
       <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
       <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+      <a href="lab6.html" data-lab="lab6" style="--d:#F472B6"><span class="dot"></span>Lab 6<span class="lbl-long"> · Ship it safely</span><span class="done">★</span></a>
   </nav>
   <div class="tools">
     <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
@@ -57,7 +58,7 @@
   <div>
     <p class="eyebrow" style="color:#22C55E">A hands-on day with AWS · CodeBuild · CodePipeline · CodeDeploy · ECR · ECS · EKS</p>
     <h1>From a zip file to a running container, <em style="font-style:normal;color:#22C55E">by machine</em>.</h1>
-    <p class="lede">Five labs in one shared AWS account. You will make a robot build your code, make a second robot put it on a server, repair a pipeline somebody else broke, and then do it all again with containers. <b>No prior CI/CD experience assumed.</b> Plenty of hints. Answers hidden until you want them.</p>
+    <p class="lede">Six labs in one shared AWS account. You will make a robot build your code, make a second robot put it on a server, repair a pipeline somebody else broke, do it all again with containers, and finally ship a bad release four different ways to see which strategy catches it. <b>No prior CI/CD experience assumed.</b> Plenty of hints. Answers hidden until you want them.</p>
     <div class="mast-meta">
       <span class="chip"><b>5</b> labs · ~11 hours with every mission</span>
       <span class="chip"><b>1</b> shared account · you are <code style="background:none;color:#fff;padding:0">participant-NN</code></span>
@@ -133,7 +134,7 @@
 
 <section class="part wide" id="labs">
   <p class="eyebrow">The day</p>
-  <h2>Five labs, one storyline</h2>
+  <h2>Six labs, one storyline</h2>
   <p class="lead">Each lab is mostly guided, with numbered steps and screenshots from a real run. Each one also plants a failure for you to diagnose, and ends with challenges that have progressive hints and a hidden solution. Later labs assume the earlier ones.</p>
   <div class="labs">
     <a class="lab hue-lab1" href="lab1.html"><span class="num">LAB 1 · 45 MIN CORE + MISSIONS</span><h3>Your first automated build</h3><p>Hand a tiny Java app to CodeBuild. Watch it fail on a Java version mismatch, read the log, fix the recipe, get a jar and a test report out. Then eight missions: a test somebody switched off, a secret the robot is refused, a cache you can time, an e-mail when it goes red, a query across every build.</p><div class="meta"><span>CodeBuild</span><span>S3</span><span>IAM</span><span>Secrets Manager</span><span>EventBridge + SNS</span><span>Logs Insights</span></div><span class="go">Build it →</span></a>
@@ -141,6 +142,7 @@
     <a class="lab hue-lab3" href="lab3.html"><span class="num">LAB 3 · 75–100 MIN</span><h3>The Pipeline Repair Shop</h3><p>You inherit a red pipeline with six hidden bugs: YAML, permissions, tags, permissions again, a script typo, and one that is green but wrong. Hints escalate; answers are hidden.</p><div class="meta"><span>Troubleshooting</span><span>IAM</span><span>logs</span><span>Session Manager</span></div><span class="go">Fix it →</span></a>
     <a class="lab hue-lab4" href="lab4.html"><span class="num">LAB 4 · 90 MIN CORE + EXERCISES</span><h3>Ship a container: ECR + ECS</h3><p>Build a container image with CodeBuild (no Docker on your laptop), push it to ECR, run it on Fargate, roll it forward, then turn the blast-radius dial and roll again. Give the container an identity and watch it be refused before it is allowed. Then break it six ways: a missing tag, a security group, a crash, an out-of-memory kill, an immutable repository, a secret the wrong robot asked for. Stretch goals: a load balancer, a query across every container that ever ran, a shell inside Fargate.</p><div class="meta"><span>ECR</span><span>ECS Fargate</span><span>task roles</span><span>Parameter Store</span><span>Logs Insights</span><span>ECS Exec</span></div><span class="go">Contain it →</span></a>
     <a class="lab hue-lab5" href="lab5.html"><span class="num">LAB 5 · 80 MIN CORE + CHALLENGES</span><h3>Kubernetes on EKS</h3><p>A shared cluster, your own namespace, kubectl from CloudShell. A ConfigMap, a Deployment and a Service; a rolling update you prove had no downtime; a stuck rollout diagnosed two different ways; configuration that changes under a running Pod; a shell inside. Then ten challenges: readiness versus liveness, OOM kills, a selector that matches nobody, Recreate measured in failed requests, a smoke-test Job, in-cluster DNS, Secrets, an autoscaler, and what RBAC says when you peek at a neighbour.</p><div class="meta"><span>EKS</span><span>kubectl</span><span>probes</span><span>ConfigMaps</span><span>RBAC</span><span>HPA</span></div><span class="go">Orchestrate it →</span></a>
+    <a class="lab hue-lab6" href="lab6.html"><span class="num">LAB 6 · ADVANCED · 2¼ H + CHALLENGES</span><h3>Ship it safely: blue/green, canary, linear</h3><p>Galactic Pizza's release 1.2 is faster, passes every health check, and burns every pineapple pizza. Ship it with a rolling update, with blue/green and a human approval, as a canary watched by a CloudWatch alarm, and behind a Lambda hook that orders every pizza first: 255 burnt pizzas, then 51, then none. A live rush-hour board shows every traffic shift; then fix it with a linear rollout and try Fargate Spot, dark launches by header, Logs Insights and auto scaling.</p><div class="meta"><span>ECS deployments</span><span>ALB weighted rules</span><span>CloudWatch alarms</span><span>Lambda hooks</span><span>Fargate Spot</span></div><span class="go">Ship it safely →</span></a>
   </div>
 </section>
 

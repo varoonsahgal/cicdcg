@@ -1,6 +1,6 @@
 # Pipeline Academy · AWS CI/CD and container labs
 
-Five hands-on labs for a class of ~15 students sharing one AWS account, plus a GitHub-Pages handout that explains the concepts (why CI/CD, security, consistency, triage, containers).
+Six hands-on labs for a class of ~15 students sharing one AWS account, plus a GitHub-Pages handout that explains the concepts (why CI/CD, security, consistency, triage, containers).
 
 | # | Lab | Students build | Planted failures | Guide |
 |---|---|---|---|---|
@@ -9,6 +9,7 @@ Five hands-on labs for a class of ~15 students sharing one AWS account, plus a G
 | 3 | **The broken pipeline** (Terraform, one environment per student) | Nothing; they repair | Six bugs: YAML comment, build-role permission, tag filter, instance-role permission, script typo, missing artifact file | [labs/lab3-broken-pipeline.md](labs/lab3-broken-pipeline.md) |
 | 4 | **ECR + CodeBuild + ECS Fargate** | A container image built by CodeBuild, pushed to ECR, run as an ECS service, rolled to a new version, rolled again with the blast-radius dial turned down, given a task role that reads Parameter Store at run time · then a load balancer, Logs Insights over JSON logs, a lifecycle policy, least privilege, `ValueFrom` secrets, ECS Exec | Build role cannot log in to ECR; app with no identity, then identity without permission; deploy of a non-existent tag (circuit breaker); a crashed container; an out-of-memory kill (exit 137); an immutable repository refusing `latest`; a secret the execution role may not read | [labs/lab4-ecs-ecr.md](labs/lab4-ecs-ecr.md) |
 | 5 | **EKS** (one shared cluster, a namespace per student) | ConfigMap + Deployment + Service with kubectl from CloudShell; a rolling update measured by a curl loop; rollback; a stuck rollout reported by `progressDeadlineSeconds`; logs, exec, port-forward; a ConfigMap file that changes under a running Pod · challenges: HPA, readiness vs liveness, OOMKilled, selectors, Recreate vs RollingUpdate, a smoke-test Job, in-cluster DNS, Secrets, PDB | Bad image tag (ImagePullBackOff); a readiness probe typo (Running but 0/1); quota exceeded; a Service selector that matches nobody; memory limit exceeded (137); RBAC denial when peeking at a neighbour | [labs/lab5-eks.md](labs/lab5-eks.md) |
+| 6 | **Advanced ECS: release strategies** (CloudShell, one ALB + service per student, shared images) | Two-listener ALB with blue/green target groups; one service moved from ROLLING to BLUE_GREEN (PAUSE approval hook) to CANARY (CloudWatch-alarm rollback) to LINEAR, gated by a Lambda hook that orders every pizza on the test listener · challenges: Logs Insights scorecard, graceful shutdown, Fargate Spot, header-based dark launch, auto scaling, strategy design | Release 1.2 burns pineapple pizzas (HTTP 500) while `/health` stays green; version skew (404) during a rolling update | [labs/lab6-ecs-advanced.md](labs/lab6-ecs-advanced.md) |
 
 Instructor material: [labs/instructor-guide.md](labs/instructor-guide.md) (permissions model, timings, answer keys, teardown).
 
@@ -27,8 +28,10 @@ lab3-broken-pipeline/terraform/ one broken pipeline per student (see its README 
 lab4-ecs/                   Mission Control container app (Flask: /health, /ready, /crash, /hog, JSON logs, SSM/ConfigMap message of the day) + buildspec + app.zip
 lab5-eks/terraform/cluster  the shared EKS cluster  ·  lab5-eks/terraform/students  namespaces, RBAC, quotas
 lab5-eks/manifests/         ConfigMap, Deployment, Service, HPA, load generator, smoke-test Job, PodDisruptionBudget
+lab6-ecs-advanced/app/      Galactic Pizza (Flask: shop, /rush traffic board, four releases chosen at build time) + Dockerfile
+lab6-ecs-advanced/kit/      CloudShell kit: pizza.env helpers, task definition, Lambda hook, rush.py (zipped as lab6-kit.zip)
 shared/terraform/student-access/  optional extra IAM policy for Labs 4–5 (not needed in the current account)
-tools/                      build-site.mjs, cleanup-student.sh
+tools/                      build-site.mjs, cleanup-student.sh, push-lab6-images.sh
 ```
 
 ## Publishing the handout

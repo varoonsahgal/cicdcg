@@ -21,6 +21,7 @@
 | Afternoon 2 | **Lab 3 · Broken pipeline** | 75 min | 100 min | Can be run the next morning as a warm-up instead |
 | Day 2 | **Lab 4 · ECS/ECR** | 90 min (Parts 1–9) | 135 min with exercises A–E · +60–90 min for challenges F–K | Part 9 (task role) is the new core piece; the circuit-breaker exercise has a 10-minute wait; see §7 |
 | Day 2 | **Lab 5 · EKS** | 80 min (Parts 1–7) | 125 min with challenges A–D · ~175 min with all ten | Cluster must be applied ~20 min before; the shared fallback image must be rebuilt from the new `app.zip`; see §8 |
+| Day 3 (or an advanced track) | **Lab 6 · Release strategies on ECS** | 2 h 15 (Parts 1–7) | +10–20 min per challenge | Push the shared images first (§9). About an hour of it is real deployments running: use the waits for discussion |
 
 Measured machine time per pipeline round in Lab 3: **~2 minutes** (poll ≤ 60 s, build ≈ 30 s, deploy ≈ 35 s). Six rounds ≈ 12 minutes of waiting; the rest is reading.
 
@@ -55,6 +56,7 @@ The instructor user (`instructor-01`) has `AdministratorAccess` **except** an ex
 - [ ] Windows students edit `.sh` files in VS Code with **LF** line endings (Lab 2 warns them). A CRLF hook script fails on the server with `/bin/bash^M: bad interpreter`; the repo's `.gitattributes` keeps clones LF.
 - [ ] Publish the handout site (the `docs/` folder on GitHub Pages) and the lab Markdown (wiki or repo).
 - [ ] Lab 3 only: `terraform apply` the night before or 15 minutes before (§6).
+- [ ] Lab 6 only: `tools/push-lab6-images.sh` once (§9), then check the four tags exist.
 
 ---
 
@@ -292,7 +294,40 @@ If a load balancer is left behind, the cluster destroy fails on the security gro
 
 ---
 
-## 9 · Teardown for the whole course
+## 9 · Lab 6 · Release strategies on ECS — facilitator notes
+
+**Before class (5 minutes, once per course):** `tools/push-lab6-images.sh` builds the four Galactic Pizza releases for `linux/amd64` and pushes them to the shared, immutable ECR repository `pipeline-academy/galactic-pizza` (tags `1.0` … `1.3`). Every student's task definition pulls from there with the account's `ecsTaskExecutionRole`. Needs Docker with buildx on your laptop and the admin profile. Check: `aws ecr describe-images --repository-name pipeline-academy/galactic-pizza --query 'imageDetails[].imageTags[]'`.
+
+**Permissions:** checked with the IAM policy simulator for `participant-01`: `ecs:*` (including `ContinueServiceDeployment`, `StopServiceDeployment`, `ListServiceDeployments`), `elasticloadbalancing:*`, `lambda:CreateFunction`/`InvokeFunction`, `cloudwatch:PutMetricAlarm`, `application-autoscaling:*`, `iam:CreateRole`/`AttachRolePolicy`/`PutRolePolicy`/`PassRole`, EC2 security groups in us-west-2. All allowed. Each student creates two roles that only you can delete: `participant-NN-ecs-infra-role` and `participant-NN-menu-walker-role`.
+
+**Student creates:** security groups `participant-NN-pizza-alb-sg` / `-task-sg`, target groups `participant-NN-pizza-blue` / `-green`, ALB `participant-NN-pizza-alb` (listeners 80 + 8080, one `/*` rule each), cluster `participant-NN-pizza`, log group `/ecs/participant-NN-pizza`, service `participant-NN-pizza-svc`, alarm `participant-NN-pizza-5xx`, Lambda `participant-NN-menu-walker`, the two roles above; optionally a scalable target and a header rule (challenges).
+
+**How it was verified (2026-11-01/02, `instructor-01` playing participant-01, every command in the guide run as written, with CLI v1 locally; CloudShell has v2):**
+
+| Step | Measured | Watch for |
+|---|---|---|
+| Part 2 plumbing | commands ≈ 40 s; ALB active ≈ 2–3 min | `SUBNETS` uses the four default subnets; ALB names ≤ 32 characters (fine for `participant-NN-…`) |
+| Part 3 service on 1.0 | stable in 86 s | page shows *PRODUCTION listener :80*; `:8080` returns 503 until the first blue/green (green TG empty) |
+| Part 3 rolling 1.0 → 1.1 | 3½ min; both releases served for ≈ 90 s; 47 *not on menu* 404s (Saturn Rings ordered from a 1.0 task) | students think the yellow is a bug in the board; it is the lesson (version skew) |
+| Part 4a strategy switch | starts a blue/green deployment of the same revision: SCALE_UP 60 s → TEST 28 s → PRODUCTION 22 s → BAKE 3 min → CLEAN_UP 11 s; ≈ 5 min total | afterwards the production rule points at the **green** TG; the colours alternate every deployment |
+| Part 4b pause | `POST_TEST_TRAFFIC_SHIFT` after ≈ 1½ min; `:8080` serves 1.2, `:80` still 1.1; console shows *Pause hooks · Awaiting action · Take action* | `list-service-deployments` needs a few seconds before a brand-new deployment is listed first (`watch_deploy` sleeps 5 s) |
+| Part 4d/e 1.2 in production, manual rollback | 1.2 served 100 % for 98 s, **255 pizzas burnt** at 10 orders/s; after `stop-service-deployment --stop-type ROLLBACK` the board was back on 1.1 in ≈ 6 s; `ROLLBACK_SUCCESSFUL` ≈ 2½ min later | students who ordered pineapple on `:8080` found the bug: celebrate, then let the manager overrule them |
+| Part 5a alarm | **starts in ALARM** right after Part 4 and stayed there 5 min (ALB metrics lag; last datapoint re-evaluated) | they must wait for `OK` before 5c or the canary rolls back immediately |
+| Part 5c canary 10 % / 5 min | prod shift 09:42:19 → alarm 09:45:31 → rollback start 09:46:03 → `ROLLBACK_SUCCESSFUL` 09:47:15; **51 burnt**; console: *Circuit breaker 0/3 failed tasks · Alarms Triggered 1/1* | detection takes > 3 min: say so before they ask; the board needs to keep running (10/s) or the alarm never reaches 5/min |
+| Part 6 Lambda gate | walker by hand vs prod: 15/15 ok; gated deploy: SCALE_UP 1½ min → TEST 30 s → hook FAILED → rollback; `ROLLBACK_SUCCESSFUL` ≈ 3 min after start; **0 customer orders on 1.2** (3 252 orders on the board, all 1.1) | `--cli-binary-format raw-in-base64-out` is required by CLI v2 (CloudShell) and unknown to v1; the role needs ≈ 10 s before `create-function` accepts it |
+| Part 7 linear 25 % / 1 min | walker 15/15 on 1.3; production shift 4 min 43 s; whole deployment ≈ 9½ min; alarm stayed OK; three `sigterm` log lines from the retired tasks | the longest wait of the day: a good moment for the strategy-design discussion (Challenge F) |
+| Challenge A Logs Insights | per-release table returned in ≈ 10 s | `sum(status = 500)` works on auto-discovered JSON fields |
+| Challenge C Fargate Spot | `put-cluster-capacity-providers` + `update-service --capacity-provider-strategy … --force-new-deployment` worked from launch type FARGATE; 3 tasks landed `FARGATE, FARGATE, FARGATE_SPOT` | the change runs a full deployment with whatever strategy is set (LINEAR ≈ 10 min) |
+| Challenge D header dark launch | **the deployment that changes `testListenerRule` still used the old `:8080` rule**; from the next deployment the header rule routed testers to the new release (`plain 1.1 · header 1.3`) and `:8080` stopped being managed | guide explains it; students who test too early think it is broken |
+| Challenge E auto scaling | `register-scalable-target` + target-tracking policy accepted, two alarms created | **not load-tested**: the app's oven mostly sleeps, so CPU never reaches 50 %; it is a design challenge |
+
+**Talking points that land well:** the 255 → 51 → 0 table; "the circuit breaker said 0/3 failed tasks while 21 % of orders burnt"; gates catch the known, canaries catch the unknown; Google SRE's "≈ 70 % of outages are changes".
+
+**Cost:** per student ≈ US$0.07/hour (ALB + 3 × 0.25 vCPU tasks, 6 during deployments). Part 9 deletes everything but the two roles; `tools/cleanup-student.sh` also removes the Lab 6 resources and both roles.
+
+---
+
+## 10 · Teardown for the whole course
 
 ```bash
 # Lab 5 (students' Services first, see §8), then the cluster
@@ -302,15 +337,17 @@ terraform -chdir=lab5-eks/terraform/cluster destroy
 terraform -chdir=lab3-broken-pipeline/terraform destroy
 
 # Everything students created by hand in Labs 1–2 (including missions and level-ups: secrets, SNS topics,
-# EventBridge rules, the pipeline-build project, both web servers) and Lab 4, for students 01..15
+# EventBridge rules, the pipeline-build project, both web servers), Lab 4 and Lab 6, for students 01..15
 tools/cleanup-student.sh $(seq -w 1 15)
+# Lab 6's shared images
+aws ecr delete-repository --repository-name pipeline-academy/galactic-pizza --force
 ```
 
 Then, once no pipelines remain in the account: delete the shared `codepipeline-us-west-2-*` artifact bucket and the `codepipeline-source-trail` trail (both created by the Lab 2 wizard).
 
 ---
 
-## 10 · Regenerating screenshots or pages
+## 11 · Regenerating screenshots or pages
 
 - Lab guides are Markdown in `labs/`; `cd tools && npm install && npm run build` renders them into `docs/labN.html` with the site shell (hints and solutions become collapsible, GitHub alerts become callouts, screenshots zoom on click).
 - Screenshots were taken with Playwright against a federated console session (`sts get-federation-token` → sign-in URL). The harness is not part of the repo; any retake just needs to land in `docs/images/` under the same file name.

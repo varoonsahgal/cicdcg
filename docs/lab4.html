@@ -25,6 +25,7 @@
       <a href="lab3.html" data-lab="lab3" style="--d:#EF4444"><span class="dot"></span>Lab 3<span class="lbl-long"> · Fix it</span><span class="done">★</span></a>
       <a href="lab4.html" data-lab="lab4" style="--d:#F59E0B" aria-current="page"><span class="dot"></span>Lab 4<span class="lbl-long"> · Contain it</span><span class="done">★</span></a>
       <a href="lab5.html" data-lab="lab5" style="--d:#A78BFA"><span class="dot"></span>Lab 5<span class="lbl-long"> · Orchestrate it</span><span class="done">★</span></a>
+      <a href="lab6.html" data-lab="lab6" style="--d:#F472B6"><span class="dot"></span>Lab 6<span class="lbl-long"> · Ship it safely</span><span class="done">★</span></a>
   </nav>
   <div class="tools">
     <button class="iconbtn" id="theme" type="button" aria-label="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
@@ -34,7 +35,7 @@
 
 <section class="mast"><canvas class="mast-fx" aria-hidden="true"></canvas><div class="mast-in">
   <div>
-    <p class="eyebrow">Lab 4 of 5 · Contain it</p>
+    <p class="eyebrow">Lab 4 of 6 · Contain it</p>
     <h1>Ship a container — ECR, CodeBuild and ECS on Fargate</h1>
     <p class="lede">In Lab 2 you copied one HTML file into an Apache you had installed by hand. Today you ship the whole thing: the operating system userland, the runtime, the app, in one immutable image that a robot builds, a registry stores and an orchestrator runs. Then you give the running container an identity of its own, turn the blast-radius dial, and break it in six different ways. Nothing gets installed on your laptop. Not even Docker.</p>
     <div class="mast-meta"><span class="chip"><b>Time</b> Core path (Parts 1–9) ≈ 90 min · Exercises A–E ≈ 45 min · Challenges F–K 10–20 min each, pick your own</span><span class="chip"><b>Difficulty</b> Intermediate, advanced in the challenges. Labs 1–3 first; container experience not required.</span><span class="chip"><b>AWS services</b> Amazon ECR, CodeBuild, Amazon ECS (Fargate), IAM, Systems Manager Parameter Store, CloudWatch Logs and Logs Insights, EC2 (security groups, load balancer), AWS CloudShell</span><span class="chip"><b>You will build</b> A container image built by CodeBuild and pushed to your own ECR repository · an ECS cluster, task definition and service running two copies on Fargate · a rolling update, then the same update with the blast-radius dial turned · a task role so the app can read its configuration from Parameter Store while it runs · a load balancer, a least-privilege build role, a lifecycle policy, a shell inside a running task</span><span class="chip"><b>You will break & fix</b> A build that cannot log in to ECR · an app with no identity, then an identity with no permission · a tag that does not exist · a container you crash · a container that eats all its memory · a push an immutable repository refuses · a secret the execution role may not read</span></div>
@@ -926,7 +927,7 @@ aws ecs execute-command --cluster participant-NN-cluster --task $TASK --containe
 <p>The task was replaced (a deployment, a crash, a scaling event, an AZ rebalance) and a task&#39;s filesystem lives only as long as the task. Anything that must persist goes to S3, a database or an EFS volume declared in the task definition. The same is true of a Kubernetes Pod.</p>
 </div></details>
 
-<p><strong>Next:</strong> <a href="lab5.html">Lab 5 – Kubernetes on EKS: the same ideas with different words</a></p>
+<p><strong>Next:</strong> <a href="lab5.html">Lab 5 – Kubernetes on EKS: the same ideas with different words</a> · <strong>Advanced follow-up:</strong> <a href="lab6.html">Lab 6 – Ship it safely: blue/green, canary and linear on ECS</a></p>
 
 <div class="pager">
   <a href="lab3.html"><small>Previous</small>← Lab 3 · The broken pipeline</a>

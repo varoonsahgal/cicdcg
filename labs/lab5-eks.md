@@ -936,4 +936,4 @@ The container exceeded `resources.limits.memory` and the kernel SIGKILLed it (13
 ConfigMap (configuration), Deployment (`apply`, then `rollout status` with a progress deadline), Service (once; it rarely changes), then a Job as the smoke test (`apply`, `wait --for=condition=complete`), and `rollout undo` if either the status or the wait fails. Secrets come from a secret store, not from the repository.
 </details>
 
-**Done.** Back to the [handout](../docs/index.html) for the wrap-up and the triage playbook you can take with you.
+**Next:** [Lab 6 – Ship it safely: blue/green, canary and linear deployments on ECS](lab6-ecs-advanced.md) (advanced). Or back to the [handout](../docs/index.html) for the wrap-up and the triage playbook you can take with you.

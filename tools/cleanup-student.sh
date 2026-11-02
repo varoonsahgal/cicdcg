@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Delete everything a student created by hand in Labs 1, 2 and 4 (including the Lab 1 missions and Lab 2 level-ups).
+# Delete everything a student created by hand in Labs 1, 2, 4 and 6 (including the Lab 1 missions and Lab 2 level-ups).
 #   tools/cleanup-student.sh 01 02 07          # specific students
 #   tools/cleanup-student.sh $(seq -w 1 15)    # a whole class
 # Needs an admin profile (students cannot delete IAM roles). Idempotent: missing resources are skipped.
@@ -87,6 +87,26 @@ for NN in "$@"; do
   aws codebuild delete-project --name "$STU-image-build" >/dev/null 2>&1 && echo "   image-build project deleted"
   for lg in "/aws/codebuild/$STU-image-build" "/ecs/$STU-mission-control"; do aws logs delete-log-group --log-group-name "$lg" 2>/dev/null && echo "   log group $lg deleted"; done
   for p in "/$STU/mission-control/motd" "/$STU/mission-control/launch-code"; do aws ssm delete-parameter --name "$p" 2>/dev/null && echo "   parameter $p deleted"; done
+  ## Lab 6: release strategies (service, ALB, target groups, alarm, Lambda hook, cluster)
+  aws application-autoscaling deregister-scalable-target --service-namespace ecs --resource-id "service/$STU-pizza/$STU-pizza-svc" \
+    --scalable-dimension ecs:service:DesiredCount 2>/dev/null && echo "   lab6 scalable target deregistered"
+  if aws ecs describe-services --cluster "$STU-pizza" --services "$STU-pizza-svc" --query 'services[?status!=`INACTIVE`].serviceName' --output text 2>/dev/null | grep -q .; then
+    aws ecs delete-service --cluster "$STU-pizza" --service "$STU-pizza-svc" --force >/dev/null && echo "   lab6 service deleted (draining)"
+    aws ecs wait services-inactive --cluster "$STU-pizza" --services "$STU-pizza-svc"
+  fi
+  ALB6=$(aws elbv2 describe-load-balancers --names "$STU-pizza-alb" --query 'LoadBalancers[0].LoadBalancerArn' --output text 2>/dev/null)
+  if [ -n "$ALB6" ] && [ "$ALB6" != "None" ]; then aws elbv2 delete-load-balancer --load-balancer-arn "$ALB6" && aws elbv2 wait load-balancers-deleted --load-balancer-arns "$ALB6" && echo "   lab6 alb deleted"; fi
+  for c in blue green; do
+    TG6=$(aws elbv2 describe-target-groups --names "$STU-pizza-$c" --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null)
+    [ -n "$TG6" ] && [ "$TG6" != "None" ] && for i in 1 2 3 4; do aws elbv2 delete-target-group --target-group-arn "$TG6" 2>/dev/null && { echo "   lab6 target group $c deleted"; break; }; sleep 15; done
+  done
+  aws cloudwatch delete-alarms --alarm-names "$STU-pizza-5xx" 2>/dev/null
+  aws lambda delete-function --function-name "$STU-menu-walker" 2>/dev/null && echo "   lab6 lambda deleted"
+  for lg in "/ecs/$STU-pizza" "/aws/lambda/$STU-menu-walker"; do aws logs delete-log-group --log-group-name "$lg" 2>/dev/null && echo "   log group $lg deleted"; done
+  for td in $(aws ecs list-task-definitions --family-prefix "$STU-pizza" --query 'taskDefinitionArns[]' --output text); do aws ecs deregister-task-definition --task-definition "$td" >/dev/null; done
+  TDS6=$(aws ecs list-task-definitions --family-prefix "$STU-pizza" --status INACTIVE --query 'taskDefinitionArns[]' --output text); [ -n "$TDS6" ] && aws ecs delete-task-definitions --task-definitions $TDS6 >/dev/null 2>&1 && echo "   lab6 task definitions deleted"
+  aws ecs delete-cluster --cluster "$STU-pizza" >/dev/null 2>&1 && echo "   lab6 cluster deleted"
+  delete_sg "$STU-pizza-task-sg"; delete_sg "$STU-pizza-alb-sg"
   ## Buckets
   empty_and_delete_bucket "cicd-lab1-$STU"
   empty_and_delete_bucket "cicd-lab2-$STU"
@@ -101,5 +121,8 @@ for NN in "$@"; do
   delete_role "$STU-task-execution-role"
   delete_role "AWSCodePipelineServiceRole-$AWS_DEFAULT_REGION-$STU-pipeline"
   delete_role "cwe-role-$AWS_DEFAULT_REGION-$STU-pipeline"
+  delete_role "$STU-ecs-infra-role"
+  delete_role "$STU-menu-walker-role"
 done
+echo "Shared Lab 6 images, once the course is over: aws ecr delete-repository --repository-name pipeline-academy/galactic-pizza --force"
 echo "Shared leftovers created by the Lab 2 pipeline wizard, once no pipelines remain: the codepipeline-$AWS_DEFAULT_REGION-* artifact bucket and the 'codepipeline-source-trail' CloudTrail trail."
