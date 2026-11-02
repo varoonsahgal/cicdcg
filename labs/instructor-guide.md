@@ -51,7 +51,8 @@ The instructor user (`instructor-01`) has `AdministratorAccess` **except** an ex
 - [ ] Everyone will work in **us-west-2**. Say it three times.
 - [ ] S3 bucket count is under ~70 (hard limit 100 unless raised): `aws s3api list-buckets --query 'length(Buckets)'`. Labs 1–3 add up to 3 buckets per student.
 - [ ] Quotas are fine (checked: On-Demand vCPU quota 2 500; Fargate 4 000 vCPU).
-- [ ] Students have a laptop/VM with a terminal that can `zip` (Finder/Explorer compression also works; the guides explain).
+- [ ] Students have a laptop/VM that can zip (terminal, Finder or Explorer; the guides explain). Locked-down laptops: Labs 1–2 offer a CloudShell route (`curl` the zip from the Pages site, edit with `nano`, `aws s3 cp`).
+- [ ] Windows students edit `.sh` files in VS Code with **LF** line endings (Lab 2 warns them). A CRLF hook script fails on the server with `/bin/bash^M: bad interpreter`; the repo's `.gitattributes` keeps clones LF.
 - [ ] Publish the handout site (the `docs/` folder on GitHub Pages) and the lab Markdown (wiki or repo).
 - [ ] Lab 3 only: `terraform apply` the night before or 15 minutes before (§6).
 
@@ -71,13 +72,14 @@ The instructor user (`instructor-01`) has `AdministratorAccess` **except** an ex
 | Build still fails after the fix | they rebuilt without re-uploading | "CodeBuild builds what is in S3, not what is on your disk." |
 | `Access denied` reading S3 | bucket in another region, or wrong key path `input/MessageUtil.zip` | Check region + key |
 | Can't find the test report | they look at the failed build | Reports only exist once Maven ran the tests (green build, or Challenge A) |
+| *Role already exists* when creating the project | the role survived an earlier attempt or an earlier cohort (students cannot delete roles) | Choose **Existing service role**, pick it. Running `tools/cleanup-student.sh` between cohorts avoids this |
 
 **The missions (Part 6).** Eight self-contained missions; answers are in the student guide's hidden sections. What each one creates and what we measured on 2026-11-01 with the `amazonlinux-x86_64-standard:6.0` image:
 
 | Mission | Student creates / changes | Measured behaviour | Watch for |
 |---|---|---|---|
 | A · failing test | edits the test | `BUILD` red, report shows 1 failed | they look at the failed build's missing report instead of the new one |
-| B · env var | project env var `GREETING` | greeting + `CODEBUILD_BUILD_NUMBER` in the log | typing the variable into the buildspec instead of the project |
+| B · env var | project env var `GREETING` | greeting + `CODEBUILD_BUILD_NUMBER` in the log | typing the variable into the buildspec instead of the project; writing `echo "… build #$CODEBUILD_BUILD_NUMBER"` unquoted, so YAML cuts it at ` #` and the shell reports an unterminated quote (the solution single-quotes the whole line; a nice preview of Lab 3) |
 | C · extra artifact | `build-info.txt` | two files in the output zip | forgetting to add the file to `artifacts.files` |
 | D · disabled test | removes `@Ignore` | `expected:<Hi![]Robert> but was:<Hi![Hi!]Robert>`; fix is in `MessageUtil.salutationMessage()` | students "fix" the test instead of the code; push back |
 | E · Secrets Manager | secret `participant-NN/lab1/deploy-token`, inline policy `read-lab1-secret` on the service role | build 1 fails in **DOWNLOAD_SOURCE** with `secretsmanager:GetSecretValue` AccessDenied; after the policy the log prints `Deploy token is ***` (masked) | the secret ARN ends in six random characters; copy it from the secret page. Policy JSON typos. Students granting `SecretsManagerReadWrite`: make them narrow it |
@@ -104,7 +106,9 @@ The instructor user (`instructor-01`) has `AdministratorAccess` **except** an ex
 | Deploy fails `DownloadBundle` | EC2 role missing `AmazonEC2RoleforAWSCodeDeploy` | Attach, retry |
 | Deploy stays *Pending* for minutes then fails | agent not running (user data missing/garbled) | Session Manager → `systemctl status codedeploy-agent`; relaunch with user data if absent |
 | Pipeline wizard: S3 source rejected | bucket versioning off | Enable versioning |
-| Upload does not trigger the pipeline | EventBridge box unticked, or they uploaded to a different key | Release change manually; check the key is exactly `SampleApp.zip` |
+| Upload does not trigger the pipeline | EventBridge box unticked, or they uploaded to a different key. Possible but not observed: all wizards edit the **one shared** `codepipeline-source-trail`, so two students finishing the wizard in the same second could overwrite each other's data-event selector | Release change manually; check the key is exactly `SampleApp.zip`. If the key is right, check the trail's data events include their bucket; *Edit → Source → Done → Save* on the pipeline re-adds it |
+| Hook fails with `bad interpreter` / `^M` | Windows CRLF line endings in a `.sh` file (usually the new `validate_service.sh`) | Re-save with LF (VS Code status bar) or `sed -i 's/\r$//' scripts/*.sh` in CloudShell |
+| Parts 9–11: pipeline sits at *Approve* forever | they kept Challenge D's manual-approval stage | Approve, or delete the stage (the guide tells them) |
 | Site down after a failed deploy | expected (Exercise A) | Discuss, then fix and redeploy |
 
 **Shared side effects to know about:** the wizard creates **one** CloudTrail trail `codepipeline-source-trail` and **one** `codepipeline-us-west-2-…` artifact bucket for the whole account; all students share them. They are harmless; delete them once no pipelines remain.
@@ -118,7 +122,7 @@ The instructor user (`instructor-01`) has `AdministratorAccess` **except** an ex
 | 9 · Build stage | CodeBuild project `participant-NN-pipeline-build` (+ role, created from inside the pipeline editor); Deploy input → `BuildArtifact` | Build ≈ 30 s; whole execution ≈ 70 s; page shows `Build #N · built …` | **Deploy input left on SourceArtifact** → green pipeline, unstamped page (the guide warns; it is the best "green ≠ correct" moment of the day). Zip without `buildspec.yml` → `YAML_FILE_ERROR`. If they edit the buildspec: a bare ` #` starts a YAML comment (we hit it; the shipped file quotes that line) |
 | 9 · Exercise E (gate) | `start_servr.sh` typo in appspec | Build red in ≈ 30 s, `MISSING scripts/start_servr.sh`, Deploy never runs, site untouched | they expect the site to go down as in Exercise A; let the surprise land |
 | 10 · second server | second instance with the same Name tag and the existing SG; deployment config `OneAtATime`; `AfterInstall` stamp hook; `ValidateService` with `sleep 20` | group shows *2 unique matched instances* with no edit; rollout ≈ 2 min; pages show different `ip-172-31-…` hostnames and the same deployment id | choosing *Create security group* again (a second SG with the same name fails); forgetting to raise the sleep, so the mid-flight window is too short to see |
-| 10 · Exercise F (blast radius) | `htpd` typo, rollback on | deployment fails with `HEALTH_CONSTRAINTS`; server 1 *Failed* at ApplicationStart, server 2 **Skipped**; rollback (also OneAtATime) restores Version 4 on server 1; server 2 never left Version 4 | "why is server 2 Skipped and not Succeeded?" → minimum-healthy-hosts rule; good discussion |
+| 10 · Exercise F (blast radius) | `htpd` typo, rollback on | deployment fails with `HEALTH_CONSTRAINTS`; the first server *Failed* at ApplicationStart, the second **Skipped**; rollback (also OneAtATime) restores Version 6 on the failed server; the skipped one never left Version 6. Which server goes first is CodeDeploy's choice, so the guide says *first/second*, not *1/2* | "why is the second server Skipped and not Succeeded?" → minimum-healthy-hosts rule; good discussion |
 | 11 · triggers | deployment-group trigger `participant-NN-deploy-alerts` → topic `participant-NN-alerts` on *fails* and *rolls back* | SNS publishes two messages per broken deploy (failure + rollback) | topic in another region; unconfirmed subscription. CodeDeploy's role already has `sns:Publish` |
 
 Both instances share the Name tag, so `tools/cleanup-student.sh` terminates them together; it also deletes the `participant-NN-pipeline-build` project, its role and log group.

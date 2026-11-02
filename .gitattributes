@@ -1,0 +1,4 @@
+# Hook scripts and buildspecs run on Linux: keep LF even on Windows clones.
+*.sh  text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

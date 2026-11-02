@@ -23,6 +23,8 @@
 > [!NOTE]
 > **The story so far.** You have just joined a four-person team. The release build runs on *Dave's laptop*. Dave is on holiday for two weeks, and the last thing he did was write `flaky?? passes on my laptop` next to a unit test and switch it off. Your job today: move the build off Dave's laptop into a machine nobody logs into, then find out what Dave was hiding.
 
+> [!NOTE]
+> **How this lab is laid out.** Parts 1–3 are set-up (≈ 15 min: get the code, make a bucket, create the build project). Part 4 runs your first build, which **fails on purpose**, and you fix it. Part 5 tours the results. That is the core path. Part 6 is eight optional *missions*; Part 7 cleans up. You will repeat one small loop (edit → zip → upload → build) many times, so Part 1 sets it up carefully once.
 
 ### The problem CI solves
 
@@ -74,8 +76,9 @@ sample-app/
     └── test/java/TestMessageUtil.java ← three JUnit tests (one of them switched off…)
 ```
 
-1. Download the folder **[`lab1-codebuild/sample-app/`](../lab1-codebuild/sample-app/)** from the course repository to your computer (or clone the repo). A ready-made **[`MessageUtil.zip`](../lab1-codebuild/MessageUtil.zip)** of the same files is also provided for your first upload.
-2. Open `buildspec.yml` and read it. Here it is with notes:
+1. Download **[`MessageUtil.zip`](../lab1-codebuild/MessageUtil.zip)**. Keep this zip as it is: it is your first upload in Part 2.
+2. Also unzip a copy and rename the folder it creates to **`sample-app`**. This folder is your *working copy*: every later fix is made here, then re-zipped. (The same files are in the repository folder [`lab1-codebuild/sample-app/`](../lab1-codebuild/sample-app/) if you prefer to clone.)
+3. Open `sample-app/buildspec.yml` in any text editor and read it. Here it is with notes:
 
 ```yaml
 version: 0.2                     # buildspec format version (always 0.2 today)
@@ -100,7 +103,7 @@ artifacts:
     - target/messageUtil-1.0.jar # the ONE file we want to keep when the container dies
 ```
 
-3. Now open `pom.xml` and find these two lines:
+4. Now open `pom.xml` and find these two lines:
 
 ```xml
 <maven.compiler.source>17</maven.compiler.source>
@@ -109,16 +112,49 @@ artifacts:
 
 Keep both files in mind. Something here is going to matter in Part 4.
 
+### The edit loop (you will do this many times)
+
+Every change in this lab follows the same four steps. When the guide says **"re-zip, re-upload, build"**, this is what it means:
+
+1. **Edit** the file in your `sample-app` folder and save it.
+2. **Zip** the *contents* of the folder (not the folder itself) into `MessageUtil.zip`.
+3. **Upload** it to `s3://cicd-lab1-participant-NN/input/`, same name as before; S3 simply replaces the old one.
+4. **Start build** in CodeBuild.
+
+CodeBuild builds what is **in S3**, not what is on your disk. Skip step 3 and the build behaves exactly as before.
+
 > [!NOTE]
-> **How to zip correctly (you will do this more than once).** CodeBuild expects `buildspec.yml` at the *top level* of the zip, not inside a folder.
+> **How to zip correctly.** CodeBuild expects `buildspec.yml` at the *top level* of the zip, not inside a folder.
 >
 > - **macOS / Linux terminal**, from inside `sample-app/`:
 >   ```bash
+>   rm -f MessageUtil.zip                              # start fresh each time
 >   zip -r MessageUtil.zip buildspec.yml pom.xml src/
 >   unzip -l MessageUtil.zip     # buildspec.yml must appear with no folder in front of it
 >   ```
-> - **Windows Explorer**: open the `sample-app` folder, select `buildspec.yml`, `pom.xml` and `src` together → right-click → *Send to → Compressed (zipped) folder* → rename to `MessageUtil.zip`.
+> - **Windows Explorer**: open the `sample-app` folder, select `buildspec.yml`, `pom.xml` and `src` together → right-click → *Send to → Compressed (zipped) folder* → rename to `MessageUtil.zip`. (If an old `MessageUtil.zip` is in the folder, delete it first; do not select it.)
 > - **macOS Finder**: select the three items → right-click → *Compress* → rename `Archive.zip` to `MessageUtil.zip`.
+>
+> **Zipped the folder by mistake?** The build fails almost immediately with `YAML_FILE_ERROR` and *buildspec.yml: no such file or directory*. Run `unzip -l` (or double-click the zip): if every path starts with `sample-app/`, re-zip the three items instead.
+
+<details>
+<summary>🖥️ Prefer not to use your laptop? Do the edit loop in CloudShell</summary>
+
+CloudShell is a Linux terminal inside the console (the `>_` icon in the top bar), already signed in as you. It has `zip`, `unzip`, `nano` and the `aws` CLI, so it works the same on every laptop.
+
+```bash
+# once
+curl -sLO https://varoonsahgal.github.io/cicdcg/downloads/MessageUtil.zip
+mkdir sample-app && cd sample-app && unzip ../MessageUtil.zip
+
+# each time round the loop (replace NN)
+nano buildspec.yml                                  # Ctrl+O, Enter to save · Ctrl+X to exit
+rm -f ../MessageUtil.zip && zip -r ../MessageUtil.zip buildspec.yml pom.xml src/
+aws s3 cp ../MessageUtil.zip s3://cicd-lab1-participant-NN/input/MessageUtil.zip
+```
+
+Then click **Start build** in the console as usual. (Create the bucket in Part 2 first; the `aws s3 cp` line replaces the console upload.)
+</details>
 
 ---
 
@@ -130,7 +166,7 @@ Keep both files in mind. Something here is going to matter in Part 4.
 
    ![Create bucket](../docs/images/lab1-s3-create-bucket.png)
 4. Open the bucket → **Create folder** → name `input` → **Create folder**.
-5. Open the `input/` folder → **Upload** → **Add files** → choose `MessageUtil.zip` → **Upload**.
+5. Open the `input/` folder → **Upload** → **Add files** → choose the `MessageUtil.zip` you downloaded → **Upload**.
 
 ![Input zip uploaded](../docs/images/lab1-s3-input-uploaded.png)
 
@@ -164,6 +200,9 @@ Keep both files in mind. Something here is going to matter in Part 4.
 
    > [!NOTE]
    > **What just got created for you?** An IAM *role* with a trust policy saying "the CodeBuild service may assume me" and permissions to write logs and read/write the S3 locations you named. This is the single most important security idea in this course: **services act with explicitly granted identities, scoped to the job**. You never type your own credentials into a build.
+
+   > [!TIP]
+   > **"Role already exists" when you click Create?** You (or someone with your number in an earlier class) created this project before, and students cannot delete roles in this account. Choose **Existing service role** instead, pick `codebuild-participant-NN-codebuild-demo-service-role`, and leave *Allow AWS CodeBuild to modify this service role* ticked.
 
 5. **Buildspec** → **Use a buildspec file**. Leave the name blank (defaults to `buildspec.yml` at the root of the zip).
 
@@ -253,11 +292,12 @@ In `buildspec.yml` change the runtime version:
       java: corretto17
 ```
 
-Then:
+Then go round the edit loop from [Part 1](#part-1-get-the-sample-app) for the first time:
 
-1. Re-zip (`zip -r MessageUtil.zip buildspec.yml pom.xml src/` from inside `sample-app/`).
-2. In S3, open `cicd-lab1-participant-NN/input/` → **Upload** the new `MessageUtil.zip` (same name; S3 simply replaces it).
-3. Back in CodeBuild → your project → **Start build**.
+1. Save `buildspec.yml` in your `sample-app` folder.
+2. Re-zip (`zip -r MessageUtil.zip buildspec.yml pom.xml src/` from inside `sample-app/`).
+3. In S3, open `cicd-lab1-participant-NN/input/` → **Upload** the new `MessageUtil.zip` (same name; S3 simply replaces it).
+4. Back in CodeBuild → your project → **Start build**.
 
 The build now reaches `BUILD SUCCESS` and finishes green.
 
@@ -372,7 +412,7 @@ Build → **Failed** in `BUILD`. Log shows `Tests run: 3, Failures: 1 … testSa
 
 **Goal:** customise the build from the *project settings* without editing code, and discover CodeBuild's built-in variables.
 
-1. In the console: project → **Edit** → **Environment** → expand **Additional configuration** → **Environment variables** → add `GREETING` = `Hello from participant-NN` (type *Plaintext*) → **Update environment**.
+1. In the console: project → **Edit** → scroll to **Environment** → expand **Additional configuration** → **Environment variables** → add `GREETING` = `Hello from participant-NN` (type *Plaintext*) → scroll to the bottom → **Update project**.
 2. In `buildspec.yml`, make the `pre_build` phase print the greeting **and** the number of this build.
 3. Re-zip, re-upload, build, and find your line in the log.
 
@@ -386,6 +426,8 @@ Environment variables are available to every command in every phase as ordinary 
 <summary>💡 Hint 2</summary>
 
 CodeBuild sets many variables for you. The one you want is `CODEBUILD_BUILD_NUMBER`. (Others worth knowing: `CODEBUILD_BUILD_ID`, `CODEBUILD_SRC_DIR`, `CODEBUILD_RESOLVED_SOURCE_VERSION`.)
+
+**Watch out for `#`.** In YAML, a space followed by `#` starts a comment, so `- echo "build #$CODEBUILD_BUILD_NUMBER"` is silently cut off at the `#` and the shell complains about a missing `"`. If your line needs ` #`, wrap the *whole* command in single quotes.
 </details>
 
 <details>
@@ -394,10 +436,10 @@ CodeBuild sets many variables for you. The one you want is `CODEBUILD_BUILD_NUMB
 ```yaml
   pre_build:
     commands:
-      - echo "$GREETING — this is build #$CODEBUILD_BUILD_NUMBER"
+      - 'echo "$GREETING — this is build #$CODEBUILD_BUILD_NUMBER"'
 ```
 
-In the log you will see `Hello from participant-NN — this is build #6` (your number will differ).
+The outer single quotes are for YAML (so the ` #` is not read as a comment); the inner double quotes are for the shell. In the log you will see `Hello from participant-NN — this is build #6` (your number will differ). Lab 3 hides exactly this YAML trap in a broken pipeline, so remember it.
 
 **The lesson:** configuration that varies (names, flags, secrets) belongs *outside* the code, in the environment. Plaintext is fine for a greeting. For anything secret, see Mission E.
 
@@ -524,6 +566,7 @@ Re-zip, upload, build → green; the report shows **3 passed, 0 skipped**. The o
      pre_build:
        commands:
          - echo "Deploy token is $DEPLOY_TOKEN"
+     # build, post_build and artifacts: leave them exactly as they are
    ```
 
 4. Re-zip, upload, **Start build**. It fails. **Before reading on:** which phase, and what does the message say? Which *robot* was refused?
@@ -600,7 +643,7 @@ CodeBuild **masked** the value. Was it really there? Add a second command and re
 
 **Goal:** make the build measurably faster by caching Maven's downloads between runs, and prove it with numbers.
 
-1. Open your last green build → **Build logs**. Count the lines that start with `Downloading from central:` (there are over two hundred). Every build starts from an empty container, so Maven downloads the same plugins and libraries every single time. Note the **BUILD** phase duration in **Phase details** (about 15 s).
+1. Open your last green build → **Build logs** and scroll: most of the log is lines starting with `Downloading from central:` (over two hundred of them). Every build starts from an empty container, so Maven downloads the same plugins and libraries every single time. Note the **BUILD** phase duration in **Phase details** (about 15 s).
 2. Project → **Edit** → scroll down to the **Artifacts** section → expand **Additional configuration** (*Cache, encryption key*) → Cache type **Amazon S3** → Cache bucket **`cicd-lab1-participant-NN`** → Cache path prefix **`cache`** → scroll to the bottom → **Update project**.
 
    ![Cache settings](../docs/images/lab1-project-edit-cache.png)
@@ -661,7 +704,7 @@ S3 → your bucket → `cache/` → one object of about 18 MB: that is Maven's `
 
    ![The rule and its pattern](../docs/images/lab1-eventbridge-rule-pattern.png)
 
-6. Break the build on purpose (Mission A's edit works well), upload, build, and watch your inbox.
+6. Break the build on purpose (Mission A's edit works well), upload, build, and watch your inbox. Undo the break afterwards.
 
 <details>
 <summary>💡 Hint 1 — the pattern, as JSON</summary>
@@ -773,7 +816,7 @@ Builds are billed per minute and storage per GB, so this lab costs cents, but sh
 4. The IAM service role and its inline policies stay (students cannot delete roles in this account); the instructor removes those in bulk.
 
 > [!NOTE]
-> If you are continuing to Lab 2 today, you can leave the bucket for now and delete both buckets at the end.
+> **Going on to Lab 2?** The only thing it reuses is the SNS topic `participant-NN-alerts` (Lab 2, Part 11). Everything else from this lab can go now.
 
 ---
 

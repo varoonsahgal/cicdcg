@@ -69,7 +69,7 @@ CodeDeploy does not know what your app is. You tell it two things in a file call
 
 ## Part 1 · Meet the app
 
-Download **[`lab2-codepipeline-codedeploy/sample-app/`](../lab2-codepipeline-codedeploy/sample-app/)** (or use the ready-made **[`SampleApp.zip`](../lab2-codepipeline-codedeploy/SampleApp.zip)**).
+Download **[`SampleApp.zip`](../lab2-codepipeline-codedeploy/SampleApp.zip)** and keep it as it is: it is your first upload in Part 4. Unzip a copy and rename the folder to **`sample-app`**: that is your working copy, exactly as in Lab 1. (The same files are in the repository folder [`lab2-codepipeline-codedeploy/sample-app/`](../lab2-codepipeline-codedeploy/sample-app/).) Lab 1's CloudShell route works here too; just use `SampleApp.zip` and the Lab 2 bucket.
 
 ```
 sample-app/
@@ -108,6 +108,9 @@ hooks:
 
 > [!NOTE]
 > **Why `|| true` in `stop_server.sh`?** On the very first deployment Apache is not installed yet, so `systemctl stop httpd` would fail and sink the whole deployment. A hook script's exit code *is* the verdict: non-zero = failed hook = failed deployment.
+
+> [!WARNING]
+> **Windows users: line endings.** The `.sh` files run on Linux. If an editor saves them with Windows line endings (CRLF), the hook fails on the server with `/bin/bash^M: bad interpreter`. Edit them in **VS Code** (check the bottom-right corner says **LF**, not CRLF; click it to switch) or in CloudShell, never in Word or WordPad. This matters most when you create a *new* script (Challenge C).
 
 ---
 
@@ -311,8 +314,11 @@ Click **AWS CodeDeploy** in the Deploy card, then the deployment ID. The page li
    zip -r SampleApp.zip appspec.yml buildspec.yml index.html scripts/
    ```
 3. S3 → `cicd-lab2-participant-NN` → **Upload** the new `SampleApp.zip`.
-4. Go straight to the pipeline page. **Do not click Release change.** Within about a minute a new execution starts on its own.
+4. Go straight to the pipeline page. **Do not click Release change.** Within about a minute a new execution starts on its own. (Nothing after two minutes? Check you uploaded to the bucket root with the exact name `SampleApp.zip`, then click **Release change** and tell your instructor.)
 5. When it is green, refresh your web page.
+
+> [!NOTE]
+> **Version numbers.** From here on, each upload bumps the version on the page so you can always tell what is live. The guide assumes you do every part in order: Exercise A = 3, B = 4, Part 9 = 5, Part 10 = 6, Exercise F = 7, Part 11 = 8. If you skip a part, just keep counting up; what matters is that every upload shows a number you have not seen yet. (The screenshots come from a test run with its own numbering, so their version numbers will not match yours.)
 
 ![Version 2 live](../docs/images/lab2-webpage-v2.png)
 
@@ -435,10 +441,11 @@ Add to `appspec.yml` under `hooks:`:
       runas: root
 ```
 
-Zip (make sure the new script is included and executable: `chmod +x scripts/*.sh` before zipping), upload, and watch the `ValidateService` event now take ~2 seconds instead of 0.
+Zip (the `scripts/` folder is already in the zip command, so the new script goes along; on macOS/Linux also run `chmod +x scripts/*.sh` first; on Windows make sure the new file is saved with **LF** line endings), upload, and watch the `ValidateService` event now take ~2 seconds instead of 0.
 
 ![ValidateService in the lifecycle events](../docs/images/lab2-codedeploy-validate-service-events.png)
- To prove it bites, temporarily change `grep -q "Version"` to `grep -q "Banana"` – the deployment fails at ValidateService and, with rollback on, the previous version comes back.
+
+To prove it bites, temporarily change `grep -q "Version"` to `grep -q "Banana"` – the deployment fails at ValidateService and, with rollback on, the previous version comes back.
 
 **Lesson:** a deployment is not done when the process starts; it is done when the *behaviour* is verified. In mature pipelines ValidateService is where health checks, canary requests and synthetic transactions live.
 </details>
@@ -461,6 +468,8 @@ After saving, release a change: the pipeline runs Source, then pauses at `Approv
 ![Waiting for approval](../docs/images/lab2-pipeline-approval-waiting.png)
 
 **Lesson:** the difference between Continuous *Delivery* and Continuous *Deployment* is exactly one stage. Everything before the approval is identical, which is why teams can move from one to the other without re-architecting.
+
+**Before you go on:** while the `Approve` stage exists, *every* upload stops and waits for you, including the ones in Parts 9–11. Either delete the stage (Edit → the stage's **Delete** button → Save) or remember to click **Review → Approve** each time.
 </details>
 
 ### Optional · Look at the agent's own diary
@@ -484,9 +493,10 @@ Exercise A proved something uncomfortable: a broken bundle sails straight throug
 
 ### 9a · Read the recipe
 
-Open `buildspec.yml` in the sample app. It does three small things to the bundle:
+Open `buildspec.yml` in the sample app. It does three small things to the bundle (shown here trimmed: the real file also prints a `1/3 … 3/3` heading before each step):
 
 ```yaml
+version: 0.2
 phases:
   build:
     commands:
@@ -505,10 +515,10 @@ artifacts:
 
 ### 9b · Create the project from inside the pipeline
 
-1. Pipeline → **Edit** → between *Source* and *Deploy* click **+ Add stage** → Stage name **`Build`** → **Add stage**.
+1. Pipeline → **Edit** → directly after *Source* click **+ Add stage** → Stage name **`Build`** → **Add stage**. (If you kept Challenge D's `Approve` stage, put Build *before* it, so you approve a bundle that has already passed the checks.)
 2. In the new stage → **+ Add action group**:
    - Action name **`Build`** · Action provider **AWS CodeBuild** · Region Oregon · Input artifacts **SourceArtifact**.
-   - Project name → **Create project**. A CodeBuild window opens:
+   - Project name → **Create project**. A CodeBuild window opens (if nothing appears, allow pop-ups for the console and click again):
      - Project name **`participant-NN-pipeline-build`**
      - Environment: Managed image · Amazon Linux · Standard · the newest `aws/codebuild/amazonlinux-x86_64-standard:…` image · **New service role**
      - Buildspec: **Use a buildspec file** (blank name → `buildspec.yml`)
@@ -522,7 +532,7 @@ artifacts:
 
 ### 9c · Ship through the gate
 
-1. Bump `index.html` to **Version 3**. Re-zip (make sure `buildspec.yml` is in the zip!) and upload.
+1. Bump `index.html` to **Version 5**. Re-zip (make sure `buildspec.yml` is in the zip!) and upload.
 2. Watch three cards go green in turn: Source → Build → Deploy.
 
    ![Three stages](../docs/images/lab2-pipeline-three-stages.png)
@@ -531,11 +541,11 @@ artifacts:
 
    ![Stamped page](../docs/images/lab2-webpage-stamped.png)
 
-4. Click the build link in the Build card and read its log: four `ok` lines, then the stamp.
+4. Click the build link in the Build card and read its log: one `ok` line per hook script, then the stamp.
 
    ![Build stage log](../docs/images/lab2-build-stage-succeeded-log.png)
 
-> ✅ **Checkpoint** — Three green stages; the page shows Version 3 and a build stamp; the Deploy action's input artifact is *BuildArtifact*.
+> ✅ **Checkpoint** — Three green stages; the page shows Version 5 and a build stamp; the Deploy action's input artifact is *BuildArtifact*.
 
 > [!TIP]
 > **Robot number four.** The pipeline now has a CodeBuild project with its *own* service role (the wizard created `codebuild-participant-NN-pipeline-build-service-role`). It can read and write the pipeline's artifact bucket and write logs, nothing else. Four robots, four identities, same rule: each one gets what its job needs.
@@ -557,7 +567,7 @@ Compare with Exercise A, where the server itself discovered the problem. This ti
 
 ![Build gate failed](../docs/images/lab2-pipeline-build-gate-failed.png)
 
-The **Build** stage goes red in about thirty seconds; the log ends with `MISSING scripts/start_servr.sh`. Deploy never ran. Your website still shows Version 3, stamped, untouched. Nothing happened to any server.
+The **Build** stage goes red in about thirty seconds; the log ends with `MISSING scripts/start_servr.sh`. Deploy never ran. Your website still shows Version 5, stamped, untouched. Nothing happened to any server.
 
 ![The MISSING line](../docs/images/lab2-build-gate-failed-log.png)
 
@@ -576,8 +586,8 @@ One server is a demo. Two servers are a fleet, and a fleet has a question a sing
 
 ### 10a · A second, identical server
 
-1. EC2 → **Launch instances** exactly as in Part 3, with one difference in step 4: under *Firewall*, choose **Select existing security group** → `participant-NN-webserver-sg`. Everything else identical, including the **Name tag `participant-NN-webserver`**, the IAM instance profile and the **user data** script (no agent, no deployments).
-2. Wait for *2/2 checks passed*. Write down its public IP as **server 2**.
+1. EC2 → **Launch instances** exactly as in Part 3, with one difference in step 4: under *Firewall*, choose **Select existing security group** → `participant-NN-webserver-sg`. Everything else identical, including the **Name `participant-NN-webserver`** (yes, the same name: that tag is how CodeDeploy finds it), the IAM instance profile and the **user data** script (without it there is no CodeDeploy agent, and without the agent nothing can be deployed to this server).
+2. Wait for *2/2 checks passed*. Write down its public IP as **server 2**. Your first server is **server 1**.
 
    ![Two instances](../docs/images/lab2-ec2-two-instances.png)
 
@@ -586,6 +596,7 @@ One server is a demo. Two servers are a fleet, and a fleet has a question a sing
    ![Two matched instances](../docs/images/lab2-codedeploy-dg-two-instances.png)
 
 4. Scroll to **Deployment settings** → change the deployment configuration to **`CodeDeployDefault.OneAtATime`** → **Save changes**.
+5. Browse to server 2's IP: *nothing*, not even an error page. Matching the tag does not deploy anything by itself; server 2 gets the app at the **next** deployment, which you are about to trigger.
 
 ### 10b · Make each server sign its page
 
@@ -595,7 +606,7 @@ One server is a demo. Two servers are a fleet, and a fleet has a question a sing
 sed -i "s|</body>|<p class=\"stamp\">Served by $(hostname) · deployment $DEPLOYMENT_ID</p></body>|" /var/www/html/index.html
 ```
 
-CodeDeploy sets `DEPLOYMENT_ID`, `DEPLOYMENT_GROUP_NAME`, `APPLICATION_NAME` and `LIFECYCLE_EVENT` as environment variables for every hook. Wire the script in **after** the files are copied, and slow the rollout down enough to watch:
+CodeDeploy sets `DEPLOYMENT_ID`, `DEPLOYMENT_GROUP_NAME`, `APPLICATION_NAME` and `LIFECYCLE_EVENT` as environment variables for every hook. Wire the script in **after** the files are copied, and slow the rollout down enough to watch. Add these under `hooks:` in `appspec.yml` (if `ValidateService` is already there from Challenge C, do not add it twice; just change the sleep):
 
 ```yaml
   AfterInstall:
@@ -612,9 +623,9 @@ CodeDeploy sets `DEPLOYMENT_ID`, `DEPLOYMENT_GROUP_NAME`, `APPLICATION_NAME` and
 
 ### 10c · Watch a rolling deployment
 
-1. Bump to **Version 4**, zip, upload.
-2. Open **both** IPs in two browser tabs and keep refreshing while the pipeline runs. For roughly half a minute server 1 shows **Version 4** while server 2 still shows **Version 3**. That is a rolling deployment: at no point were both servers being changed. (If you refresh at exactly the wrong second you may catch server 1 refusing the connection: that is the `ApplicationStop → ApplicationStart` gap of an in-place deployment on *that one server*. With a load balancer in front, CodeDeploy would pull the server out of rotation first; that is the "Enable load balancing" box you unticked in Part 5.)
-3. Open the deployment in CodeDeploy. The instance list fills in **one row at a time**: instance 1 *Succeeded*, instance 2 *In progress*, then both green.
+1. Bump to **Version 6**, zip, upload.
+2. Open **both** IPs in two browser tabs and keep refreshing while the pipeline runs. CodeDeploy picks one server to go first (it may be either). For roughly half a minute that server shows **Version 6** while the other one still shows what it had before: **Version 5** on server 1, *nothing* on server 2. That is a rolling deployment: at no point were both servers being changed. (If you refresh at exactly the wrong second you may catch server 1 refusing the connection: that is the `ApplicationStop → ApplicationStart` gap of an in-place deployment on *that one server*. With a load balancer in front, CodeDeploy would pull the server out of rotation first; that is the "Enable load balancing" box you unticked in Part 5.)
+3. Open the deployment in CodeDeploy. The instance list fills in **one row at a time**: one instance *In progress* while the other is *Pending*, then one *Succeeded* while the other starts, then both green.
 
    ![One at a time, mid-flight](../docs/images/lab2-codedeploy-oneatatime-inprogress.png)
 
@@ -622,18 +633,18 @@ CodeDeploy sets `DEPLOYMENT_ID`, `DEPLOYMENT_GROUP_NAME`, `APPLICATION_NAME` and
 
    ![Server 2's page](../docs/images/lab2-webpage-stamped-server2.png)
 
-> ✅ **Checkpoint** — Both servers show Version 4 with different hostnames and the same deployment ID; the deployment's instance list shows two instances, finished at different times.
+> ✅ **Checkpoint** — Both servers show Version 6 with different hostnames and the same deployment ID; the deployment's instance list shows two instances, finished at different times.
 
 ### 🔧 Exercise F · Blast radius
 
-Rollback is on (Exercise B). Put the `htpd` typo back into `start_server.sh`, bump to **Version 5**, upload. Keep both tabs open.
+Rollback is on (Exercise B). Put the `htpd` typo back into `start_server.sh`, bump to **Version 7**, upload. Keep both tabs open.
 
 **Predict:** which server goes down? Which stays up? Where does each one end up?
 
 <details>
 <summary>💡 Hint</summary>
 
-OneAtATime means CodeDeploy will not *start* on server 2 until server 1 has *succeeded*. Think about what happens to server 2 if server 1 never does.
+OneAtATime means CodeDeploy will not *start* on the second server until the first one has *succeeded*. Think about what happens to the second server if the first one never does.
 </details>
 
 <details>
@@ -641,15 +652,15 @@ OneAtATime means CodeDeploy will not *start* on server 2 until server 1 has *suc
 
 ![Failed on one, skipped on the other](../docs/images/lab2-codedeploy-oneatatime-failed.png)
 
-- Server 1: `ApplicationStop` stopped Apache, `ApplicationStart` failed → **down**, briefly.
-- Server 2: status **Skipped**, every lifecycle event *Skipped*. CodeDeploy never touched it. It served Version 4 throughout. The deployment's error code is `HEALTH_CONSTRAINTS`: with OneAtATime the rule is "all but one instance must stay healthy", and after server 1 failed that rule could not be met, so CodeDeploy stopped.
-- The automatic rollback redeployed Version 4 to server 1. Both servers are back on Version 4; the pipeline is red.
+- The server CodeDeploy picked first: `ApplicationStop` stopped Apache, `ApplicationStart` failed → **down**, briefly.
+- The other server: status **Skipped**, every lifecycle event *Skipped*. CodeDeploy never touched it. It served Version 6 throughout. The deployment's error code is `HEALTH_CONSTRAINTS`: with OneAtATime the rule is "all but one instance must stay healthy", and after the first server failed that rule could not be met, so CodeDeploy stopped.
+- The automatic rollback redeployed Version 6 to the failed server. Both servers are back on Version 6; the pipeline is red.
 
 Blast radius: **50 %**, for about a minute. In Exercise A, with one server, it was 100 % and stayed that way until you fixed it. With `AllAtOnce` on two servers it would have been 100 % too.
 
 **The lesson:** a deployment configuration is a *blast-radius dial*. `OneAtATime` and `HalfAtATime` trade speed for safety; custom configurations let you say "never below 75 % healthy". Put a load balancer in front (Lab 4 does) and the user never notices the server that is mid-deployment: that is a zero-downtime deploy, and you now own every piece of it except the load balancer.
 
-Fix the typo, upload, and Version 5 rolls out cleanly, one server at a time.
+Fix the typo, upload, and Version 7 rolls out cleanly, one server at a time.
 </details>
 
 ---
@@ -667,7 +678,7 @@ Nobody watches a deployment list either. CodeDeploy has notifications built in; 
 
    ![Triggers](../docs/images/lab2-codedeploy-dg-triggers.png)
 
-3. Put the `htpd` typo back one last time, bump to **Version 6**, upload. Within a minute you get **two** e-mails: one *FAILURE*, one *ROLLBACK*. Fix, upload, done.
+3. Put the `htpd` typo back one last time, bump to **Version 8**, upload. Within a minute you get **two** e-mails: one *FAILURE*, one *ROLLBACK*. Fix, upload, done.
 
 <details>
 <summary>💡 No e-mail?</summary>
@@ -752,7 +763,7 @@ Green, and the server has the *unstamped* original: CodeBuild stamped a copy nob
 <details>
 <summary>7. Two servers, OneAtATime, rollback on, broken start script. How long was the whole site unreachable?</summary>
 
-Never. Server 2 was skipped and kept serving the previous version the entire time; only server 1 was down, for about a minute, until the rollback restarted it.
+Never. The second server was skipped and kept serving the previous version the entire time; only the first server was down, for about a minute, until the rollback restarted it.
 </details>
 
 **Next:** [Lab 3 – The broken pipeline: six bugs between you and a working website](lab3-broken-pipeline.md)

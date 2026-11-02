@@ -136,7 +136,8 @@
 <li><input disabled="" type="checkbox"> Everyone will work in <strong>us-west-2</strong>. Say it three times.</li>
 <li><input disabled="" type="checkbox"> S3 bucket count is under ~70 (hard limit 100 unless raised): <code>aws s3api list-buckets --query &#39;length(Buckets)&#39;</code>. Labs 1–3 add up to 3 buckets per student.</li>
 <li><input disabled="" type="checkbox"> Quotas are fine (checked: On-Demand vCPU quota 2 500; Fargate 4 000 vCPU).</li>
-<li><input disabled="" type="checkbox"> Students have a laptop/VM with a terminal that can <code>zip</code> (Finder/Explorer compression also works; the guides explain).</li>
+<li><input disabled="" type="checkbox"> Students have a laptop/VM that can zip (terminal, Finder or Explorer; the guides explain). Locked-down laptops: Labs 1–2 offer a CloudShell route (<code>curl</code> the zip from the Pages site, edit with <code>nano</code>, <code>aws s3 cp</code>).</li>
+<li><input disabled="" type="checkbox"> Windows students edit <code>.sh</code> files in VS Code with <strong>LF</strong> line endings (Lab 2 warns them). A CRLF hook script fails on the server with <code>/bin/bash^M: bad interpreter</code>; the repo&#39;s <code>.gitattributes</code> keeps clones LF.</li>
 <li><input disabled="" type="checkbox"> Publish the handout site (the <code>docs/</code> folder on GitHub Pages) and the lab Markdown (wiki or repo).</li>
 <li><input disabled="" type="checkbox"> Lab 3 only: <code>terraform apply</code> the night before or 15 minutes before (§6).</li>
 </ul>
@@ -173,6 +174,11 @@
 <td>they look at the failed build</td>
 <td>Reports only exist once Maven ran the tests (green build, or Challenge A)</td>
 </tr>
+<tr>
+<td><em>Role already exists</em> when creating the project</td>
+<td>the role survived an earlier attempt or an earlier cohort (students cannot delete roles)</td>
+<td>Choose <strong>Existing service role</strong>, pick it. Running <code>tools/cleanup-student.sh</code> between cohorts avoids this</td>
+</tr>
 </tbody></table>
 <p><strong>The missions (Part 6).</strong> Eight self-contained missions; answers are in the student guide&#39;s hidden sections. What each one creates and what we measured on 2026-11-01 with the <code>amazonlinux-x86_64-standard:6.0</code> image:</p>
 <table>
@@ -194,7 +200,7 @@
 <td>B · env var</td>
 <td>project env var <code>GREETING</code></td>
 <td>greeting + <code>CODEBUILD_BUILD_NUMBER</code> in the log</td>
-<td>typing the variable into the buildspec instead of the project</td>
+<td>typing the variable into the buildspec instead of the project; writing <code>echo &quot;… build #$CODEBUILD_BUILD_NUMBER&quot;</code> unquoted, so YAML cuts it at <code> #</code> and the shell reports an unterminated quote (the solution single-quotes the whole line; a nice preview of Lab 3)</td>
 </tr>
 <tr>
 <td>C · extra artifact</td>
@@ -274,8 +280,18 @@
 </tr>
 <tr>
 <td>Upload does not trigger the pipeline</td>
-<td>EventBridge box unticked, or they uploaded to a different key</td>
-<td>Release change manually; check the key is exactly <code>SampleApp.zip</code></td>
+<td>EventBridge box unticked, or they uploaded to a different key. Possible but not observed: all wizards edit the <strong>one shared</strong> <code>codepipeline-source-trail</code>, so two students finishing the wizard in the same second could overwrite each other&#39;s data-event selector</td>
+<td>Release change manually; check the key is exactly <code>SampleApp.zip</code>. If the key is right, check the trail&#39;s data events include their bucket; <em>Edit → Source → Done → Save</em> on the pipeline re-adds it</td>
+</tr>
+<tr>
+<td>Hook fails with <code>bad interpreter</code> / <code>^M</code></td>
+<td>Windows CRLF line endings in a <code>.sh</code> file (usually the new <code>validate_service.sh</code>)</td>
+<td>Re-save with LF (VS Code status bar) or <code>sed -i &#39;s/\r$//&#39; scripts/*.sh</code> in CloudShell</td>
+</tr>
+<tr>
+<td>Parts 9–11: pipeline sits at <em>Approve</em> forever</td>
+<td>they kept Challenge D&#39;s manual-approval stage</td>
+<td>Approve, or delete the stage (the guide tells them)</td>
 </tr>
 <tr>
 <td>Site down after a failed deploy</td>
@@ -316,8 +332,8 @@
 <tr>
 <td>10 · Exercise F (blast radius)</td>
 <td><code>htpd</code> typo, rollback on</td>
-<td>deployment fails with <code>HEALTH_CONSTRAINTS</code>; server 1 <em>Failed</em> at ApplicationStart, server 2 <strong>Skipped</strong>; rollback (also OneAtATime) restores Version 4 on server 1; server 2 never left Version 4</td>
-<td>&quot;why is server 2 Skipped and not Succeeded?&quot; → minimum-healthy-hosts rule; good discussion</td>
+<td>deployment fails with <code>HEALTH_CONSTRAINTS</code>; the first server <em>Failed</em> at ApplicationStart, the second <strong>Skipped</strong>; rollback (also OneAtATime) restores Version 6 on the failed server; the skipped one never left Version 6. Which server goes first is CodeDeploy&#39;s choice, so the guide says <em>first/second</em>, not <em>1/2</em></td>
+<td>&quot;why is the second server Skipped and not Succeeded?&quot; → minimum-healthy-hosts rule; good discussion</td>
 </tr>
 <tr>
 <td>11 · triggers</td>

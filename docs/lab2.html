@@ -126,7 +126,7 @@
 </tbody></table>
 <hr>
 <h2 id="part-1-meet-the-app">Part 1 · Meet the app</h2>
-<p>Download <strong><a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab2-codepipeline-codedeploy/sample-app/"><code>lab2-codepipeline-codedeploy/sample-app/</code></a></strong> (or use the ready-made <strong><a href="downloads/SampleApp.zip"><code>SampleApp.zip</code></a></strong>).</p>
+<p>Download <strong><a href="downloads/SampleApp.zip"><code>SampleApp.zip</code></a></strong> and keep it as it is: it is your first upload in Part 4. Unzip a copy and rename the folder to <strong><code>sample-app</code></strong>: that is your working copy, exactly as in Lab 1. (The same files are in the repository folder <a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab2-codepipeline-codedeploy/sample-app/"><code>lab2-codepipeline-codedeploy/sample-app/</code></a>.) Lab 1&#39;s CloudShell route works here too; just use <code>SampleApp.zip</code> and the Lab 2 bucket.</p>
 <pre><code>sample-app/
 ├── appspec.yml                      ← CodeDeploy&#39;s instructions
 ├── buildspec.yml                    ← CodeBuild&#39;s instructions – ignored until Part 9
@@ -158,6 +158,8 @@ hooks:
       runas: root
 </code></pre>
 <div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Why <code>|| true</code> in <code>stop_server.sh</code>?</strong> On the very first deployment Apache is not installed yet, so <code>systemctl stop httpd</code> would fail and sink the whole deployment. A hook script&#39;s exit code <em>is</em> the verdict: non-zero = failed hook = failed deployment.</p>
+</div></div>
+<div class="callout warning"><div class="ico">⚠️</div><div><span class="box-lbl">Warning</span><p><strong>Windows users: line endings.</strong> The <code>.sh</code> files run on Linux. If an editor saves them with Windows line endings (CRLF), the hook fails on the server with <code>/bin/bash^M: bad interpreter</code>. Edit them in <strong>VS Code</strong> (check the bottom-right corner says <strong>LF</strong>, not CRLF; click it to switch) or in CloudShell, never in Word or WordPad. This matters most when you create a <em>new</em> script (Challenge C).</p>
 </div></div>
 <hr>
 <h2 id="part-2-create-the-two-iam-roles">Part 2 · Create the two IAM roles</h2>
@@ -333,9 +335,11 @@ sudo tail -n 5 /var/log/aws/codedeploy-agent/codedeploy-agent.log
 </code></pre>
 </li>
 <li>S3 → <code>cicd-lab2-participant-NN</code> → <strong>Upload</strong> the new <code>SampleApp.zip</code>.</li>
-<li>Go straight to the pipeline page. <strong>Do not click Release change.</strong> Within about a minute a new execution starts on its own.</li>
+<li>Go straight to the pipeline page. <strong>Do not click Release change.</strong> Within about a minute a new execution starts on its own. (Nothing after two minutes? Check you uploaded to the bucket root with the exact name <code>SampleApp.zip</code>, then click <strong>Release change</strong> and tell your instructor.)</li>
 <li>When it is green, refresh your web page.</li>
 </ol>
+<div class="callout note"><div class="ico">📝</div><div><span class="box-lbl">Note</span><p><strong>Version numbers.</strong> From here on, each upload bumps the version on the page so you can always tell what is live. The guide assumes you do every part in order: Exercise A = 3, B = 4, Part 9 = 5, Part 10 = 6, Exercise F = 7, Part 11 = 8. If you skip a part, just keep counting up; what matters is that every upload shows a number you have not seen yet. (The screenshots come from a test run with its own numbering, so their version numbers will not match yours.)</p>
+</div></div>
 <p><img class="shot" src="images/lab2-webpage-v2.png" alt="Version 2 live" loading="lazy" title="Click to zoom"></p>
 <p>Now look at two places that explain <em>how</em> this worked:</p>
 <ul>
@@ -429,9 +433,9 @@ echo &quot;Smoke test passed: page contains &#39;Version&#39;&quot;
       timeout: 60
       runas: root
 </code></pre>
-<p>Zip (make sure the new script is included and executable: <code>chmod +x scripts/*.sh</code> before zipping), upload, and watch the <code>ValidateService</code> event now take ~2 seconds instead of 0.</p>
-<p><img class="shot" src="images/lab2-codedeploy-validate-service-events.png" alt="ValidateService in the lifecycle events" loading="lazy" title="Click to zoom">
- To prove it bites, temporarily change <code>grep -q &quot;Version&quot;</code> to <code>grep -q &quot;Banana&quot;</code> – the deployment fails at ValidateService and, with rollback on, the previous version comes back.</p>
+<p>Zip (the <code>scripts/</code> folder is already in the zip command, so the new script goes along; on macOS/Linux also run <code>chmod +x scripts/*.sh</code> first; on Windows make sure the new file is saved with <strong>LF</strong> line endings), upload, and watch the <code>ValidateService</code> event now take ~2 seconds instead of 0.</p>
+<p><img class="shot" src="images/lab2-codedeploy-validate-service-events.png" alt="ValidateService in the lifecycle events" loading="lazy" title="Click to zoom"></p>
+<p>To prove it bites, temporarily change <code>grep -q &quot;Version&quot;</code> to <code>grep -q &quot;Banana&quot;</code> – the deployment fails at ValidateService and, with rollback on, the previous version comes back.</p>
 <p><strong>Lesson:</strong> a deployment is not done when the process starts; it is done when the <em>behaviour</em> is verified. In mature pipelines ValidateService is where health checks, canary requests and synthetic transactions live.</p>
 </div></details>
 
@@ -447,6 +451,7 @@ echo &quot;Smoke test passed: page contains &#39;Version&#39;&quot;
 <p>After saving, release a change: the pipeline runs Source, then pauses at <code>Approve</code> with a <strong>Review</strong> button. Click it, type a comment, <strong>Approve</strong> → Deploy runs. <strong>Reject</strong> stops the execution.</p>
 <p><img class="shot" src="images/lab2-pipeline-approval-waiting.png" alt="Waiting for approval" loading="lazy" title="Click to zoom"></p>
 <p><strong>Lesson:</strong> the difference between Continuous <em>Delivery</em> and Continuous <em>Deployment</em> is exactly one stage. Everything before the approval is identical, which is why teams can move from one to the other without re-architecting.</p>
+<p><strong>Before you go on:</strong> while the <code>Approve</code> stage exists, <em>every</em> upload stops and waits for you, including the ones in Parts 9–11. Either delete the stage (Edit → the stage&#39;s <strong>Delete</strong> button → Save) or remember to click <strong>Review → Approve</strong> each time.</p>
 </div></details>
 
 <h3>Optional · Look at the agent&#39;s own diary</h3>
@@ -460,8 +465,9 @@ sudo ls /opt/codedeploy-agent/deployment-root/
 <p>Exercise A proved something uncomfortable: a broken bundle sails straight through Source and only fails <em>on the server</em>, taking the site with it. Real pipelines put a gate in between. You will add one now, and it is the same service you met in Lab 1.</p>
 <p><img class="diagram" src="images/diagrams/lab2-build-stage.svg" alt="Build stage" loading="lazy"></p>
 <h3>9a · Read the recipe</h3>
-<p>Open <code>buildspec.yml</code> in the sample app. It does three small things to the bundle:</p>
-<pre><code class="language-yaml">phases:
+<p>Open <code>buildspec.yml</code> in the sample app. It does three small things to the bundle (shown here trimmed: the real file also prints a <code>1/3 … 3/3</code> heading before each step):</p>
+<pre><code class="language-yaml">version: 0.2
+phases:
   build:
     commands:
       - for f in scripts/*.sh; do bash -n &quot;$f&quot; &amp;&amp; echo &quot;     ok  $f&quot;; done        # 1 syntax-check every hook script
@@ -476,10 +482,10 @@ artifacts:
 </div></div>
 <h3>9b · Create the project from inside the pipeline</h3>
 <ol>
-<li>Pipeline → <strong>Edit</strong> → between <em>Source</em> and <em>Deploy</em> click <strong>+ Add stage</strong> → Stage name <strong><code>Build</code></strong> → <strong>Add stage</strong>.</li>
+<li>Pipeline → <strong>Edit</strong> → directly after <em>Source</em> click <strong>+ Add stage</strong> → Stage name <strong><code>Build</code></strong> → <strong>Add stage</strong>. (If you kept Challenge D&#39;s <code>Approve</code> stage, put Build <em>before</em> it, so you approve a bundle that has already passed the checks.)</li>
 <li>In the new stage → <strong>+ Add action group</strong>:<ul>
 <li>Action name <strong><code>Build</code></strong> · Action provider <strong>AWS CodeBuild</strong> · Region Oregon · Input artifacts <strong>SourceArtifact</strong>.</li>
-<li>Project name → <strong>Create project</strong>. A CodeBuild window opens:<ul>
+<li>Project name → <strong>Create project</strong>. A CodeBuild window opens (if nothing appears, allow pop-ups for the console and click again):<ul>
 <li>Project name <strong><code>participant-NN-pipeline-build</code></strong></li>
 <li>Environment: Managed image · Amazon Linux · Standard · the newest <code>aws/codebuild/amazonlinux-x86_64-standard:…</code> image · <strong>New service role</strong></li>
 <li>Buildspec: <strong>Use a buildspec file</strong> (blank name → <code>buildspec.yml</code>)</li>
@@ -496,7 +502,7 @@ artifacts:
 </div></div>
 <h3>9c · Ship through the gate</h3>
 <ol>
-<li><p>Bump <code>index.html</code> to <strong>Version 3</strong>. Re-zip (make sure <code>buildspec.yml</code> is in the zip!) and upload.</p>
+<li><p>Bump <code>index.html</code> to <strong>Version 5</strong>. Re-zip (make sure <code>buildspec.yml</code> is in the zip!) and upload.</p>
 </li>
 <li><p>Watch three cards go green in turn: Source → Build → Deploy.</p>
 <p><img class="shot" src="images/lab2-pipeline-three-stages.png" alt="Three stages" loading="lazy" title="Click to zoom"></p>
@@ -504,11 +510,11 @@ artifacts:
 <li><p>Refresh the site. Under the version pill a grey line reads <strong>Build #1 · built 2026-…</strong> (the number is this project&#39;s own build counter; it climbs with every execution).</p>
 <p><img class="shot" src="images/lab2-webpage-stamped.png" alt="Stamped page" loading="lazy" title="Click to zoom"></p>
 </li>
-<li><p>Click the build link in the Build card and read its log: four <code>ok</code> lines, then the stamp.</p>
+<li><p>Click the build link in the Build card and read its log: one <code>ok</code> line per hook script, then the stamp.</p>
 <p><img class="shot" src="images/lab2-build-stage-succeeded-log.png" alt="Build stage log" loading="lazy" title="Click to zoom"></p>
 </li>
 </ol>
-<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Three green stages; the page shows Version 3 and a build stamp; the Deploy action&#39;s input artifact is <em>BuildArtifact</em>.</p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Three green stages; the page shows Version 5 and a build stamp; the Deploy action&#39;s input artifact is <em>BuildArtifact</em>.</p>
 </blockquote>
 <div class="callout tip"><div class="ico">💡</div><div><span class="box-lbl">Tip</span><p><strong>Robot number four.</strong> The pipeline now has a CodeBuild project with its <em>own</em> service role (the wizard created <code>codebuild-participant-NN-pipeline-build-service-role</code>). It can read and write the pipeline&#39;s artifact bucket and write logs, nothing else. Four robots, four identities, same rule: each one gets what its job needs.</p>
 </div></div>
@@ -523,7 +529,7 @@ artifacts:
 <details class="reveal solution"><summary>✅ Solution &amp; explanation</summary><div class="body">
 
 <p><img class="shot" src="images/lab2-pipeline-build-gate-failed.png" alt="Build gate failed" loading="lazy" title="Click to zoom"></p>
-<p>The <strong>Build</strong> stage goes red in about thirty seconds; the log ends with <code>MISSING scripts/start_servr.sh</code>. Deploy never ran. Your website still shows Version 3, stamped, untouched. Nothing happened to any server.</p>
+<p>The <strong>Build</strong> stage goes red in about thirty seconds; the log ends with <code>MISSING scripts/start_servr.sh</code>. Deploy never ran. Your website still shows Version 5, stamped, untouched. Nothing happened to any server.</p>
 <p><img class="shot" src="images/lab2-build-gate-failed-log.png" alt="The MISSING line" loading="lazy" title="Click to zoom"></p>
 <p>That is what people mean by <strong>&quot;shift left&quot;</strong>: the same class of mistake that caused an outage in Exercise A now costs one red card and thirty seconds. Fix the file name, upload, green.</p>
 <p><strong>But notice the limit.</strong> Re-read the three checks. Would any of them catch <code>systemctl start htpd</code>? No: <code>htpd</code> is a perfectly well-formed word in a perfectly well-formed script. Syntax checks catch <em>malformed</em>; only a <strong>behavioural</strong> check (Challenge C&#39;s <code>ValidateService</code>, or real tests) catches <em>wrong</em>. Gates stack; none of them is complete.</p>
@@ -535,9 +541,9 @@ artifacts:
 <p><img class="diagram" src="images/diagrams/lab2-fleet-rollout.svg" alt="Fleet rollout" loading="lazy"></p>
 <h3>10a · A second, identical server</h3>
 <ol>
-<li><p>EC2 → <strong>Launch instances</strong> exactly as in Part 3, with one difference in step 4: under <em>Firewall</em>, choose <strong>Select existing security group</strong> → <code>participant-NN-webserver-sg</code>. Everything else identical, including the <strong>Name tag <code>participant-NN-webserver</code></strong>, the IAM instance profile and the <strong>user data</strong> script (no agent, no deployments).</p>
+<li><p>EC2 → <strong>Launch instances</strong> exactly as in Part 3, with one difference in step 4: under <em>Firewall</em>, choose <strong>Select existing security group</strong> → <code>participant-NN-webserver-sg</code>. Everything else identical, including the <strong>Name <code>participant-NN-webserver</code></strong> (yes, the same name: that tag is how CodeDeploy finds it), the IAM instance profile and the <strong>user data</strong> script (without it there is no CodeDeploy agent, and without the agent nothing can be deployed to this server).</p>
 </li>
-<li><p>Wait for <em>2/2 checks passed</em>. Write down its public IP as <strong>server 2</strong>.</p>
+<li><p>Wait for <em>2/2 checks passed</em>. Write down its public IP as <strong>server 2</strong>. Your first server is <strong>server 1</strong>.</p>
 <p><img class="shot" src="images/lab2-ec2-two-instances.png" alt="Two instances" loading="lazy" title="Click to zoom"></p>
 </li>
 <li><p>CodeDeploy → your application → your deployment group → <strong>Edit</strong>. <em>Environment configuration</em> now says <strong>2 unique matched instances</strong> without you changing anything: the tag did the work.</p>
@@ -545,12 +551,14 @@ artifacts:
 </li>
 <li><p>Scroll to <strong>Deployment settings</strong> → change the deployment configuration to <strong><code>CodeDeployDefault.OneAtATime</code></strong> → <strong>Save changes</strong>.</p>
 </li>
+<li><p>Browse to server 2&#39;s IP: <em>nothing</em>, not even an error page. Matching the tag does not deploy anything by itself; server 2 gets the app at the <strong>next</strong> deployment, which you are about to trigger.</p>
+</li>
 </ol>
 <h3>10b · Make each server sign its page</h3>
 <p><code>scripts/stamp_server.sh</code> is already in the bundle:</p>
 <pre><code class="language-bash">sed -i &quot;s|&lt;/body&gt;|&lt;p class=\&quot;stamp\&quot;&gt;Served by $(hostname) · deployment $DEPLOYMENT_ID&lt;/p&gt;&lt;/body&gt;|&quot; /var/www/html/index.html
 </code></pre>
-<p>CodeDeploy sets <code>DEPLOYMENT_ID</code>, <code>DEPLOYMENT_GROUP_NAME</code>, <code>APPLICATION_NAME</code> and <code>LIFECYCLE_EVENT</code> as environment variables for every hook. Wire the script in <strong>after</strong> the files are copied, and slow the rollout down enough to watch:</p>
+<p>CodeDeploy sets <code>DEPLOYMENT_ID</code>, <code>DEPLOYMENT_GROUP_NAME</code>, <code>APPLICATION_NAME</code> and <code>LIFECYCLE_EVENT</code> as environment variables for every hook. Wire the script in <strong>after</strong> the files are copied, and slow the rollout down enough to watch. Add these under <code>hooks:</code> in <code>appspec.yml</code> (if <code>ValidateService</code> is already there from Challenge C, do not add it twice; just change the sleep):</p>
 <pre><code class="language-yaml">  AfterInstall:
     - location: scripts/stamp_server.sh
       timeout: 60
@@ -563,38 +571,38 @@ artifacts:
 <p>(If you skipped Challenge C, create <code>scripts/validate_service.sh</code> from its solution now; the 20-second pause gives you time to see the rollout mid-flight.)</p>
 <h3>10c · Watch a rolling deployment</h3>
 <ol>
-<li><p>Bump to <strong>Version 4</strong>, zip, upload.</p>
+<li><p>Bump to <strong>Version 6</strong>, zip, upload.</p>
 </li>
-<li><p>Open <strong>both</strong> IPs in two browser tabs and keep refreshing while the pipeline runs. For roughly half a minute server 1 shows <strong>Version 4</strong> while server 2 still shows <strong>Version 3</strong>. That is a rolling deployment: at no point were both servers being changed. (If you refresh at exactly the wrong second you may catch server 1 refusing the connection: that is the <code>ApplicationStop → ApplicationStart</code> gap of an in-place deployment on <em>that one server</em>. With a load balancer in front, CodeDeploy would pull the server out of rotation first; that is the &quot;Enable load balancing&quot; box you unticked in Part 5.)</p>
+<li><p>Open <strong>both</strong> IPs in two browser tabs and keep refreshing while the pipeline runs. CodeDeploy picks one server to go first (it may be either). For roughly half a minute that server shows <strong>Version 6</strong> while the other one still shows what it had before: <strong>Version 5</strong> on server 1, <em>nothing</em> on server 2. That is a rolling deployment: at no point were both servers being changed. (If you refresh at exactly the wrong second you may catch server 1 refusing the connection: that is the <code>ApplicationStop → ApplicationStart</code> gap of an in-place deployment on <em>that one server</em>. With a load balancer in front, CodeDeploy would pull the server out of rotation first; that is the &quot;Enable load balancing&quot; box you unticked in Part 5.)</p>
 </li>
-<li><p>Open the deployment in CodeDeploy. The instance list fills in <strong>one row at a time</strong>: instance 1 <em>Succeeded</em>, instance 2 <em>In progress</em>, then both green.</p>
+<li><p>Open the deployment in CodeDeploy. The instance list fills in <strong>one row at a time</strong>: one instance <em>In progress</em> while the other is <em>Pending</em>, then one <em>Succeeded</em> while the other starts, then both green.</p>
 <p><img class="shot" src="images/lab2-codedeploy-oneatatime-inprogress.png" alt="One at a time, mid-flight" loading="lazy" title="Click to zoom"></p>
 </li>
 <li><p>When it is green, compare the two pages: same version, same deployment ID, <strong>different <code>Served by ip-172-31-…</code></strong>. Two servers, one deployment, each one signed.</p>
 <p><img class="shot" src="images/lab2-webpage-stamped-server2.png" alt="Server 2's page" loading="lazy" title="Click to zoom"></p>
 </li>
 </ol>
-<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Both servers show Version 4 with different hostnames and the same deployment ID; the deployment&#39;s instance list shows two instances, finished at different times.</p>
+<blockquote class="checkpoint"><p>✅ <strong>Checkpoint</strong> — Both servers show Version 6 with different hostnames and the same deployment ID; the deployment&#39;s instance list shows two instances, finished at different times.</p>
 </blockquote>
 <h3>🔧 Exercise F · Blast radius</h3>
-<p>Rollback is on (Exercise B). Put the <code>htpd</code> typo back into <code>start_server.sh</code>, bump to <strong>Version 5</strong>, upload. Keep both tabs open.</p>
+<p>Rollback is on (Exercise B). Put the <code>htpd</code> typo back into <code>start_server.sh</code>, bump to <strong>Version 7</strong>, upload. Keep both tabs open.</p>
 <p><strong>Predict:</strong> which server goes down? Which stays up? Where does each one end up?</p>
 <details class="reveal hint"><summary>💡 Hint</summary><div class="body">
 
-<p>OneAtATime means CodeDeploy will not <em>start</em> on server 2 until server 1 has <em>succeeded</em>. Think about what happens to server 2 if server 1 never does.</p>
+<p>OneAtATime means CodeDeploy will not <em>start</em> on the second server until the first one has <em>succeeded</em>. Think about what happens to the second server if the first one never does.</p>
 </div></details>
 
 <details class="reveal solution"><summary>✅ Solution &amp; explanation</summary><div class="body">
 
 <p><img class="shot" src="images/lab2-codedeploy-oneatatime-failed.png" alt="Failed on one, skipped on the other" loading="lazy" title="Click to zoom"></p>
 <ul>
-<li>Server 1: <code>ApplicationStop</code> stopped Apache, <code>ApplicationStart</code> failed → <strong>down</strong>, briefly.</li>
-<li>Server 2: status <strong>Skipped</strong>, every lifecycle event <em>Skipped</em>. CodeDeploy never touched it. It served Version 4 throughout. The deployment&#39;s error code is <code>HEALTH_CONSTRAINTS</code>: with OneAtATime the rule is &quot;all but one instance must stay healthy&quot;, and after server 1 failed that rule could not be met, so CodeDeploy stopped.</li>
-<li>The automatic rollback redeployed Version 4 to server 1. Both servers are back on Version 4; the pipeline is red.</li>
+<li>The server CodeDeploy picked first: <code>ApplicationStop</code> stopped Apache, <code>ApplicationStart</code> failed → <strong>down</strong>, briefly.</li>
+<li>The other server: status <strong>Skipped</strong>, every lifecycle event <em>Skipped</em>. CodeDeploy never touched it. It served Version 6 throughout. The deployment&#39;s error code is <code>HEALTH_CONSTRAINTS</code>: with OneAtATime the rule is &quot;all but one instance must stay healthy&quot;, and after the first server failed that rule could not be met, so CodeDeploy stopped.</li>
+<li>The automatic rollback redeployed Version 6 to the failed server. Both servers are back on Version 6; the pipeline is red.</li>
 </ul>
 <p>Blast radius: <strong>50 %</strong>, for about a minute. In Exercise A, with one server, it was 100 % and stayed that way until you fixed it. With <code>AllAtOnce</code> on two servers it would have been 100 % too.</p>
 <p><strong>The lesson:</strong> a deployment configuration is a <em>blast-radius dial</em>. <code>OneAtATime</code> and <code>HalfAtATime</code> trade speed for safety; custom configurations let you say &quot;never below 75 % healthy&quot;. Put a load balancer in front (Lab 4 does) and the user never notices the server that is mid-deployment: that is a zero-downtime deploy, and you now own every piece of it except the load balancer.</p>
-<p>Fix the typo, upload, and Version 5 rolls out cleanly, one server at a time.</p>
+<p>Fix the typo, upload, and Version 7 rolls out cleanly, one server at a time.</p>
 </div></details>
 
 <hr>
@@ -612,7 +620,7 @@ artifacts:
 </ul>
 <p><img class="shot" src="images/lab2-codedeploy-dg-triggers.png" alt="Triggers" loading="lazy" title="Click to zoom"></p>
 </li>
-<li><p>Put the <code>htpd</code> typo back one last time, bump to <strong>Version 6</strong>, upload. Within a minute you get <strong>two</strong> e-mails: one <em>FAILURE</em>, one <em>ROLLBACK</em>. Fix, upload, done.</p>
+<li><p>Put the <code>htpd</code> typo back one last time, bump to <strong>Version 8</strong>, upload. Within a minute you get <strong>two</strong> e-mails: one <em>FAILURE</em>, one <em>ROLLBACK</em>. Fix, upload, done.</p>
 </li>
 </ol>
 <details class="reveal plain"><summary>💡 No e-mail?</summary><div class="body">
@@ -685,7 +693,7 @@ artifacts:
 
 <details class="reveal quiz"><summary>7. Two servers, OneAtATime, rollback on, broken start script. How long was the whole site unreachable?</summary><div class="body">
 
-<p>Never. Server 2 was skipped and kept serving the previous version the entire time; only server 1 was down, for about a minute, until the rollback restarted it.</p>
+<p>Never. The second server was skipped and kept serving the previous version the entire time; only the first server was down, for about a minute, until the rollback restarted it.</p>
 </div></details>
 
 <p><strong>Next:</strong> <a href="lab3.html">Lab 3 – The broken pipeline: six bugs between you and a working website</a></p>
