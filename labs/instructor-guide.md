@@ -20,7 +20,7 @@
 | Afternoon 1 | **Lab 2 · CodePipeline + CodeDeploy** | 70 min | 110 min (exercises) · 160–175 min (+ level-ups + pager) | Longest setup; the "site goes down" exercise is the emotional peak. Parts 9–11 fit a second block or a second day |
 | Afternoon 2 | **Lab 3 · Broken pipeline** | 75 min | 100 min | Can be run the next morning as a warm-up instead |
 | Day 2 | **Lab 4 · ECS/ECR** | 90 min (Parts 1–9) | 135 min with exercises A–E · +60–90 min for challenges F–K | Part 9 (task role) is the new core piece; the circuit-breaker exercise has a 10-minute wait; see §7 |
-| Day 2 | **Lab 5 · EKS** | 80 min (Parts 1–7) | 125 min with challenges A–D · ~175 min with all ten | Cluster must be applied ~20 min before; the shared fallback image must be rebuilt from the new `app.zip`; see §8 |
+| Day 2 | **Lab 5 · EKS** | 80 min (Parts 1–7) | 125 min with challenges A–D · ~175 min with all ten | Cluster must be applied ~20 min before; the shared fallback image `pipeline-academy/mission-control:v3` must exist; see §8 |
 | Day 3 (or an advanced track) | **Lab 6 · Release strategies on ECS** | 2 h 15 (Parts 1–7) | +10–20 min per challenge | Push the shared images first (§9). About an hour of it is real deployments running: use the waits for discussion |
 
 Measured machine time per pipeline round in Lab 3: **~2 minutes** (poll ≤ 60 s, build ≈ 30 s, deploy ≈ 35 s). Six rounds ≈ 12 minutes of waiting; the rest is reading.
@@ -244,7 +244,7 @@ terraform destroy          # ~4 min; buckets are force_destroy
 Two Terraform modules, applied in order:
 
 ```bash
-cd lab5-eks/terraform/cluster  && terraform init && terraform apply     # ~14 min: cluster, 2 × t3.large node group, add-ons, 15 access entries
+cd lab5-eks/terraform/cluster  && terraform init && terraform apply     # ~14 min: cluster, 4 × t3.large node group, add-ons, 15 access entries
 cd ../students                  && terraform init && terraform apply     # ~1 min: namespaces, Role/RoleBinding, ClusterRole, ResourceQuota, LimitRange
 ```
 
@@ -253,11 +253,11 @@ What students get (RBAC and quotas verified by impersonation with `kubectl --as=
 - `kubectl get nodes` works (read-only ClusterRole); `kubectl get pods -n participant-02` and `-n kube-system` are **Forbidden**.
 - Full rights in their own namespace: Deployments, Services (LoadBalancer type works; the public subnets carry the `kubernetes.io/role/elb` tag), ConfigMaps, Secrets, Jobs (`batch`), PodDisruptionBudgets (`policy`), HPA (metrics-server add-on installed), logs, exec, port-forward. The Role's API groups cover every object the revised lab uses.
 - Quota: 12 pods, 2 load balancers, 2 CPU / 3 GiB requests. Scaling to 20 stops at 12 with `exceeded quota: lab-quota` events. LimitRange defaults 100m/128Mi requests, 250m/256Mi limits.
-- Measured on EKS (2026-10-31): Deployment ready in ~15 s; Classic LB answering in ~90 s; rolling update ~20 s; `ImagePullBackOff` visible within 30 s; `rollout undo` ~15 s; HPA 2 → 6 replicas within ~60 s of load.
+- Measured on EKS (2026-10-31): Deployment ready in ~15 s; Classic LB answering in ~90 s; rolling update ~20 s; `ImagePullBackOff` visible within 30 s; `rollout undo` ~15 s; HPA 2 → 6 replicas within ~60 s of load. Re-checked 2026-11-06 on the 4-node cluster with the revised fallback image, impersonating participant-15: Part 3 manifests rolled out in 11 s (both Pods `1/1`, so `/ready` passes), Classic LB answering in 94 s, page shows the ConfigMap env, mounted MOTD, node and 256 MiB limit; `kubectl top pods` works as a student.
 - Measured on a local minikube 1.37 cluster with the revised manifests and the revised image (2026-11-01; not yet re-run on EKS): ConfigMap file visible inside the Pod ~85 s after the edit, env var unchanged until `rollout restart`; `/ready/off` removes the Pod from Endpoints within 10 s with `RESTARTS 0`; `/hog` → `OOMKilled`, exit code 137, restart in place; selector typo → `ENDPOINTS <none>`; smoke-test Job `Complete` in 8 s; PDB `ALLOWED DISRUPTIONS 1`; `kubectl exec`/`port-forward`/`run busybox` DNS all fine; `rollout status` exits with `exceeded its progress deadline` 120 s into the `:v99` exercise; readiness-path typo → `0/1 Running`, `statuscode: 404`; HPA 2 → 6 about 105 s after the load generator starts and back to 2 about 2.5 min after it is deleted (60 s stabilization window); Secret → masked launch code on the page. The `kubectl run --rm -i` attach form was flaky with a mismatched client/server pair, so Challenge G uses run → `wait` → `logs` → delete instead.
-- **The image matters.** The revised lab needs an image built from the revised `app.zip` (`/ready`, `/hog`, JSON logs, the ConfigMap file). An image from the previous revision answers 404 on `/ready`, so every Pod stays `0/1`. Rebuild the shared fallback `participant-01-mission-control` before class and tell anyone who kept an old Lab 4 image to rebuild.
+- **The image matters.** The revised lab needs an image built from the revised `app.zip` (`/ready`, `/hog`, JSON logs, the ConfigMap file). An image from the previous revision answers 404 on `/ready`, so every Pod stays `0/1`. The shared fallback is `pipeline-academy/mission-control:v3`: instructor-owned and immutable, so no student's Lab 4 cleanup can delete it (Lab 4 Part 11 tells them to delete their own repository). Built from `lab4-ecs/app` on 2026-11-06 with `docker buildx build --platform linux/amd64 --provenance=false --build-arg APP_VERSION=v3 -t <registry>/pipeline-academy/mission-control:v3 --push lab4-ecs/app`; `/health` and `/ready` both answer 200. Tell anyone who kept an old Lab 4 image to rebuild.
 
-**Capacity:** two `t3.large` nodes (2 vCPU / 8 GiB each) hold about 15 × 2 Pods comfortably (requests 100m each). If the whole class runs the HPA challenge at once (15 × 6 Pods × 100m = 9 vCPU requested) the scheduler will leave Pods `Pending`; raise `node_count` to 4 in `cluster/main.tf` for a large class, or run the challenge in two waves.
+**Capacity:** four `t3.large` nodes (`node_count` default 4 since 2026-11-06; 2 vCPU / 8 GiB and 35 Pods each, ≈ 15 vCPU allocatable). Two nodes are enough for one or two testers but not for a class: 15 × 2 Pods × 100m is already ≈ 95 % of two nodes' allocatable CPU before anyone scales. With four, the whole class at the base two Pods uses about a quarter (system Pods included); the scale-to-12 step and the HPA challenge (15 × 6 Pods × 100m = 9 vCPU) fit if students don't all run them in the same minute. If Pods go `Pending` with *Insufficient cpu*, run the challenge in two waves.
 
 **CloudShell:** already allowed for students (`AWSCloudShellFullAccess` on the group). First launch takes ~60 s; `kubectl` (v1.36 at the time of writing) and the AWS CLI are pre-installed. If a student's CloudShell shows the wrong region, the region picker in the console controls it. Note for anyone verifying with a *federated* console session (GetFederationToken): such sessions have no access entry and get `You must be logged in to the server`; that is expected and does not affect IAM users.
 
@@ -269,14 +269,14 @@ What students get (RBAC and quotas verified by impersonation with `kubectl --as=
 | Every command says Forbidden | namespace not set, or a typo in it | `kubectl config set-context --current --namespace participant-NN` |
 | `EXTERNAL-IP <pending>` for minutes | LB being created; or quota `services.loadbalancers` exhausted (2) | Wait 2 min; `kubectl describe svc` → Events |
 | Pods `Pending` with *Insufficient cpu* | nodes full (see Capacity) | Scale someone's HPA down; add nodes |
-| `ImagePullBackOff` when it should work | image URI typo; or they deleted their Lab 4 repository | Use the shared `participant-01-mission-control:v3` image kept for this purpose (rebuilt from the revised app) |
+| `ImagePullBackOff` when it should work | image URI typo; or they deleted their Lab 4 repository | Use the shared `962804699607.dkr.ecr.us-west-2.amazonaws.com/pipeline-academy/mission-control:v3` image kept for this purpose (built from the revised app) |
 | Pods `0/1 Running` right after Part 3, `statuscode: 404` in the events | an image from before this revision (no `/ready` endpoint) | rebuild from the current `app.zip`, or use the shared image |
 | `kubectl rollout status` prints `exceeded its progress deadline` | `progressDeadlineSeconds: 120` in the manifest; expected in troubleshooting exercise 1 | `kubectl rollout undo` |
 | `kubectl edit configmap` opens vi and they are stuck | CloudShell's default editor | `:q!` to escape; the guide gives the `kubectl patch` one-liner instead |
 | Challenge A: HPA stays at 2 and `kubectl top` says `error: Metrics API not available` | metrics-server add-on not Ready | `kubectl -n kube-system get deploy metrics-server` as the instructor |
 | Challenge H: `kubectl apply -f 01-deployment.yaml` fails with `secret "mission-secret" not found` on the Pods | they added the `secretRef` before creating the Secret | create it, Pods start by themselves |
 
-**Cost:** the EKS control plane bills per hour, plus 2 × t3.large and one Classic LB per student namespace that creates a Service. Destroy the same day.
+**Cost:** the EKS control plane bills per hour, plus 4 × t3.large (≈ US$0.43/hour with the control plane) and one Classic LB per student namespace that creates a Service. Destroy the same day.
 
 **Namespace cleanup:** the revised Part 9 deletes everything the lab creates (ConfigMap, Secret, Job, PDB, HPA, load generator, Service, Deployment); `kubectl get all,cm,secret,pdb,hpa,job -n participant-NN` should show only `kube-root-ca.crt`.
 
@@ -339,7 +339,8 @@ terraform -chdir=lab3-broken-pipeline/terraform destroy
 # Everything students created by hand in Labs 1–2 (including missions and level-ups: secrets, SNS topics,
 # EventBridge rules, the pipeline-build project, both web servers), Lab 4 and Lab 6, for students 01..15
 tools/cleanup-student.sh $(seq -w 1 15)
-# Lab 6's shared images
+# The shared images (Lab 5's fallback, Lab 6's releases)
+aws ecr delete-repository --repository-name pipeline-academy/mission-control --force
 aws ecr delete-repository --repository-name pipeline-academy/galactic-pizza --force
 ```
 

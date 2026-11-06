@@ -127,14 +127,14 @@
 </tr>
 <tr>
 <td>Fargate</td>
-<td>EC2 <strong>nodes</strong> in a managed node group (two <code>t3.large</code>), shared by the class</td>
+<td>EC2 <strong>nodes</strong> in a managed node group (four <code>t3.large</code>), shared by the class</td>
 <td>made by the instructor</td>
 </tr>
 </tbody></table>
 <h3>What the instructor built for you</h3>
 <p><img class="shot" src="images/lab5-eks-cluster-overview.png" alt="EKS cluster overview" loading="lazy" title="Click to zoom"></p>
 <ul>
-<li>One EKS cluster, Kubernetes 1.33, two worker nodes, the usual add-ons (networking, DNS, metrics).</li>
+<li>One EKS cluster, Kubernetes 1.33, four worker nodes, the usual add-ons (networking, DNS, metrics).</li>
 <li>An <strong>access entry</strong> that maps your IAM user to a Kubernetes group named <code>participant-NN</code>.</li>
 <li>A <strong>namespace</strong> <code>participant-NN</code>, a <strong>Role</strong> granting that group everything inside it, a <strong>ClusterRole</strong> allowing read-only <code>get nodes</code>, a <strong>ResourceQuota</strong> (max 12 pods, 2 load balancers, 2 CPU / 3 GiB requested) and a <strong>LimitRange</strong> (default requests/limits for containers that forget to set them).</li>
 </ul>
@@ -158,10 +158,12 @@ kubectl get nodes
 <pre><code>Client Version: v1.36.2-eks-8f14419
 Added new context arn:aws:eks:us-west-2:962804699607:cluster/cicd-lab5-eks to /home/cloudshell-user/.kube/config
 NAME                                          STATUS   ROLES    AGE   VERSION
-ip-172-31-37-155.us-west-2.compute.internal   Ready    &lt;none&gt;   22m   v1.33.13-eks-6e7947a
-ip-172-31-59-50.us-west-2.compute.internal    Ready    &lt;none&gt;   22m   v1.33.13-eks-6e7947a
+ip-172-31-15-142.us-west-2.compute.internal   Ready    &lt;none&gt;   22m   v1.33.13-eks-6e7947a
+ip-172-31-18-109.us-west-2.compute.internal   Ready    &lt;none&gt;   22m   v1.33.13-eks-6e7947a
+ip-172-31-41-66.us-west-2.compute.internal    Ready    &lt;none&gt;   22m   v1.33.13-eks-6e7947a
+ip-172-31-57-192.us-west-2.compute.internal   Ready    &lt;none&gt;   22m   v1.33.13-eks-6e7947a
 </code></pre>
-<p>Two nodes, both <code>Ready</code>. That <code>get nodes</code> worked because of the read-only ClusterRole; it is the only cluster-wide thing you may see.</p>
+<p>Four nodes, all <code>Ready</code>. That <code>get nodes</code> worked because of the read-only ClusterRole; it is the only cluster-wide thing you may see.</p>
 <p>If instead you get <code>error: You must be logged in to the server (the server has asked for the client to provide credentials)</code>, your IAM identity has no <strong>access entry</strong> on the cluster: check that CloudShell shows your own user (<code>aws sts get-caller-identity</code>) and ask the instructor to confirm the cluster module has been applied for your number.</p>
 </div></details>
 
@@ -202,7 +204,7 @@ No resources found in participant-01 namespace.
 <h2 id="part-3-deploy-mission-control">Part 3 · Deploy Mission Control</h2>
 <p>Download <strong><a href="downloads/lab5-manifests.zip"><code>lab5-eks/lab5-manifests.zip</code></a></strong> (or the folder <a href="https://github.com/varoonsahgal/cicdcg/tree/main/lab5-eks/manifests/"><code>lab5-eks/manifests/</code></a>) and upload the YAML files to CloudShell (<strong>Actions → Upload file</strong>, then <code>unzip lab5-manifests.zip</code>), or create them with <code>nano</code>. Then edit <code>01-deployment.yaml</code>:</p>
 <ul>
-<li>replace <code>IMAGE</code> with <strong>your Lab 4 image URI</strong>, e.g. <code>962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3</code> (if you deleted it already, use the shared <code>…/participant-01-mission-control:v3</code>);</li>
+<li>replace <code>IMAGE</code> with <strong>your Lab 4 image URI</strong>, e.g. <code>962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3</code> (if you deleted it already, use the shared <code>962804699607.dkr.ecr.us-west-2.amazonaws.com/pipeline-academy/mission-control:v3</code>);</li>
 </ul>
 <p>and in <code>00-configmap.yaml</code> replace <code>Artemis-NN</code> and the <code>participant-NN</code> in the message with your number.</p>
 <p>Three files, three kinds of object. <strong>The ConfigMap</strong> holds configuration, outside the image:</p>

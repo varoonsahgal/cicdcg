@@ -44,13 +44,13 @@ Kubernetes is a control loop. You hand it a **desired state** written in YAML ("
 | Service Auto Scaling | **HorizontalPodAutoscaler** | `03-hpa.yaml` |
 | `ecs run-task` (one-off) | **Job** (run to completion), **CronJob** | `05-smoke-test.yaml` |
 | Cluster per team, IAM | **Namespace** per student + **RBAC** + **ResourceQuota** + **LimitRange** | made by the instructor |
-| Fargate | EC2 **nodes** in a managed node group (two `t3.large`), shared by the class | made by the instructor |
+| Fargate | EC2 **nodes** in a managed node group (four `t3.large`), shared by the class | made by the instructor |
 
 ### What the instructor built for you
 
 ![EKS cluster overview](../docs/images/lab5-eks-cluster-overview.png)
 
-- One EKS cluster, Kubernetes 1.33, two worker nodes, the usual add-ons (networking, DNS, metrics).
+- One EKS cluster, Kubernetes 1.33, four worker nodes, the usual add-ons (networking, DNS, metrics).
 - An **access entry** that maps your IAM user to a Kubernetes group named `participant-NN`.
 - A **namespace** `participant-NN`, a **Role** granting that group everything inside it, a **ClusterRole** allowing read-only `get nodes`, a **ResourceQuota** (max 12 pods, 2 load balancers, 2 CPU / 3 GiB requested) and a **LimitRange** (default requests/limits for containers that forget to set them).
 
@@ -83,11 +83,13 @@ kubectl get nodes
 Client Version: v1.36.2-eks-8f14419
 Added new context arn:aws:eks:us-west-2:962804699607:cluster/cicd-lab5-eks to /home/cloudshell-user/.kube/config
 NAME                                          STATUS   ROLES    AGE   VERSION
-ip-172-31-37-155.us-west-2.compute.internal   Ready    <none>   22m   v1.33.13-eks-6e7947a
-ip-172-31-59-50.us-west-2.compute.internal    Ready    <none>   22m   v1.33.13-eks-6e7947a
+ip-172-31-15-142.us-west-2.compute.internal   Ready    <none>   22m   v1.33.13-eks-6e7947a
+ip-172-31-18-109.us-west-2.compute.internal   Ready    <none>   22m   v1.33.13-eks-6e7947a
+ip-172-31-41-66.us-west-2.compute.internal    Ready    <none>   22m   v1.33.13-eks-6e7947a
+ip-172-31-57-192.us-west-2.compute.internal   Ready    <none>   22m   v1.33.13-eks-6e7947a
 ```
 
-Two nodes, both `Ready`. That `get nodes` worked because of the read-only ClusterRole; it is the only cluster-wide thing you may see.
+Four nodes, all `Ready`. That `get nodes` worked because of the read-only ClusterRole; it is the only cluster-wide thing you may see.
 
 If instead you get `error: You must be logged in to the server (the server has asked for the client to provide credentials)`, your IAM identity has no **access entry** on the cluster: check that CloudShell shows your own user (`aws sts get-caller-identity`) and ask the instructor to confirm the cluster module has been applied for your number.
 </details>
@@ -145,7 +147,7 @@ Read the first message like the IAM errors of Lab 3 and Lab 4: **who** (`User "p
 
 Download **[`lab5-eks/lab5-manifests.zip`](../lab5-eks/lab5-manifests.zip)** (or the folder [`lab5-eks/manifests/`](../lab5-eks/manifests/)) and upload the YAML files to CloudShell (**Actions → Upload file**, then `unzip lab5-manifests.zip`), or create them with `nano`. Then edit `01-deployment.yaml`:
 
-- replace `IMAGE` with **your Lab 4 image URI**, e.g. `962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3` (if you deleted it already, use the shared `…/participant-01-mission-control:v3`);
+- replace `IMAGE` with **your Lab 4 image URI**, e.g. `962804699607.dkr.ecr.us-west-2.amazonaws.com/participant-NN-mission-control:v3` (if you deleted it already, use the shared `962804699607.dkr.ecr.us-west-2.amazonaws.com/pipeline-academy/mission-control:v3`);
 
 and in `00-configmap.yaml` replace `Artemis-NN` and the `participant-NN` in the message with your number.
 

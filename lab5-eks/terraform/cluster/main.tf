@@ -21,7 +21,7 @@ variable "aws_profile" { default = "instructor-01" }
 variable "cluster_name" { default = "cicd-lab5-eks" }
 variable "kubernetes_version" { default = "1.33" }
 variable "node_instance_type" { default = "t3.large" }
-variable "node_count" { default = 2 }
+variable "node_count" { default = 4 } # 2 is ~95 % of CPU requests for 15 students × 2 Pods; 4 leaves room to scale
 variable "student_count" { default = 15 }
 variable "student_prefix" { default = "participant" }
 
